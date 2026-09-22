@@ -1,0 +1,15 @@
+# Dependencias
+node_modules/
+dist/
+build/
+
+# Entorno
+.env
+.env.local
+
+# Docker
+*.log
+
+# Editor / SO
+.vscode/
+.DS_Store
