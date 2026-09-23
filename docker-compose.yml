@@ -10,25 +10,38 @@ services:
       - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pickquest -d pickquest"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   backend:
     build: ./backend
     restart: unless-stopped
     ports:
       - "3000:3000"
+    # Los valores se pueden sobrescribir con un archivo .env en la raíz del repo.
     environment:
       DATABASE_URL: postgresql://pickquest:pickquest@db:5432/pickquest
+      JWT_SECRET: ${JWT_SECRET:-changeme}
+      JUDGE0_API_URL: ${JUDGE0_API_URL:-}
+      JUDGE0_API_KEY: ${JUDGE0_API_KEY:-}
     volumes:
       - ./backend:/app
       - /app/node_modules
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   frontend:
     build: ./frontend
     restart: unless-stopped
     ports:
       - "5173:5173"
+    # El navegador llama al backend por el puerto publicado en el host.
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
     volumes:
       - ./frontend:/app
       - /app/node_modules
