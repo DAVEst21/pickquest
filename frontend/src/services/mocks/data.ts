@@ -1,4 +1,5 @@
-import type { Estudiante, Fase, IntentoReto, Reto } from '../../types';
+// Datos de la versión simulada. NO se usan en ningún flujo real (ver services/api.ts).
+import type { Estudiante, Fase, IntentoReto, Reto } from './tipos-mock';
 
 export const FASES_MOCK: Fase[] = [
   {

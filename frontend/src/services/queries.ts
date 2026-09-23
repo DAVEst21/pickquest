@@ -1,90 +1,103 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { RespuestaPregunta, Sesion } from '../types';
+import { useAuthStore } from '../store/authStore';
+import { usePlayerStore } from '../store/playerStore';
 import {
   enviarIntento,
-  getEstudiante,
   getFaseDetalle,
   getFases,
   getIntento,
-  type PayloadIntento,
+  getPerfil,
+  iniciarSesion,
+  registrar,
+  registrarAyuda,
 } from './api';
-import { usePlayerStore } from '../store/playerStore';
 
 export const QUERY_KEYS = {
+  perfil: ['perfil'] as const,
   fases: ['fases'] as const,
   faseDetalle: (id: number) => ['fase', id] as const,
   intento: (id: number) => ['intento', id] as const,
-  estudiante: ['estudiante'] as const,
 };
 
-/**
- * Hook para consultar el listado de fases (CU-01)
- */
+const esIdValido = (id: number) => Number.isInteger(id) && id > 0;
+
+/** Perfil del estudiante autenticado; alimenta el playerStore (ver RutaProtegida). */
+export function usePerfil(habilitado = true) {
+  return useQuery({
+    queryKey: QUERY_KEYS.perfil,
+    queryFn: getPerfil,
+    enabled: habilitado,
+  });
+}
+
+/** Listado de fases con su estado para el estudiante (CU-01). */
 export function useFases() {
   return useQuery({
     queryKey: QUERY_KEYS.fases,
     queryFn: getFases,
-    staleTime: 1000 * 60 * 5,
   });
 }
 
-/**
- * Hook para consultar detalle de una fase y sus objetivos (CU-02)
- */
-export function useFaseDetalle(faseId: number) {
+/** Detalle de una fase con su reto (CU-02). */
+export function useFaseDetalle(faseId: number | undefined) {
   return useQuery({
-    queryKey: QUERY_KEYS.faseDetalle(faseId),
-    queryFn: () => getFaseDetalle(faseId),
-    enabled: !isNaN(faseId),
+    queryKey: QUERY_KEYS.faseDetalle(faseId ?? 0),
+    queryFn: () => getFaseDetalle(faseId!),
+    enabled: faseId !== undefined && esIdValido(faseId),
   });
 }
 
-/**
- * Hook para consultar el resultado de un intento específico (CU-04)
- */
+/** Resultado de un intento (CU-04). */
 export function useIntento(intentoId: number) {
   return useQuery({
     queryKey: QUERY_KEYS.intento(intentoId),
     queryFn: () => getIntento(intentoId),
-    enabled: !isNaN(intentoId),
+    enabled: esIdValido(intentoId),
   });
 }
 
-/**
- * Hook para consultar los datos del estudiante
- */
-export function useEstudiante() {
-  return useQuery({
-    queryKey: QUERY_KEYS.estudiante,
-    queryFn: getEstudiante,
-    staleTime: 1000 * 60 * 5,
-  });
+/** Registrar el uso de una ayuda antes de enviar el intento. */
+export function useRegistrarAyuda() {
+  return useMutation({ mutationFn: (retoId: number) => registrarAyuda(retoId) });
 }
 
 /**
- * Hook para enviar la resolución de un reto (CU-03)
+ * Enviar la solución de un reto (CU-03). Tras la respuesta se vuelven a pedir
+ * perfil y fases al backend: XP/QP/nivel y el estado de las fases nunca se
+ * calculan en el cliente.
  */
 export function useEnviarIntento() {
   const queryClient = useQueryClient();
-  const actualizarDesdeIntento = usePlayerStore((state) => state.actualizarDesdeIntento);
-
   return useMutation({
-    mutationFn: ({
-      faseId,
-      retoId,
-      payload,
-    }: {
-      faseId: number;
-      retoId: number;
-      payload: PayloadIntento;
-    }) => enviarIntento(faseId, retoId, payload),
-    onSuccess: (nuevoIntento) => {
-      // Actualizar estado del jugador en tiempo real si aprobó
-      if (nuevoIntento.aprobado) {
-        actualizarDesdeIntento(nuevoIntento);
-      }
-      // Invalidar consultas relevantes
+    mutationFn: ({ retoId, respuestas }: { retoId: number; respuestas: RespuestaPregunta[] }) =>
+      enviarIntento(retoId, respuestas),
+    onSuccess: (intento) => {
+      queryClient.setQueryData(QUERY_KEYS.intento(intento.id), intento);
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.perfil });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.fases });
-      queryClient.setQueryData(QUERY_KEYS.intento(nuevoIntento.id), nuevoIntento);
+      queryClient.invalidateQueries({ queryKey: ['fase'] });
     },
   });
+}
+
+function useAbrirSesion() {
+  const iniciar = useAuthStore((s) => s.iniciarSesion);
+  const setPerfil = usePlayerStore((s) => s.setPerfil);
+  const queryClient = useQueryClient();
+  return (sesion: Sesion) => {
+    iniciar(sesion.accessToken);
+    queryClient.setQueryData(QUERY_KEYS.perfil, sesion.estudiante);
+    setPerfil(sesion.estudiante);
+  };
+}
+
+export function useLogin() {
+  const abrirSesion = useAbrirSesion();
+  return useMutation({ mutationFn: iniciarSesion, onSuccess: abrirSesion });
+}
+
+export function useRegistro() {
+  const abrirSesion = useAbrirSesion();
+  return useMutation({ mutationFn: registrar, onSuccess: abrirSesion });
 }

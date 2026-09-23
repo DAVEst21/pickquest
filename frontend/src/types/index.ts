@@ -1,7 +1,10 @@
+// Tipos del contrato con el backend (ver Swagger en <VITE_API_URL>/docs).
+
 export type TemaFase = 'ELICITACION' | 'ATRIBUTOS_CALIDAD' | 'CODIGO_PRUEBAS';
 
 export type EstadoFase = 'bloqueada' | 'desbloqueada' | 'en_progreso' | 'completada';
 
+/** GET /fases: el estado viene calculado por el backend para el estudiante autenticado. */
 export interface Fase {
   id: number;
   nombre: string;
@@ -9,91 +12,92 @@ export interface Fase {
   dificultad: string;
   orden: number;
   estado: EstadoFase;
-  descripcionNarrativa?: string;
-  subtitulo?: string;
-  sprint?: string;
-  progreso?: number; // 0-100
-  calificacionEstrellas?: number; // 0-3
-  recompensaQp?: number;
-  recompensaXp?: number;
-  bloqueoRazon?: string;
-  icono?: string;
-  esBoss?: boolean;
-}
-
-export interface ObjetivoMision {
-  id: string;
-  texto: string;
-  descripcion: string;
-  tag: string;
-  requerido?: boolean;
-  umbral?: number;
-}
-
-export interface ItemGarantizado {
-  nombre: string;
-  tipo: string;
-  descripcion: string;
-}
-
-export interface RecompensasFase {
-  xp: number;
-  qp: number;
-  itemGarantizado?: ItemGarantizado;
-  rangoMaestria?: string;
+  retoId: number | null;
+  intentosRealizados: number;
+  mejorPorcentaje: number | null;
+  mejorCalificacionEstrellas: number | null; // 0-3
 }
 
 export interface Reto {
   id: number;
   faseId: number;
   criteriosAceptacion: string;
-  calificacionMinima: number; // 0.8 según RN-03 (80%)
-  titulo?: string;
-  subtitulo?: string;
-  escenario?: string;
-  tiempoSugerido?: string;
-  objetivos?: ObjetivoMision[];
-  recompensas?: RecompensasFase;
+  calificacionMinima: number; // fracción 0-1 (0.8 = 80%)
+  recompensaXp: number;
+  recompensaQp: number;
+  /** Identificadores de las preguntas que evalúa el backend. */
+  preguntas: string[];
 }
 
-export interface HitoDesglose {
-  id: string;
-  nombre: string;
-  descripcion: string;
-  puntos: number;
-  superado: boolean;
+export interface ContenidoApoyo {
+  id: number;
+  contenidoTeorico: string;
+  ejemplos: string;
+  glosario: string;
 }
 
+/** GET /fases/:faseId */
+export interface FaseDetalle {
+  fase: Fase;
+  reto: Reto | null;
+  contenidosApoyo: ContenidoApoyo[];
+}
+
+export interface RespuestaPregunta {
+  preguntaId: string;
+  respuesta: string;
+}
+
+/** POST /retos/:retoId/intentos y GET /intentos/:intentoId */
 export interface IntentoReto {
   id: number;
   retoId: number;
   faseId: number;
-  calificacionEstrellas: number; // 0-3
   porcentaje: number; // 0-100
+  calificacionEstrellas: number; // 0-3
+  aprobado: boolean;
   xpGanado: number;
   qpGanado: number;
-  aprobado: boolean;
   usoAyuda: boolean;
-  desgloseHitos?: HitoDesglose[];
+  createdAt: string;
 }
 
-export interface Estudiante {
+/** POST /retos/:retoId/ayuda */
+export interface AyudaRegistrada {
+  retoId: number;
+  ayudasPendientes: number;
+}
+
+export interface Racha {
+  diasActuales: number;
+  diasRecord: number;
+  multiplicadorQP: number;
+}
+
+/** GET /auth/perfil */
+export interface PerfilEstudiante {
+  id: number;
+  email: string;
+  nombreAventurero: string;
+  avatar: string | null;
   nivel: number;
   xpTotal: number;
   xpSiguienteNivel: number;
   qpTotal: number;
-  racha: {
-    diasActuales: number;
-  };
-  titulo?: string;
-  avatarUrl?: string;
+  racha: Racha | null;
 }
 
-export interface Consumible {
-  id: string;
-  nombre: string;
-  tipo: string;
-  descripcion: string;
-  icono: string;
-  usado: boolean;
+/** POST /auth/login y POST /auth/registro */
+export interface Sesion {
+  accessToken: string;
+  estudiante: PerfilEstudiante;
+}
+
+export interface Credenciales {
+  email: string;
+  password: string;
+}
+
+export interface DatosRegistro extends Credenciales {
+  nombreAventurero: string;
 }
