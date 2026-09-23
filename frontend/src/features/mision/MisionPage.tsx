@@ -43,7 +43,7 @@ export const MisionPage: React.FC = () => {
               <span className="text-surface-bright">/</span>
               <span className="text-tertiary">Sector SDLC: Arquitectura</span>
               <span className="text-surface-bright">/</span>
-              <span className="text-primary font-bold">CU-02 · Tablón de Misiones</span>
+              <span className="text-primary font-bold">Tablón de Misiones</span>
             </div>
           </div>
 
@@ -227,7 +227,7 @@ export const MisionPage: React.FC = () => {
                       <div className="flex flex-col flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-space-xs">
                           <span className="font-title-md text-title-md text-on-surface group-hover:text-primary transition-colors">
-                            Alcanzar una precisión mínima del 80% (RN-03)
+                            Alcanzar una precisión mínima del 80%
                           </span>
                           <span className="shrink-0 px-space-xs py-0.5 rounded bg-surface-container-highest text-primary font-label-sm text-label-sm font-bold">
                             Umbral Crítico

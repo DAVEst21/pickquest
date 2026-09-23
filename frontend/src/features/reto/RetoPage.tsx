@@ -242,9 +242,7 @@ export const RetoPage: React.FC = () => {
                     menu_book
                   </span>
                   <span className="font-label-md text-label-md font-semibold">Guía Técnica</span>
-                  <span className="px-1.5 py-0.2 bg-secondary-container text-on-secondary-container font-label-sm text-[9px] rounded font-bold">
-                    CU-08
-                  </span>
+
                 </button>
               </div>
             </div>
@@ -313,7 +311,7 @@ export const RetoPage: React.FC = () => {
                     <h2 className="font-title-lg text-title-lg text-on-surface font-bold">Cinto de Combate</h2>
                   </div>
                   <span className="px-space-xs py-0.5 rounded bg-surface-container-high text-primary font-label-sm text-label-sm font-bold">
-                    RN-11 ({clueUsed || discardUsed ? '1/2' : '2/2'})
+                    Usos: {clueUsed || discardUsed ? '1/2' : '2/2'}
                   </span>
                 </div>
                 <p className="font-body-sm text-body-sm text-on-surface-variant mb-space-md">
@@ -819,7 +817,7 @@ export const RetoPage: React.FC = () => {
                     </div>
                     <div>
                       <span className="font-label-sm text-label-sm text-secondary uppercase font-bold">
-                        Compendio SDLC · CU-08
+                        Compendio SDLC
                       </span>
                       <h3 id="guide-title" className="font-headline-sm text-headline-sm text-on-surface">
                         Guía Técnica ISO/IEC 25010

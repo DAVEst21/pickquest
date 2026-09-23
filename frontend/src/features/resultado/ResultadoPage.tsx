@@ -207,7 +207,7 @@ export const ResultadoPage: React.FC = () => {
                       <div className="w-px h-6 bg-surface-container-highest"></div>
                       <div className="flex-1">
                         <span className="font-label-sm text-label-sm text-error block uppercase font-bold">
-                          Exigido (RN-03)
+                          Exigido
                         </span>
                         <span className="font-title-md text-title-md text-error font-bold">80% Mínimo</span>
                       </div>

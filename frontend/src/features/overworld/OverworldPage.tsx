@@ -46,7 +46,7 @@ export const OverworldPage: React.FC = () => {
                 <div className="flex flex-col">
                   <div className="flex items-center gap-space-xs">
                     <span className="font-label-sm text-label-sm uppercase tracking-widest text-tertiary">
-                      CU-01 · Mapa General
+                      Mapa General
                     </span>
                     <span className="font-label-sm text-label-sm text-on-surface-variant">/</span>
                     <span className="font-label-sm text-label-sm text-primary-fixed-dim uppercase tracking-wider">
@@ -377,7 +377,7 @@ export const OverworldPage: React.FC = () => {
                       <div className="pt-space-xs bg-surface-container-lowest/60 px-space-sm py-space-xs rounded-lg flex items-center gap-space-xs">
                         <span className="material-symbols-outlined text-label-sm text-error">info</span>
                         <span className="font-label-sm text-label-sm text-on-surface-variant/70 truncate">
-                          RN-01: Requiere fase anterior
+                          Requiere fase anterior
                         </span>
                       </div>
                     </div>
@@ -406,7 +406,7 @@ export const OverworldPage: React.FC = () => {
                       <div className="pt-space-xs bg-surface-container-lowest/60 px-space-sm py-space-xs rounded-lg flex items-center gap-space-xs">
                         <span className="material-symbols-outlined text-label-sm text-error">info</span>
                         <span className="font-label-sm text-label-sm text-on-surface-variant/70 truncate">
-                          RN-01: Requiere fase anterior
+                          Requiere fase anterior
                         </span>
                       </div>
                     </div>
@@ -433,7 +433,7 @@ export const OverworldPage: React.FC = () => {
                       <div className="pt-space-xs bg-surface-container-lowest/60 px-space-sm py-space-xs rounded-lg flex items-center gap-space-xs">
                         <span className="material-symbols-outlined text-label-sm text-error">info</span>
                         <span className="font-label-sm text-label-sm text-on-surface-variant/70 truncate">
-                          RN-01: Requiere fase anterior
+                          Requiere fase anterior
                         </span>
                       </div>
                     </div>

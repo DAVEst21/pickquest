@@ -59,19 +59,19 @@ export const Header: React.FC = () => {
             </Link>
             <span
               className="px-space-md py-space-sm rounded-lg font-title-md text-title-md text-on-surface-variant/50 cursor-not-allowed"
-              title="Próximamente en CU-05"
+              title="Próximamente"
             >
               Ficha Dev
             </span>
             <span
               className="px-space-md py-space-sm rounded-lg font-title-md text-title-md text-on-surface-variant/50 cursor-not-allowed"
-              title="Próximamente en CU-07"
+              title="Próximamente"
             >
               Leaderboard
             </span>
             <span
               className="px-space-md py-space-sm rounded-lg font-title-md text-title-md text-on-surface-variant/50 cursor-not-allowed"
-              title="Próximamente en CU-06"
+              title="Próximamente"
             >
               Tienda del Gremio
             </span>
