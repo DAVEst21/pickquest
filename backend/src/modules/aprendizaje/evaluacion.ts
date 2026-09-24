@@ -1,8 +1,21 @@
-/** Elemento de Reto.claveRespuestas. */
+/** Una opción visible de una pregunta de opción múltiple/clasificar/emparejar. */
+export interface OpcionClave {
+  valor: string;
+  texto: string;
+}
+
+/**
+ * Elemento de Reto.claveRespuestas. Solo preguntaId/correcta/peso importan
+ * para calificar; texto/opciones/parte son descriptivos (para que el
+ * frontend muestre la pregunta real) y se ignoran aquí.
+ */
 export interface PreguntaClave {
   preguntaId: string;
   correcta: string;
   peso: number;
+  texto?: string;
+  opciones?: OpcionClave[];
+  parte?: string;
 }
 
 export interface RespuestaPregunta {

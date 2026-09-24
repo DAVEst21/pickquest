@@ -10,7 +10,7 @@ import { esConflictoTransaccion } from '../../common/prisma/prisma-errores';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { calcularNivel } from '../progreso/nivel';
 import { EnviarIntentoDto } from './dto/enviar-intento.dto';
-import { FaseDetalleDto, FaseDto, RetoDto } from './dto/fase.dto';
+import { FaseDetalleDto, FaseDto, PreguntaDto, RetoDto } from './dto/fase.dto';
 import { AyudaRegistradaDto, IntentoDto } from './dto/intento.dto';
 import {
   calcularEstadosFases,
@@ -374,9 +374,15 @@ function aFaseDto(
 }
 
 function aRetoDto(reto: Reto): RetoDto {
-  let preguntas: string[] = [];
+  // `correcta` nunca se manda al cliente: solo preguntaId/texto/opciones/parte.
+  let preguntas: PreguntaDto[] = [];
   try {
-    preguntas = parsearClave(reto.contenido).map((p) => p.preguntaId);
+    preguntas = parsearClave(reto.contenido).map((p) => ({
+      preguntaId: p.preguntaId,
+      texto: p.texto ?? p.preguntaId,
+      opciones: p.opciones,
+      parte: p.parte,
+    }));
   } catch {
     preguntas = [];
   }

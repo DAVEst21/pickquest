@@ -7,8 +7,9 @@ import { PrismaService } from '../src/common/prisma/prisma.service';
 import { parsearClave } from '../src/modules/aprendizaje/evaluacion';
 import { calcularNivel } from '../src/modules/progreso/nivel';
 
-// Requiere la base de datos migrada y con el seed cargado (al menos una fase
-// de orden 1 con reto). El estudiante de prueba se borra al terminar.
+// Requiere la base de datos migrada y con el seed cargado (fases 1-3 con
+// contenido real: 3 retos cada una). El estudiante de prueba se borra al
+// terminar.
 describe('Auth + Aprendizaje (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
@@ -23,6 +24,29 @@ describe('Auth + Aprendizaje (e2e)', () => {
 
   const http = () => request(app.getHttpServer());
   const auth = () => ({ Authorization: `Bearer ${token}` });
+
+  /** Respuestas 100% correctas de un reto, leídas directamente de la BD (el cliente nunca ve `correcta`). */
+  const respuestasCorrectas = async (retoId: number) => {
+    const reto = await prisma.reto.findUniqueOrThrow({ where: { id: retoId } });
+    return parsearClave(reto.contenido).map((p) => ({
+      preguntaId: p.preguntaId,
+      respuesta: p.correcta,
+    }));
+  };
+
+  /** Envía la solución 100% correcta al "reto actual" de la fase, repitiendo hasta dejarla completada. */
+  const aprobarFaseCompleta = async (faseId: number) => {
+    for (;;) {
+      const detalle = (await http().get(`/fases/${faseId}`).set(auth())).body;
+      if (detalle.fase.estado === 'completada') return;
+      const respuestas = await respuestasCorrectas(detalle.reto.id);
+      await http()
+        .post(`/retos/${detalle.reto.id}/intentos`)
+        .set(auth())
+        .send({ respuestas })
+        .expect(201);
+    }
+  };
 
   beforeAll(async () => {
     const modulo = await Test.createTestingModule({
@@ -120,30 +144,39 @@ describe('Auth + Aprendizaje (e2e)', () => {
         .expect(403);
     });
 
-    it('evalúa en el servidor, calcula usoAyuda e ignora lo que mande el cliente', async () => {
+    it('el reto nunca expone la respuesta correcta, sí el texto y las opciones de cada pregunta', async () => {
+      const fases = (await http().get('/fases').set(auth())).body;
+      const detalle = (await http().get(`/fases/${fases[0].id}`).set(auth()))
+        .body;
+      expect(JSON.stringify(detalle.reto)).not.toMatch(/"correcta"/);
+      expect(detalle.reto.preguntas[0]).toMatchObject({
+        preguntaId: expect.any(String),
+        texto: expect.any(String),
+      });
+      expect(detalle.reto.preguntas[0].opciones[0]).toMatchObject({
+        valor: expect.any(String),
+        texto: expect.any(String),
+      });
+    });
+
+    it('evalúa en el servidor, calcula usoAyuda e ignora lo que mande el cliente (fase 1, reto 1 de 3)', async () => {
       const fases = (await http().get('/fases').set(auth())).body;
       const primera = fases[0];
       const detalle = (
         await http().get(`/fases/${primera.id}`).set(auth()).expect(200)
       ).body;
-      expect(detalle.reto.claveRespuestas).toBeUndefined();
+      const reto = detalle.reto;
+      const respuestas = await respuestasCorrectas(reto.id);
 
-      // Respuestas correctas leídas de la BD (el cliente nunca recibe la clave).
-      const reto = await prisma.reto.findUniqueOrThrow({
-        where: { id: primera.retoId },
-      });
-      const respuestas = parsearClave(reto.contenido).map((p) => ({
-        preguntaId: p.preguntaId,
-        respuesta: p.correcta,
-      }));
-
-      // Sin ayuda: aunque el cliente mande usoAyuda/porcentaje, se ignoran.
+      // Sin ayuda, con una respuesta incorrecta: aunque el cliente mande
+      // usoAyuda/porcentaje/aprobado, se ignoran.
       const fallido = await http()
         .post(`/retos/${reto.id}/intentos`)
         .set(auth())
         .send({
           respuestas: [
             { preguntaId: respuestas[0].preguntaId, respuesta: 'mal' },
+            ...respuestas.slice(1),
           ],
           usoAyuda: true,
           porcentaje: 100,
@@ -198,14 +231,15 @@ describe('Auth + Aprendizaje (e2e)', () => {
       expect(perfil.qpTotal).toBe(reto.recompensaQp);
       expect(perfil).toMatchObject(calcularNivel(reto.recompensaXp));
 
+      // Fase 1 tiene 3 retos reales: aprobar solo el primero la deja
+      // en_progreso, NO completada, y la fase 2 sigue bloqueada.
       const despues = (await http().get('/fases').set(auth())).body;
       expect(despues[0]).toMatchObject({
-        estado: 'completada',
-        intentosRealizados: 3,
-        mejorPorcentaje: 100,
-        mejorCalificacionEstrellas: 3,
+        estado: 'en_progreso',
+        totalRetos: 3,
+        retosAprobados: 1,
       });
-      expect(despues[1].estado).toBe('desbloqueada');
+      expect(despues[1].estado).toBe('bloqueada');
 
       const consultado = await http()
         .get(`/intentos/${aprobado.body.id}`)
@@ -229,26 +263,57 @@ describe('Auth + Aprendizaje (e2e)', () => {
     it('responde 404 real para un intento inexistente', () =>
       http().get('/intentos/999999999').set(auth()).expect(404));
 
-    describe('calificación en estrellas (RN-04/RF-05, RN-05/RF-06)', () => {
+    it('la fase solo se marca completada al aprobar TODOS sus retos, y eso desbloquea la siguiente', async () => {
+      let fases = (await http().get('/fases').set(auth())).body;
+      expect(fases[0]).toMatchObject({
+        estado: 'en_progreso',
+        retosAprobados: 1,
+        totalRetos: 3,
+      });
+      expect(fases[1].estado).toBe('bloqueada');
+
+      // Aprueba los 2 retos restantes de fase 1 (ya tiene 1 de 3 aprobado).
+      await aprobarFaseCompleta(fases[0].id);
+      fases = (await http().get('/fases').set(auth())).body;
+      expect(fases[0]).toMatchObject({
+        estado: 'completada',
+        retosAprobados: 3,
+        totalRetos: 3,
+      });
+      expect(fases[1].estado).toBe('desbloqueada');
+
+      // Aprueba los 3 retos de fase 2.
+      await aprobarFaseCompleta(fases[1].id);
+      fases = (await http().get('/fases').set(auth())).body;
+      expect(fases[1]).toMatchObject({
+        estado: 'completada',
+        retosAprobados: 3,
+        totalRetos: 3,
+      });
+      expect(fases[2].estado).toBe('desbloqueada');
+    });
+
+    describe('calificación en estrellas (RN-04/RF-05, RN-05/RF-06) — reto ISO 25010 (fase 3, orden 1)', () => {
       it('menos de 80%: 0 estrellas, no aprobado, no otorga recompensa', async () => {
         const fases = (await http().get('/fases').set(auth())).body;
         const reto = await prisma.reto.findUniqueOrThrow({
-          where: { id: fases[1].retoId },
+          where: { id: fases[2].retoId },
         });
         const clave = parsearClave(reto.contenido);
-        // 1 de 2 preguntas correctas (peso 1 cada una) = 50%.
+        // Falla el tradeoff (peso 2 de 5): 3/5 = 60%.
         const res = await http()
           .post(`/retos/${reto.id}/intentos`)
           .set(auth())
           .send({
-            respuestas: [
-              { preguntaId: clave[0].preguntaId, respuesta: clave[0].correcta },
-              { preguntaId: clave[1].preguntaId, respuesta: 'incorrecta' },
-            ],
+            respuestas: clave.map((p) => ({
+              preguntaId: p.preguntaId,
+              respuesta:
+                p.preguntaId === 'tradeoff' ? 'incorrecta' : p.correcta,
+            })),
           })
           .expect(201);
         expect(res.body).toMatchObject({
-          porcentaje: 50,
+          porcentaje: 60,
           calificacionEstrellas: 0,
           aprobado: false,
           xpGanado: 0,
@@ -258,75 +323,43 @@ describe('Auth + Aprendizaje (e2e)', () => {
 
       it('aprueba con 1 estrella (80-89%) y luego mejora a 3 sin volver a dar recompensa', async () => {
         const fases = (await http().get('/fases').set(auth())).body;
-        const reto2 = await prisma.reto.findUniqueOrThrow({
-          where: { id: fases[1].retoId },
+        const reto = await prisma.reto.findUniqueOrThrow({
+          where: { id: fases[2].retoId },
         });
-        const clave2 = parsearClave(reto2.contenido);
+        const clave = parsearClave(reto.contenido);
 
-        // Fase 2 aprobada al 100% (2 de 2), primera aprobación: sí otorga XP/QP.
-        const primeraAprobacion = await http()
-          .post(`/retos/${reto2.id}/intentos`)
+        // Falla solo req-3 (peso 1 de 5): 4/5 = 80% -> 1 estrella, aprobado,
+        // primera aprobación de este reto: sí otorga XP/QP.
+        const primerIntento = await http()
+          .post(`/retos/${reto.id}/intentos`)
           .set(auth())
           .send({
-            respuestas: clave2.map((p) => ({
+            respuestas: clave.map((p) => ({
+              preguntaId: p.preguntaId,
+              respuesta: p.preguntaId === 'req-3' ? 'incorrecta' : p.correcta,
+            })),
+          })
+          .expect(201);
+        expect(primerIntento.body).toMatchObject({
+          porcentaje: 80,
+          calificacionEstrellas: 1,
+          aprobado: true,
+        });
+        expect(primerIntento.body.xpGanado).toBe(reto.recompensaXp);
+
+        // Se repite el mismo reto con 100%: mejora la marca a 3 estrellas,
+        // pero ya no otorga XP/QP (ya se había aprobado antes).
+        const segundoIntento = await http()
+          .post(`/retos/${reto.id}/intentos`)
+          .set(auth())
+          .send({
+            respuestas: clave.map((p) => ({
               preguntaId: p.preguntaId,
               respuesta: p.correcta,
             })),
           })
           .expect(201);
-        expect(primeraAprobacion.body).toMatchObject({
-          porcentaje: 100,
-          calificacionEstrellas: 3,
-          aprobado: true,
-        });
-        expect(primeraAprobacion.body.xpGanado).toBeGreaterThan(0);
-
-        // Fase 3 (ISO 25010: 4 preguntas, pesos 1,1,1,2 = 5 puntos) ya está
-        // desbloqueada. Primer intento: 4/5 puntos = 80% -> 1 estrella, aprobado,
-        // primera aprobación de ESTE reto: sí otorga XP/QP.
-        const fasesTrasFase2 = (await http().get('/fases').set(auth())).body;
-        const reto3 = await prisma.reto.findUniqueOrThrow({
-          where: { id: fasesTrasFase2[2].retoId },
-        });
-        const clave3 = parsearClave(reto3.contenido);
-        const correctas3 = Object.fromEntries(
-          clave3.map((p) => [p.preguntaId, p.correcta]),
-        );
-        // tradeoff pesa 2 de los 5 puntos: fallarlo dejamos exactamente 3/5 = 60%,
-        // así que en vez fallamos req-3 (peso 1) para quedar en 4/5 = 80%.
-        const primerIntentoFase3 = await http()
-          .post(`/retos/${reto3.id}/intentos`)
-          .set(auth())
-          .send({
-            respuestas: clave3.map((p) => ({
-              preguntaId: p.preguntaId,
-              respuesta:
-                p.preguntaId === 'req-3'
-                  ? 'incorrecta'
-                  : correctas3[p.preguntaId],
-            })),
-          })
-          .expect(201);
-        expect(primerIntentoFase3.body).toMatchObject({
-          porcentaje: 80,
-          calificacionEstrellas: 1,
-          aprobado: true,
-        });
-        expect(primerIntentoFase3.body.xpGanado).toBe(reto3.recompensaXp);
-
-        // Se repite el mismo reto con 100%: mejora la marca a 3 estrellas, pero
-        // ya no otorga XP/QP (ya se había aprobado antes).
-        const segundoIntentoFase3 = await http()
-          .post(`/retos/${reto3.id}/intentos`)
-          .set(auth())
-          .send({
-            respuestas: clave3.map((p) => ({
-              preguntaId: p.preguntaId,
-              respuesta: correctas3[p.preguntaId],
-            })),
-          })
-          .expect(201);
-        expect(segundoIntentoFase3.body).toMatchObject({
+        expect(segundoIntento.body).toMatchObject({
           porcentaje: 100,
           calificacionEstrellas: 3,
           aprobado: true,
@@ -334,29 +367,35 @@ describe('Auth + Aprendizaje (e2e)', () => {
           qpGanado: 0,
         });
 
-        // La MEJOR MARCA HISTÓRICA reportada por /fases es 3 (la del segundo
-        // intento), no 1 (la del primero, que fue el que aprobó primero).
-        const fasesFinal = (await http().get('/fases').set(auth())).body;
-        expect(fasesFinal[2]).toMatchObject({
-          estado: 'completada',
-          mejorCalificacionEstrellas: 3,
-          mejorPorcentaje: 100,
+        // La MEJOR MARCA HISTÓRICA del reto es 3 (la del segundo intento), no
+        // 1 (la del primero, que fue el que aprobó primero). Fase 3 tiene más
+        // retos: como este ya quedó aprobado, "reto actual" de la fase avanzó
+        // al siguiente (orden 2), así que la mejor marca ya no se lee en
+        // GET /fases (que ahora describe ESE otro reto) sino directamente
+        // sobre este reto, igual que la calcula resumirIntentos().
+        const mejorMarca = await prisma.intentoReto.aggregate({
+          where: { estudianteId, retoId: reto.id },
+          _max: { calificacionEstrellas: true, porcentaje: true },
+        });
+        expect(mejorMarca._max).toEqual({
+          calificacionEstrellas: 3,
+          porcentaje: 100,
         });
       });
 
       it('100% usando ayuda se trunca a 2 estrellas', async () => {
         const fases = (await http().get('/fases').set(auth())).body;
-        const reto3 = await prisma.reto.findUniqueOrThrow({
+        const reto = await prisma.reto.findUniqueOrThrow({
           where: { id: fases[2].retoId },
         });
-        const clave3 = parsearClave(reto3.contenido);
+        const clave = parsearClave(reto.contenido);
 
-        await http().post(`/retos/${reto3.id}/ayuda`).set(auth()).expect(201);
+        await http().post(`/retos/${reto.id}/ayuda`).set(auth()).expect(201);
         const res = await http()
-          .post(`/retos/${reto3.id}/intentos`)
+          .post(`/retos/${reto.id}/intentos`)
           .set(auth())
           .send({
-            respuestas: clave3.map((p) => ({
+            respuestas: clave.map((p) => ({
               preguntaId: p.preguntaId,
               respuesta: p.correcta,
             })),
@@ -371,50 +410,75 @@ describe('Auth + Aprendizaje (e2e)', () => {
       });
     });
 
+    it('aprobar los 3 retos de fase 3 (ISO ya aprobado + los 2 nuevos) la completa y desbloquea fase 4', async () => {
+      let fases = (await http().get('/fases').set(auth())).body;
+      expect(fases[2].estado).toBe('en_progreso');
+      expect(fases[3].estado).toBe('bloqueada');
+
+      await aprobarFaseCompleta(fases[2].id);
+
+      fases = (await http().get('/fases').set(auth())).body;
+      expect(fases[2]).toMatchObject({
+        estado: 'completada',
+        retosAprobados: 3,
+        totalRetos: 3,
+      });
+      // Fase 4 no tiene retos en el seed: queda "disponible, sin contenido todavía".
+      expect(fases[3]).toMatchObject({
+        estado: 'desbloqueada',
+        totalRetos: 0,
+        progreso: null,
+      });
+    });
+
     describe('progreso agregado de una fase con varios retos (Fase 3)', () => {
       let faseId: number;
-      let retoOriginalId: number;
-      let retoNuevoId: number;
+      let retoUnoId: number;
+      let retoDosId: number;
 
       afterAll(async () => {
-        // El reto creado para esta prueba no pertenece al estudiante de
-        // prueba (Reto no tiene dueño): si no se borra, queda para siempre
-        // como un segundo reto de la fase 2 para todos los estudiantes,
-        // incluido el demo.
-        if (retoNuevoId) {
-          await prisma.usoAyuda.deleteMany({ where: { retoId: retoNuevoId } });
-          await prisma.intentoReto.deleteMany({
-            where: { retoId: retoNuevoId },
-          });
-          await prisma.reto.delete({ where: { id: retoNuevoId } });
+        for (const id of [retoUnoId, retoDosId]) {
+          if (!id) continue;
+          await prisma.usoAyuda.deleteMany({ where: { retoId: id } });
+          await prisma.intentoReto.deleteMany({ where: { retoId: id } });
+          await prisma.reto.delete({ where: { id } });
         }
       });
 
       beforeAll(async () => {
-        // fases[1] (orden 2) ya está completada (100%, 3 estrellas, un solo
-        // reto) por la prueba de "mejora de marca" de más arriba. Se le
-        // agrega un SEGUNDO reto directamente en la BD: no hay endpoint para
-        // crear retos (fuera del alcance de esta fase), y es la forma más
-        // directa de probar la agregación multi-reto sin depender del seed.
+        // Fase 4 (orden 4) no tiene retos en el seed: se le agregan 2 retos de
+        // prueba directamente en la BD (no hay endpoint para crear retos,
+        // fuera del alcance de esta fase) para probar la agregación
+        // multi-reto sin mezclarla con el contenido curricular real.
         const fases = (await http().get('/fases').set(auth())).body;
-        faseId = fases[1].id;
-        retoOriginalId = fases[1].retoId;
-        const nuevo = await prisma.reto.create({
-          data: {
-            faseId,
-            orden: 2,
-            modo: 'OPCION_MULTIPLE',
-            criteriosAceptacion: '[Fase 3 e2e] segundo reto de la fase',
-            calificacionMinima: '0.80',
-            contenido: [{ preguntaId: 'unica', correcta: 'si', peso: 1 }],
-            recompensaXp: 40,
-            recompensaQp: 30,
-          },
-        });
-        retoNuevoId = nuevo.id;
+        const fase4 = fases.find((f: { orden: number }) => f.orden === 4);
+        expect(fase4.estado).toBe('desbloqueada');
+        faseId = fase4.id;
+
+        const crear = (orden: number) =>
+          prisma.reto.create({
+            data: {
+              faseId,
+              orden,
+              modo: 'OPCION_MULTIPLE',
+              criteriosAceptacion: `[Fase 3 e2e] reto de prueba ${orden}`,
+              calificacionMinima: '0.80',
+              contenido: [{ preguntaId: 'unica', correcta: 'si', peso: 1 }],
+              recompensaXp: orden === 1 ? 40 : 60,
+              recompensaQp: orden === 1 ? 30 : 50,
+            },
+          });
+        retoUnoId = (await crear(1)).id;
+        retoDosId = (await crear(2)).id;
       });
 
-      it('agregar un segundo reto sin aprobar baja la fase de completada a en_progreso', async () => {
+      it('aprobar solo 1 de 2 retos deja la fase en_progreso con progreso parcial', async () => {
+        await http()
+          .post(`/retos/${retoUnoId}/intentos`)
+          .set(auth())
+          .send({ respuestas: [{ preguntaId: 'unica', respuesta: 'si' }] })
+          .expect(201);
+
         const fases = (await http().get('/fases').set(auth())).body;
         const fase = fases.find((f: { id: number }) => f.id === faseId);
         expect(fase).toMatchObject({
@@ -427,9 +491,9 @@ describe('Auth + Aprendizaje (e2e)', () => {
         });
       });
 
-      it('al aprobar también el segundo reto, la fase vuelve a completada con estrellas y QP combinados', async () => {
+      it('al aprobar también el segundo reto, la fase queda completada con estrellas y QP combinados', async () => {
         const res = await http()
-          .post(`/retos/${retoNuevoId}/intentos`)
+          .post(`/retos/${retoDosId}/intentos`)
           .set(auth())
           .send({ respuestas: [{ preguntaId: 'unica', respuesta: 'si' }] })
           .expect(201);
@@ -437,13 +501,10 @@ describe('Auth + Aprendizaje (e2e)', () => {
           porcentaje: 100,
           calificacionEstrellas: 3,
           aprobado: true,
-          xpGanado: 40,
-          qpGanado: 30,
+          xpGanado: 60,
+          qpGanado: 50,
         });
 
-        const retoOriginal = await prisma.reto.findUniqueOrThrow({
-          where: { id: retoOriginalId },
-        });
         const fases = (await http().get('/fases').set(auth())).body;
         const fase = fases.find((f: { id: number }) => f.id === faseId);
         expect(fase).toMatchObject({
@@ -451,10 +512,8 @@ describe('Auth + Aprendizaje (e2e)', () => {
           totalRetos: 2,
           retosAprobados: 2,
           progreso: 100,
-          // promedio de la mejor marca de cada reto: (3 del original + 3 del nuevo) / 2 = 3.
-          calificacionEstrellasFase: 3,
-          // suma del QP realmente otorgado por cada reto: reto original + reto nuevo.
-          recompensaQpFase: retoOriginal.recompensaQp + 30,
+          calificacionEstrellasFase: 3, // promedio de la mejor marca de cada reto: (3+3)/2 = 3.
+          recompensaQpFase: 80, // suma del QP realmente otorgado por cada reto: 30 + 50.
         });
       });
     });
@@ -474,9 +533,10 @@ describe('Auth + Aprendizaje (e2e)', () => {
       });
 
       beforeAll(async () => {
-        // A esta altura el estudiante de prueba ya completó las fases 1-3
-        // (pruebas anteriores), así que la fase 4 (orden 4, sin retos en el
-        // seed) está desbloqueada. Se le agregan 2 retos de prueba en orden.
+        // El describe anterior deja fase 4 completada y LUEGO borra sus 2
+        // retos de prueba en su afterAll: sin retos otra vez, fase 4 vuelve a
+        // "desbloqueada" (fase 3 sigue completada), lista para este nuevo
+        // escenario de 2 retos secuenciales.
         const fases = (await http().get('/fases').set(auth())).body;
         const fase4 = fases.find((f: { orden: number }) => f.orden === 4);
         expect(fase4.estado).toBe('desbloqueada');

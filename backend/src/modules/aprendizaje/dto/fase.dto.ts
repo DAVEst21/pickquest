@@ -41,6 +41,22 @@ export class FaseDto {
   recompensaQpFase: number | null;
 }
 
+/** Una opción visible de una pregunta (nunca indica cuál es la correcta). */
+export class OpcionDto {
+  valor: string;
+  texto: string;
+}
+
+/** Una pregunta del reto, tal como la ve el estudiante (sin la respuesta correcta). */
+export class PreguntaDto {
+  preguntaId: string;
+  texto: string;
+  /** Si la pregunta es de opción múltiple/clasificar/emparejar. Ausente si es de texto libre. */
+  opciones?: OpcionDto[];
+  /** Para retos COMPUESTO: a cuál parte pertenece ("A", "B"...). */
+  parte?: string;
+}
+
 export class RetoDto {
   id: number;
   faseId: number;
@@ -55,11 +71,8 @@ export class RetoDto {
   calificacionMinima: number;
   recompensaXp: number;
   recompensaQp: number;
-  /**
-   * Identificadores de las preguntas que se evalúan. La clave de respuestas nunca se expone.
-   * @example ["req-1", "req-2", "req-3", "tradeoff"]
-   */
-  preguntas: string[];
+  /** Las preguntas que se evalúan, con su texto y opciones. La clave de respuestas nunca se expone. */
+  preguntas: PreguntaDto[];
 }
 
 export class ContenidoApoyoDto {

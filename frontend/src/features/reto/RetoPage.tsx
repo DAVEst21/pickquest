@@ -9,6 +9,7 @@ import type { ContenidoApoyo, Fase, IntentoReto, Reto } from '../../types';
 import { etiquetaFase, umbralPorcentaje } from '../fases/presentacion';
 import { EjercicioGenerico } from './EjercicioGenerico';
 import { EjercicioIso25010 } from './EjercicioIso25010';
+import { EjercicioOpciones } from './EjercicioOpciones';
 import { GuiaTecnica } from './GuiaTecnica';
 import { esRetoIso25010, OPCION_DESCARTABLE } from './retoIso25010';
 
@@ -102,7 +103,7 @@ const ResolverReto: React.FC<ResolverRetoProps> = ({ fase, reto, contenidos }) =
   const responder = (preguntaId: string, respuesta: string) =>
     setRespuestas((prev) => ({ ...prev, [preguntaId]: respuesta }));
 
-  const completas = reto.preguntas.every((p) => (respuestas[p] ?? '').trim() !== '');
+  const completas = reto.preguntas.every((p) => (respuestas[p.preguntaId] ?? '').trim() !== '');
 
   const avisarError = (error: unknown) => {
     // 403: la fase está bloqueada, o (Fase 4) este reto no es el que sigue en
@@ -136,7 +137,7 @@ const ResolverReto: React.FC<ResolverRetoProps> = ({ fase, reto, contenidos }) =
     enviarIntento.mutate(
       {
         retoId: reto.id,
-        respuestas: reto.preguntas.map((preguntaId) => ({ preguntaId, respuesta: respuestas[preguntaId].trim() })),
+        respuestas: reto.preguntas.map((p) => ({ preguntaId: p.preguntaId, respuesta: respuestas[p.preguntaId].trim() })),
       },
       {
         onSuccess: (intento) => {
@@ -326,6 +327,13 @@ const ResolverReto: React.FC<ResolverRetoProps> = ({ fase, reto, contenidos }) =
               respuestas={respuestas}
               onResponder={responder}
               opcionDescartada={descarteUsado ? OPCION_DESCARTABLE : null}
+            />
+          ) : reto.preguntas.some((p) => p.opciones) ? (
+            <EjercicioOpciones
+              enunciado={reto.criteriosAceptacion}
+              preguntas={reto.preguntas}
+              respuestas={respuestas}
+              onResponder={responder}
             />
           ) : (
             <EjercicioGenerico

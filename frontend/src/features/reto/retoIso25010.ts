@@ -7,5 +7,6 @@ export const PREGUNTAS_ISO = ['req-1', 'req-2', 'req-3', 'tradeoff'] as const;
 export const OPCION_DESCARTABLE = 'B';
 
 export function esRetoIso25010(reto: Reto): boolean {
-  return reto.preguntas.length === PREGUNTAS_ISO.length && PREGUNTAS_ISO.every((p) => reto.preguntas.includes(p));
+  const ids = reto.preguntas.map((p) => p.preguntaId);
+  return ids.length === PREGUNTAS_ISO.length && PREGUNTAS_ISO.every((p) => ids.includes(p));
 }

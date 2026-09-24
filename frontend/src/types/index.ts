@@ -30,6 +30,22 @@ export interface Fase {
   recompensaQpFase: number | null;
 }
 
+/** Una opción visible de una pregunta (nunca indica cuál es la correcta). */
+export interface Opcion {
+  valor: string;
+  texto: string;
+}
+
+/** Una pregunta del reto, tal como la manda el backend (sin la respuesta correcta). */
+export interface Pregunta {
+  preguntaId: string;
+  texto: string;
+  /** Si la pregunta es de opción múltiple/clasificar/emparejar. Ausente si es de texto libre. */
+  opciones?: Opcion[];
+  /** Para retos COMPUESTO: a cuál parte pertenece ("A", "B"...). */
+  parte?: string;
+}
+
 export interface Reto {
   id: number;
   faseId: number;
@@ -39,8 +55,8 @@ export interface Reto {
   calificacionMinima: number; // fracción 0-1 (0.8 = 80%)
   recompensaXp: number;
   recompensaQp: number;
-  /** Identificadores de las preguntas que evalúa el backend. */
-  preguntas: string[];
+  /** Las preguntas que evalúa el backend, con su texto y opciones. */
+  preguntas: Pregunta[];
 }
 
 export interface ContenidoApoyo {

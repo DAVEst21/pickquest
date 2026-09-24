@@ -1,17 +1,18 @@
 import React from 'react';
+import type { Pregunta } from '../../types';
 
 interface EjercicioGenericoProps {
-  preguntas: string[];
+  preguntas: Pregunta[];
   criteriosAceptacion: string;
   respuestas: Record<string, string>;
   onResponder: (preguntaId: string, respuesta: string) => void;
 }
 
 /**
- * Respaldo para retos que no tienen una interfaz propia en el frontend (por
- * ejemplo, los retos de ejemplo de las fases 1 y 2 del seed): una respuesta de
- * texto por pregunta. El backend no guarda todavía el enunciado de cada
- * pregunta, así que solo se muestran su identificador y los criterios del reto.
+ * Respaldo de último recurso: una respuesta de texto libre por pregunta,
+ * para el caso (hoy no ocurre con el contenido real del seed) de que una
+ * pregunta no traiga `opciones`. Para preguntas con opciones se usa
+ * EjercicioOpciones en su lugar.
  */
 export const EjercicioGenerico: React.FC<EjercicioGenericoProps> = ({
   preguntas,
@@ -27,14 +28,14 @@ export const EjercicioGenerico: React.FC<EjercicioGenericoProps> = ({
       </h3>
       <p className="font-body-md text-body-md text-on-surface-variant mt-space-xs">{criteriosAceptacion}</p>
     </div>
-    {preguntas.map((preguntaId) => (
-      <label key={preguntaId} className="flex flex-col gap-space-xs" htmlFor={`pregunta-${preguntaId}`}>
-        <span className="font-label-md text-label-md text-on-surface-variant">Pregunta «{preguntaId}»</span>
+    {preguntas.map((pregunta) => (
+      <label key={pregunta.preguntaId} className="flex flex-col gap-space-xs" htmlFor={`pregunta-${pregunta.preguntaId}`}>
+        <span className="font-label-md text-label-md text-on-surface-variant">{pregunta.texto}</span>
         <input
-          id={`pregunta-${preguntaId}`}
-          data-pregunta={preguntaId}
-          value={respuestas[preguntaId] ?? ''}
-          onChange={(e) => onResponder(preguntaId, e.target.value)}
+          id={`pregunta-${pregunta.preguntaId}`}
+          data-pregunta={pregunta.preguntaId}
+          value={respuestas[pregunta.preguntaId] ?? ''}
+          onChange={(e) => onResponder(pregunta.preguntaId, e.target.value)}
           className="px-space-md py-space-sm rounded-lg bg-surface-container-lowest border border-outline-variant/40 text-on-surface font-body-md text-body-md focus:outline-none focus:border-primary"
         />
       </label>
