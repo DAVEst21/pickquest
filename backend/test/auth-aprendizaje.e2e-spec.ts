@@ -370,5 +370,93 @@ describe('Auth + Aprendizaje (e2e)', () => {
         });
       });
     });
+
+    describe('progreso agregado de una fase con varios retos (Fase 3)', () => {
+      let faseId: number;
+      let retoOriginalId: number;
+      let retoNuevoId: number;
+
+      afterAll(async () => {
+        // El reto creado para esta prueba no pertenece al estudiante de
+        // prueba (Reto no tiene dueño): si no se borra, queda para siempre
+        // como un segundo reto de la fase 2 para todos los estudiantes,
+        // incluido el demo.
+        if (retoNuevoId) {
+          await prisma.usoAyuda.deleteMany({ where: { retoId: retoNuevoId } });
+          await prisma.intentoReto.deleteMany({
+            where: { retoId: retoNuevoId },
+          });
+          await prisma.reto.delete({ where: { id: retoNuevoId } });
+        }
+      });
+
+      beforeAll(async () => {
+        // fases[1] (orden 2) ya está completada (100%, 3 estrellas, un solo
+        // reto) por la prueba de "mejora de marca" de más arriba. Se le
+        // agrega un SEGUNDO reto directamente en la BD: no hay endpoint para
+        // crear retos (fuera del alcance de esta fase), y es la forma más
+        // directa de probar la agregación multi-reto sin depender del seed.
+        const fases = (await http().get('/fases').set(auth())).body;
+        faseId = fases[1].id;
+        retoOriginalId = fases[1].retoId;
+        const nuevo = await prisma.reto.create({
+          data: {
+            faseId,
+            orden: 2,
+            modo: 'OPCION_MULTIPLE',
+            criteriosAceptacion: '[Fase 3 e2e] segundo reto de la fase',
+            calificacionMinima: '0.80',
+            contenido: [{ preguntaId: 'unica', correcta: 'si', peso: 1 }],
+            recompensaXp: 40,
+            recompensaQp: 30,
+          },
+        });
+        retoNuevoId = nuevo.id;
+      });
+
+      it('agregar un segundo reto sin aprobar baja la fase de completada a en_progreso', async () => {
+        const fases = (await http().get('/fases').set(auth())).body;
+        const fase = fases.find((f: { id: number }) => f.id === faseId);
+        expect(fase).toMatchObject({
+          estado: 'en_progreso',
+          totalRetos: 2,
+          retosAprobados: 1,
+          progreso: 50,
+          calificacionEstrellasFase: null,
+          recompensaQpFase: null,
+        });
+      });
+
+      it('al aprobar también el segundo reto, la fase vuelve a completada con estrellas y QP combinados', async () => {
+        const res = await http()
+          .post(`/retos/${retoNuevoId}/intentos`)
+          .set(auth())
+          .send({ respuestas: [{ preguntaId: 'unica', respuesta: 'si' }] })
+          .expect(201);
+        expect(res.body).toMatchObject({
+          porcentaje: 100,
+          calificacionEstrellas: 3,
+          aprobado: true,
+          xpGanado: 40,
+          qpGanado: 30,
+        });
+
+        const retoOriginal = await prisma.reto.findUniqueOrThrow({
+          where: { id: retoOriginalId },
+        });
+        const fases = (await http().get('/fases').set(auth())).body;
+        const fase = fases.find((f: { id: number }) => f.id === faseId);
+        expect(fase).toMatchObject({
+          estado: 'completada',
+          totalRetos: 2,
+          retosAprobados: 2,
+          progreso: 100,
+          // promedio de la mejor marca de cada reto: (3 del original + 3 del nuevo) / 2 = 3.
+          calificacionEstrellasFase: 3,
+          // suma del QP realmente otorgado por cada reto: reto original + reto nuevo.
+          recompensaQpFase: retoOriginal.recompensaQp + 30,
+        });
+      });
+    });
   });
 });

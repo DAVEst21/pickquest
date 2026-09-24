@@ -14,6 +14,7 @@ import { FaseDetalleDto, FaseDto, RetoDto } from './dto/fase.dto';
 import { AyudaRegistradaDto, IntentoDto } from './dto/intento.dto';
 import {
   calcularEstadosFases,
+  calcularProgresoFase,
   EstadoFase,
   ResumenReto,
   resumirIntentos,
@@ -294,6 +295,7 @@ export class AprendizajeService {
       where: { estudianteId },
       _count: { _all: true },
       _max: { porcentaje: true, calificacionEstrellas: true },
+      _sum: { qpGanado: true },
     });
 
     const resumen = resumirIntentos(
@@ -303,13 +305,14 @@ export class AprendizajeService {
         intentos: g._count._all,
         maxPorcentaje: g._max.porcentaje,
         maxEstrellas: g._max.calificacionEstrellas,
+        sumaQpGanado: g._sum.qpGanado ?? 0,
       })),
     );
     const estados = calcularEstadosFases(
       fases.map((f) => ({
         id: f.id,
         orden: f.orden,
-        retoId: f.retos[0]?.id ?? null,
+        retoIds: f.retos.map((r) => r.id),
       })),
       resumen,
     );
@@ -324,6 +327,10 @@ function aFaseDto(
 ): FaseDto {
   const retoId = fase.retos[0]?.id ?? null;
   const resumen = retoId === null ? undefined : resumenPorReto.get(retoId);
+  const progresoFase = calcularProgresoFase(
+    fase.retos.map((r) => r.id),
+    resumenPorReto,
+  );
   return {
     id: fase.id,
     nombre: fase.nombre,
@@ -335,6 +342,11 @@ function aFaseDto(
     intentosRealizados: resumen?.intentos ?? 0,
     mejorPorcentaje: resumen?.mejorPorcentaje ?? null,
     mejorCalificacionEstrellas: resumen?.mejorEstrellas ?? null,
+    totalRetos: progresoFase?.totalRetos ?? 0,
+    retosAprobados: progresoFase?.retosAprobados ?? 0,
+    progreso: progresoFase?.progreso ?? null,
+    calificacionEstrellasFase: progresoFase?.calificacionEstrellasFase ?? null,
+    recompensaQpFase: progresoFase?.recompensaQpFase ?? null,
   };
 }
 

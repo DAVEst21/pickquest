@@ -19,6 +19,26 @@ export class FaseDto {
   mejorPorcentaje: number | null;
   /** Mejor calificación (0-3 estrellas) del estudiante en el reto de la fase. */
   mejorCalificacionEstrellas: number | null;
+
+  /** (Fase 3) Cantidad de retos que tiene la fase (0 si todavía no se le cargó ninguno). */
+  totalRetos: number;
+  /** (Fase 3) Cuántos de esos retos ya tiene al menos un intento aprobado. */
+  retosAprobados: number;
+  /**
+   * (Fase 3) % de la fase completado: retosAprobados / totalRetos, 0-100.
+   * null si la fase no tiene retos todavía (no hay nada que medir).
+   */
+  progreso: number | null;
+  /**
+   * (Fase 3) Promedio de la mejor marca histórica de cada reto, redondeado.
+   * Solo se calcula cuando la fase está completada (todos sus retos aprobados).
+   */
+  calificacionEstrellasFase: number | null;
+  /**
+   * (Fase 3) Suma del QP realmente otorgado por cada reto de la fase (solo
+   * cuenta la primera aprobación de cada uno). Solo cuando está completada.
+   */
+  recompensaQpFase: number | null;
 }
 
 export class RetoDto {
