@@ -28,6 +28,12 @@ export interface FaseParaEstado {
   retoIds: number[];
 }
 
+/** Un reto, solo los campos que hacen falta para ordenarlo dentro de su fase. */
+export interface RetoParaOrden {
+  id: number;
+  orden: number;
+}
+
 /** Fila de IntentoReto agrupada por (retoId, aprobado). */
 export interface GrupoIntentos {
   retoId: number;
@@ -163,6 +169,42 @@ export function calcularProgresoFase(
       ? resumenes.reduce((total, r) => total + r.qpGanadoTotal, 0)
       : null,
   };
+}
+
+/**
+ * "Reto actual" de una fase (Fase 4): dentro de una fase con retos, el
+ * estudiante los hace uno tras otro en el orden de Reto.orden, sin poder
+ * saltarse ninguno ni elegir. Es el primer reto de la fase (en orden) que el
+ * estudiante todavía no aprobó. Si ya aprobó todos (fase completada), el
+ * "actual" es el último: siempre hay algo que abrir para repetir y mejorar
+ * la marca (Fase 2, RN-05/RF-06). null si la fase no tiene retos.
+ */
+export function retoActual(
+  retosOrdenados: RetoParaOrden[],
+  resumenPorReto: Map<number, ResumenReto>,
+): number | null {
+  if (retosOrdenados.length === 0) return null;
+  const siguiente = retosOrdenados.find(
+    (r) => !resumenPorReto.get(r.id)?.aprobado,
+  );
+  return (siguiente ?? retosOrdenados[retosOrdenados.length - 1]).id;
+}
+
+/**
+ * Un reto está desbloqueado para el estudiante si TODOS los retos de su
+ * misma fase con un orden menor ya están aprobados (no se puede saltar
+ * ninguno). Repetir un reto ya aprobado (para mejorar la marca, Fase 2)
+ * sigue permitido: solo se exige que sus PREDECESORES estén aprobados, nunca
+ * el reto mismo.
+ */
+export function retoDesbloqueado(
+  reto: RetoParaOrden,
+  retosDeLaMismaFase: RetoParaOrden[],
+  resumenPorReto: Map<number, ResumenReto>,
+): boolean {
+  return retosDeLaMismaFase
+    .filter((r) => r.orden < reto.orden)
+    .every((r) => resumenPorReto.get(r.id)?.aprobado ?? false);
 }
 
 function maximo(a: number | null, b: number | null): number | null {

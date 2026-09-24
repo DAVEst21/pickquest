@@ -2,6 +2,9 @@ import {
   calcularEstadosFases,
   calcularProgresoFase,
   FaseParaEstado,
+  retoActual,
+  retoDesbloqueado,
+  RetoParaOrden,
   ResumenReto,
   resumirIntentos,
 } from './estado-fases';
@@ -225,5 +228,96 @@ describe('resumirIntentos', () => {
       mejorEstrellas: 2,
       qpGanadoTotal: 120,
     });
+  });
+});
+
+describe('retoActual (Fase 4: flujo secuencial dentro de una fase)', () => {
+  const RETOS_FASE: RetoParaOrden[] = [
+    { id: 201, orden: 1 },
+    { id: 202, orden: 2 },
+    { id: 203, orden: 3 },
+  ];
+
+  it('null si la fase no tiene retos', () => {
+    expect(retoActual([], new Map())).toBeNull();
+  });
+
+  it('sin ningún intento: el actual es el primero en orden', () => {
+    expect(retoActual(RETOS_FASE, new Map())).toBe(201);
+  });
+
+  it('con el primero aprobado: el actual es el segundo', () => {
+    expect(retoActual(RETOS_FASE, new Map([[201, aprobado]]))).toBe(202);
+  });
+
+  it('con todos aprobados: el actual es el último (para poder repetirlo y mejorar la marca)', () => {
+    expect(
+      retoActual(
+        RETOS_FASE,
+        new Map([
+          [201, aprobado],
+          [202, aprobado],
+          [203, aprobado],
+        ]),
+      ),
+    ).toBe(203);
+  });
+
+  it('intentos fallidos en el primero no lo cuentan como aprobado: el actual sigue siendo el primero', () => {
+    expect(retoActual(RETOS_FASE, new Map([[201, fallido]]))).toBe(201);
+  });
+});
+
+describe('retoDesbloqueado (Fase 4: no se puede saltar retos)', () => {
+  const RETOS_FASE: RetoParaOrden[] = [
+    { id: 201, orden: 1 },
+    { id: 202, orden: 2 },
+    { id: 203, orden: 3 },
+  ];
+
+  it('el primer reto de la fase siempre está desbloqueado (no tiene predecesores)', () => {
+    expect(retoDesbloqueado(RETOS_FASE[0], RETOS_FASE, new Map())).toBe(true);
+  });
+
+  it('el segundo reto está bloqueado si el primero no está aprobado', () => {
+    expect(retoDesbloqueado(RETOS_FASE[1], RETOS_FASE, new Map())).toBe(false);
+    expect(
+      retoDesbloqueado(RETOS_FASE[1], RETOS_FASE, new Map([[201, fallido]])),
+    ).toBe(false);
+  });
+
+  it('el segundo reto se desbloquea cuando el primero está aprobado', () => {
+    expect(
+      retoDesbloqueado(RETOS_FASE[1], RETOS_FASE, new Map([[201, aprobado]])),
+    ).toBe(true);
+  });
+
+  it('el tercer reto exige que el primero Y el segundo estén aprobados', () => {
+    expect(
+      retoDesbloqueado(RETOS_FASE[2], RETOS_FASE, new Map([[201, aprobado]])),
+    ).toBe(false);
+    expect(
+      retoDesbloqueado(
+        RETOS_FASE[2],
+        RETOS_FASE,
+        new Map([
+          [201, aprobado],
+          [202, aprobado],
+        ]),
+      ),
+    ).toBe(true);
+  });
+
+  it('un reto ya aprobado sigue "desbloqueado" para repetirlo (mejora de marca): solo se exige a sus predecesores', () => {
+    expect(
+      retoDesbloqueado(
+        RETOS_FASE[1],
+        RETOS_FASE,
+        new Map([
+          [201, aprobado],
+          [202, aprobado],
+        ]),
+      ),
+    ).toBe(true);
   });
 });

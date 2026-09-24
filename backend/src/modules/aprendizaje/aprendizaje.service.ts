@@ -18,6 +18,8 @@ import {
   EstadoFase,
   ResumenReto,
   resumirIntentos,
+  retoActual,
+  retoDesbloqueado,
 } from './estado-fases';
 import { calificarPorPorcentaje } from './calificacion-estrellas';
 import {
@@ -71,11 +73,15 @@ export class AprendizajeService {
       throw new NotFoundException(`La fase ${faseId} no existe`);
     }
     const { estados, resumen } = await this.cargarProgreso(estudianteId);
-    const primerReto = fase.retos[0] ?? null;
+    // (Fase 4) El "reto actual" de la fase, no siempre el primero: el
+    // estudiante avanza sus retos en orden, sin poder saltarse ninguno.
+    const idRetoActual = retoActual(fase.retos, resumen);
+    const retoParaMostrar =
+      fase.retos.find((r) => r.id === idRetoActual) ?? null;
 
     return {
       fase: aFaseDto(fase, estados, resumen),
-      reto: primerReto ? aRetoDto(primerReto) : null,
+      reto: retoParaMostrar ? aRetoDto(retoParaMostrar) : null,
       contenidosApoyo: fase.contenidoApoyo
         ? [
             {
@@ -263,7 +269,13 @@ export class AprendizajeService {
     return aIntentoDto(intento, reto.faseId);
   }
 
-  /** El reto existe y su fase no está bloqueada para el estudiante (404 / 403). */
+  /**
+   * El reto existe (404), su fase no está bloqueada para el estudiante (403),
+   * y (Fase 4) el reto está desbloqueado dentro de su fase: no se puede
+   * enviar un intento ni pedir ayuda para un reto si sus predecesores (por
+   * Reto.orden, dentro de la misma fase) todavía no están aprobados. Repetir
+   * un reto ya aprobado (para mejorar la marca) sigue permitido.
+   */
   private async obtenerRetoDisponible(
     db: ClienteDb,
     estudianteId: number,
@@ -273,10 +285,19 @@ export class AprendizajeService {
     if (!reto) {
       throw new NotFoundException(`El reto ${retoId} no existe`);
     }
-    const { estados } = await this.cargarProgreso(estudianteId, db);
+    const { estados, fases, resumen } = await this.cargarProgreso(
+      estudianteId,
+      db,
+    );
     if (estados.get(reto.faseId) === 'bloqueada') {
       throw new ForbiddenException(
         'La fase de este reto está bloqueada: primero completa la fase anterior',
+      );
+    }
+    const retosDeLaFase = fases.find((f) => f.id === reto.faseId)?.retos ?? [];
+    if (!retoDesbloqueado(reto, retosDeLaFase, resumen)) {
+      throw new ForbiddenException(
+        'Debes completar los retos anteriores de esta fase, en orden, antes que este',
       );
     }
     return reto;
@@ -325,7 +346,9 @@ function aFaseDto(
   estados: Map<number, EstadoFase>,
   resumenPorReto: Map<number, ResumenReto>,
 ): FaseDto {
-  const retoId = fase.retos[0]?.id ?? null;
+  // (Fase 4) retoId es el "reto actual" de la fase (el siguiente sin
+  // aprobar, o el último si ya se aprobaron todos), no siempre el primero.
+  const retoId = retoActual(fase.retos, resumenPorReto);
   const resumen = retoId === null ? undefined : resumenPorReto.get(retoId);
   const progresoFase = calcularProgresoFase(
     fase.retos.map((r) => r.id),
@@ -360,6 +383,7 @@ function aRetoDto(reto: Reto): RetoDto {
   return {
     id: reto.id,
     faseId: reto.faseId,
+    orden: reto.orden,
     criteriosAceptacion: reto.criteriosAceptacion,
     calificacionMinima: Number(reto.calificacionMinima),
     recompensaXp: reto.recompensaXp,

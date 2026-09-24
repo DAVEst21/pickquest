@@ -12,15 +12,29 @@ export interface Fase {
   dificultad: string;
   orden: number;
   estado: EstadoFase;
+  /** El "reto actual" de la fase (Fase 4): el siguiente sin aprobar, o el último si ya se aprobaron todos. */
   retoId: number | null;
   intentosRealizados: number;
   mejorPorcentaje: number | null;
   mejorCalificacionEstrellas: number | null; // 0-3
+
+  /** Cantidad de retos que tiene la fase (0 si todavía no se le cargó ninguno). */
+  totalRetos: number;
+  /** Cuántos de esos retos ya tiene al menos un intento aprobado. */
+  retosAprobados: number;
+  /** % de la fase completado (0-100). null si la fase no tiene retos todavía. */
+  progreso: number | null;
+  /** Promedio de la mejor marca de cada reto, redondeado. Solo si la fase está completada. */
+  calificacionEstrellasFase: number | null;
+  /** Suma del QP realmente otorgado por cada reto. Solo si la fase está completada. */
+  recompensaQpFase: number | null;
 }
 
 export interface Reto {
   id: number;
   faseId: number;
+  /** Posición de este reto dentro del recorrido secuencial de su fase (1, 2, 3...). */
+  orden: number;
   criteriosAceptacion: string;
   calificacionMinima: number; // fracción 0-1 (0.8 = 80%)
   recompensaXp: number;

@@ -44,6 +44,12 @@ export class FaseDto {
 export class RetoDto {
   id: number;
   faseId: number;
+  /**
+   * (Fase 4) Posición de este reto dentro del recorrido secuencial de su
+   * fase (1, 2, 3...). Combinado con Fase.totalRetos permite mostrar
+   * "Reto {orden} de {totalRetos}": cuál es el reto actual dentro de la fase.
+   */
+  orden: number;
   criteriosAceptacion: string | null;
   /** Fracción 0.0-1.0 (0.8 = 80%). @example 0.8 */
   calificacionMinima: number;

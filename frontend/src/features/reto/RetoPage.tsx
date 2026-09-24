@@ -105,8 +105,11 @@ const ResolverReto: React.FC<ResolverRetoProps> = ({ fase, reto, contenidos }) =
   const completas = reto.preguntas.every((p) => (respuestas[p] ?? '').trim() !== '');
 
   const avisarError = (error: unknown) => {
+    // 403: la fase está bloqueada, o (Fase 4) este reto no es el que sigue en
+    // el orden de la fase. La UI normalmente solo pide el "reto actual" que
+    // ya manda el backend, así que esto no debería verse en el uso normal.
     if (esError(error, 403)) {
-      mostrarToast('La fase de este reto está bloqueada: completa primero la fase anterior.', 'lock');
+      mostrarToast('Este reto todavía no está disponible: revisa el orden de la fase.', 'lock');
     } else {
       mostrarToast(mensajeDeError(error), 'error');
     }
@@ -163,8 +166,19 @@ const ResolverReto: React.FC<ResolverRetoProps> = ({ fase, reto, contenidos }) =
               </span>
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="px-space-xs py-0.5 rounded bg-tertiary-container/20 text-tertiary font-label-sm text-label-sm uppercase font-bold self-start">
-                {etiquetaFase(fase.orden)}: {fase.nombre}
+              <span className="flex items-center gap-space-xs self-start">
+                <span className="px-space-xs py-0.5 rounded bg-tertiary-container/20 text-tertiary font-label-sm text-label-sm uppercase font-bold">
+                  {etiquetaFase(fase.orden)}: {fase.nombre}
+                </span>
+                {/* Fase 4: dentro de una fase con varios retos, cuál es el actual */}
+                {fase.totalRetos > 1 && (
+                  <span
+                    id="reto-actual-indicador"
+                    className="px-space-xs py-0.5 rounded bg-surface-container-highest text-on-surface-variant font-label-sm text-label-sm font-bold"
+                  >
+                    Reto {reto.orden} de {fase.totalRetos}
+                  </span>
+                )}
               </span>
               <h1 className="font-headline-sm text-headline-sm text-on-surface truncate">Reto de {fase.nombre}</h1>
             </div>

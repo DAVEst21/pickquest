@@ -458,5 +458,103 @@ describe('Auth + Aprendizaje (e2e)', () => {
         });
       });
     });
+
+    describe('flujo secuencial de retos dentro de una fase, sin poder saltarse ninguno (Fase 4)', () => {
+      let faseId: number;
+      let retoUnoId: number;
+      let retoDosId: number;
+
+      afterAll(async () => {
+        for (const id of [retoUnoId, retoDosId]) {
+          if (!id) continue;
+          await prisma.usoAyuda.deleteMany({ where: { retoId: id } });
+          await prisma.intentoReto.deleteMany({ where: { retoId: id } });
+          await prisma.reto.delete({ where: { id } });
+        }
+      });
+
+      beforeAll(async () => {
+        // A esta altura el estudiante de prueba ya completó las fases 1-3
+        // (pruebas anteriores), así que la fase 4 (orden 4, sin retos en el
+        // seed) está desbloqueada. Se le agregan 2 retos de prueba en orden.
+        const fases = (await http().get('/fases').set(auth())).body;
+        const fase4 = fases.find((f: { orden: number }) => f.orden === 4);
+        expect(fase4.estado).toBe('desbloqueada');
+        faseId = fase4.id;
+
+        const crear = (orden: number) =>
+          prisma.reto.create({
+            data: {
+              faseId,
+              orden,
+              modo: 'OPCION_MULTIPLE',
+              criteriosAceptacion: `[Fase 4 e2e] reto ${orden}`,
+              calificacionMinima: '0.80',
+              contenido: [{ preguntaId: 'unica', correcta: 'si', peso: 1 }],
+              recompensaXp: 10,
+              recompensaQp: 10,
+            },
+          });
+        retoUnoId = (await crear(1)).id;
+        retoDosId = (await crear(2)).id;
+      });
+
+      it('GET /fases/:id devuelve el reto 1 (el primero, en orden) como el "reto actual"', async () => {
+        const detalle = (await http().get(`/fases/${faseId}`).set(auth())).body;
+        expect(detalle.reto).toMatchObject({ id: retoUnoId, orden: 1 });
+        expect(detalle.fase.retoId).toBe(retoUnoId);
+      });
+
+      it('rechaza con 403 un intento en el reto 2 mientras el reto 1 no está aprobado', () =>
+        http()
+          .post(`/retos/${retoDosId}/intentos`)
+          .set(auth())
+          .send({ respuestas: [{ preguntaId: 'unica', respuesta: 'si' }] })
+          .expect(403));
+
+      it('rechaza con 403 pedir ayuda para el reto 2 mientras el reto 1 no está aprobado', () =>
+        http().post(`/retos/${retoDosId}/ayuda`).set(auth()).expect(403));
+
+      it('al aprobar el reto 1, el reto 2 queda disponible y pasa a ser el "reto actual"', async () => {
+        await http()
+          .post(`/retos/${retoUnoId}/intentos`)
+          .set(auth())
+          .send({ respuestas: [{ preguntaId: 'unica', respuesta: 'si' }] })
+          .expect(201);
+
+        const detalle = (await http().get(`/fases/${faseId}`).set(auth())).body;
+        expect(detalle.reto).toMatchObject({ id: retoDosId, orden: 2 });
+        expect(detalle.fase).toMatchObject({
+          retoId: retoDosId,
+          estado: 'en_progreso',
+          totalRetos: 2,
+          retosAprobados: 1,
+        });
+
+        await http()
+          .post(`/retos/${retoDosId}/intentos`)
+          .set(auth())
+          .send({ respuestas: [{ preguntaId: 'unica', respuesta: 'si' }] })
+          .expect(201);
+      });
+
+      it('repetir el reto 1 (ya aprobado) sigue permitido: sus predecesores, que no tiene, siempre están al día', () =>
+        http()
+          .post(`/retos/${retoUnoId}/intentos`)
+          .set(auth())
+          .send({ respuestas: [{ preguntaId: 'unica', respuesta: 'si' }] })
+          .expect(201));
+
+      it('con los dos retos aprobados, la fase queda completada y el "reto actual" es el último', async () => {
+        const detalle = (await http().get(`/fases/${faseId}`).set(auth())).body;
+        expect(detalle.reto).toMatchObject({ id: retoDosId });
+        expect(detalle.fase).toMatchObject({
+          estado: 'completada',
+          retoId: retoDosId,
+          totalRetos: 2,
+          retosAprobados: 2,
+        });
+      });
+    });
   });
 });

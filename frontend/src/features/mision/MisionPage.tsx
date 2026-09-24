@@ -83,6 +83,16 @@ export const MisionPage: React.FC = () => {
                     <span className="material-symbols-outlined text-[14px]">bolt</span>
                     Dificultad {fase.dificultad}
                   </span>
+                  {/* Fase 4: dentro de una fase con varios retos, cuál es el actual */}
+                  {reto && fase.totalRetos > 1 && (
+                    <span
+                      id="mision-reto-actual"
+                      className="px-space-sm py-0.5 rounded bg-surface-container-highest text-on-surface-variant font-label-sm flex items-center gap-1 font-semibold"
+                    >
+                      <span className="material-symbols-outlined text-[14px]">format_list_numbered</span>
+                      Reto {reto.orden} de {fase.totalRetos}
+                    </span>
+                  )}
                 </div>
                 <h1 className="font-headline-lg text-headline-lg text-on-surface tracking-tight mt-space-xs">
                   {etiquetaFase(fase.orden)}: {fase.nombre}
