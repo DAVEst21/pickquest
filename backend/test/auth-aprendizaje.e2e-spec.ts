@@ -168,9 +168,11 @@ describe('Auth + Aprendizaje (e2e)', () => {
         .set(auth())
         .send({ respuestas })
         .expect(201);
+      // 100% con ayuda usada: la Fase 2 (RN-04/RF-05) trunca a 2 estrellas,
+      // aunque la precisión sea perfecta; la recompensa no se ve afectada.
       expect(aprobado.body).toMatchObject({
         porcentaje: 100,
-        calificacionEstrellas: 3,
+        calificacionEstrellas: 2,
         aprobado: true,
         usoAyuda: true,
         xpGanado: reto.recompensaXp,
@@ -226,5 +228,147 @@ describe('Auth + Aprendizaje (e2e)', () => {
 
     it('responde 404 real para un intento inexistente', () =>
       http().get('/intentos/999999999').set(auth()).expect(404));
+
+    describe('calificación en estrellas (RN-04/RF-05, RN-05/RF-06)', () => {
+      it('menos de 80%: 0 estrellas, no aprobado, no otorga recompensa', async () => {
+        const fases = (await http().get('/fases').set(auth())).body;
+        const reto = await prisma.reto.findUniqueOrThrow({
+          where: { id: fases[1].retoId },
+        });
+        const clave = parsearClave(reto.contenido);
+        // 1 de 2 preguntas correctas (peso 1 cada una) = 50%.
+        const res = await http()
+          .post(`/retos/${reto.id}/intentos`)
+          .set(auth())
+          .send({
+            respuestas: [
+              { preguntaId: clave[0].preguntaId, respuesta: clave[0].correcta },
+              { preguntaId: clave[1].preguntaId, respuesta: 'incorrecta' },
+            ],
+          })
+          .expect(201);
+        expect(res.body).toMatchObject({
+          porcentaje: 50,
+          calificacionEstrellas: 0,
+          aprobado: false,
+          xpGanado: 0,
+          qpGanado: 0,
+        });
+      });
+
+      it('aprueba con 1 estrella (80-89%) y luego mejora a 3 sin volver a dar recompensa', async () => {
+        const fases = (await http().get('/fases').set(auth())).body;
+        const reto2 = await prisma.reto.findUniqueOrThrow({
+          where: { id: fases[1].retoId },
+        });
+        const clave2 = parsearClave(reto2.contenido);
+
+        // Fase 2 aprobada al 100% (2 de 2), primera aprobación: sí otorga XP/QP.
+        const primeraAprobacion = await http()
+          .post(`/retos/${reto2.id}/intentos`)
+          .set(auth())
+          .send({
+            respuestas: clave2.map((p) => ({
+              preguntaId: p.preguntaId,
+              respuesta: p.correcta,
+            })),
+          })
+          .expect(201);
+        expect(primeraAprobacion.body).toMatchObject({
+          porcentaje: 100,
+          calificacionEstrellas: 3,
+          aprobado: true,
+        });
+        expect(primeraAprobacion.body.xpGanado).toBeGreaterThan(0);
+
+        // Fase 3 (ISO 25010: 4 preguntas, pesos 1,1,1,2 = 5 puntos) ya está
+        // desbloqueada. Primer intento: 4/5 puntos = 80% -> 1 estrella, aprobado,
+        // primera aprobación de ESTE reto: sí otorga XP/QP.
+        const fasesTrasFase2 = (await http().get('/fases').set(auth())).body;
+        const reto3 = await prisma.reto.findUniqueOrThrow({
+          where: { id: fasesTrasFase2[2].retoId },
+        });
+        const clave3 = parsearClave(reto3.contenido);
+        const correctas3 = Object.fromEntries(
+          clave3.map((p) => [p.preguntaId, p.correcta]),
+        );
+        // tradeoff pesa 2 de los 5 puntos: fallarlo dejamos exactamente 3/5 = 60%,
+        // así que en vez fallamos req-3 (peso 1) para quedar en 4/5 = 80%.
+        const primerIntentoFase3 = await http()
+          .post(`/retos/${reto3.id}/intentos`)
+          .set(auth())
+          .send({
+            respuestas: clave3.map((p) => ({
+              preguntaId: p.preguntaId,
+              respuesta:
+                p.preguntaId === 'req-3'
+                  ? 'incorrecta'
+                  : correctas3[p.preguntaId],
+            })),
+          })
+          .expect(201);
+        expect(primerIntentoFase3.body).toMatchObject({
+          porcentaje: 80,
+          calificacionEstrellas: 1,
+          aprobado: true,
+        });
+        expect(primerIntentoFase3.body.xpGanado).toBe(reto3.recompensaXp);
+
+        // Se repite el mismo reto con 100%: mejora la marca a 3 estrellas, pero
+        // ya no otorga XP/QP (ya se había aprobado antes).
+        const segundoIntentoFase3 = await http()
+          .post(`/retos/${reto3.id}/intentos`)
+          .set(auth())
+          .send({
+            respuestas: clave3.map((p) => ({
+              preguntaId: p.preguntaId,
+              respuesta: correctas3[p.preguntaId],
+            })),
+          })
+          .expect(201);
+        expect(segundoIntentoFase3.body).toMatchObject({
+          porcentaje: 100,
+          calificacionEstrellas: 3,
+          aprobado: true,
+          xpGanado: 0,
+          qpGanado: 0,
+        });
+
+        // La MEJOR MARCA HISTÓRICA reportada por /fases es 3 (la del segundo
+        // intento), no 1 (la del primero, que fue el que aprobó primero).
+        const fasesFinal = (await http().get('/fases').set(auth())).body;
+        expect(fasesFinal[2]).toMatchObject({
+          estado: 'completada',
+          mejorCalificacionEstrellas: 3,
+          mejorPorcentaje: 100,
+        });
+      });
+
+      it('100% usando ayuda se trunca a 2 estrellas', async () => {
+        const fases = (await http().get('/fases').set(auth())).body;
+        const reto3 = await prisma.reto.findUniqueOrThrow({
+          where: { id: fases[2].retoId },
+        });
+        const clave3 = parsearClave(reto3.contenido);
+
+        await http().post(`/retos/${reto3.id}/ayuda`).set(auth()).expect(201);
+        const res = await http()
+          .post(`/retos/${reto3.id}/intentos`)
+          .set(auth())
+          .send({
+            respuestas: clave3.map((p) => ({
+              preguntaId: p.preguntaId,
+              respuesta: p.correcta,
+            })),
+          })
+          .expect(201);
+        expect(res.body).toMatchObject({
+          porcentaje: 100,
+          calificacionEstrellas: 2,
+          aprobado: true,
+          usoAyuda: true,
+        });
+      });
+    });
   });
 });

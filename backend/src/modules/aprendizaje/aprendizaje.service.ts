@@ -18,8 +18,9 @@ import {
   ResumenReto,
   resumirIntentos,
 } from './estado-fases';
+import { calificarPorPorcentaje } from './calificacion-estrellas';
 import {
-  evaluarRespuestas,
+  evaluarPorcentaje,
   parsearClave,
   RespuestaInvalidaError,
 } from './evaluacion';
@@ -189,12 +190,11 @@ export class AprendizajeService {
   ): Promise<IntentoDto> {
     const reto = await this.obtenerRetoDisponible(tx, estudianteId, retoId);
 
-    let resultado: ReturnType<typeof evaluarRespuestas>;
+    let porcentaje: number;
     try {
-      resultado = evaluarRespuestas(
+      porcentaje = evaluarPorcentaje(
         parsearClave(reto.contenido),
         dto.respuestas,
-        reto.calificacionMinima,
       );
     } catch (error) {
       if (error instanceof RespuestaInvalidaError) {
@@ -203,26 +203,35 @@ export class AprendizajeService {
       throw error;
     }
 
-    const aprobadoAntes = await tx.intentoReto.count({
-      where: { estudianteId, retoId, aprobado: true },
-    });
-    const otorgaRecompensa = resultado.aprobado && aprobadoAntes === 0;
-    const xpGanado = otorgaRecompensa ? reto.recompensaXp : 0;
-    const qpGanado = otorgaRecompensa ? reto.recompensaQp : 0;
-
+    // Se determina ANTES de calificar: la penalización de la Fase 2 (tope de
+    // 2 estrellas) depende de si este intento usó ayuda.
     const ayudasPendientes = await tx.usoAyuda.count({
       where: { estudianteId, retoId, intentoId: null },
     });
+    const usoAyuda = ayudasPendientes > 0;
+    const { calificacionEstrellas, aprobado } = calificarPorPorcentaje(
+      porcentaje,
+      usoAyuda,
+    );
+
+    const aprobadoAntes = await tx.intentoReto.count({
+      where: { estudianteId, retoId, aprobado: true },
+    });
+    const otorgaRecompensa = aprobado && aprobadoAntes === 0;
+    const xpGanado = otorgaRecompensa ? reto.recompensaXp : 0;
+    const qpGanado = otorgaRecompensa ? reto.recompensaQp : 0;
 
     const intento = await tx.intentoReto.create({
       data: {
         estudianteId,
         retoId,
         respuesta: dto.respuestas as unknown as Prisma.InputJsonValue,
-        ...resultado,
+        porcentaje,
+        calificacionEstrellas,
+        aprobado,
         xpGanado,
         qpGanado,
-        usoAyuda: ayudasPendientes > 0,
+        usoAyuda,
       },
     });
 

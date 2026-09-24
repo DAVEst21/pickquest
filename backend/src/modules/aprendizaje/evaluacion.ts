@@ -1,5 +1,3 @@
-import { Prisma } from '@prisma/client';
-
 /** Elemento de Reto.claveRespuestas. */
 export interface PreguntaClave {
   preguntaId: string;
@@ -10,12 +8,6 @@ export interface PreguntaClave {
 export interface RespuestaPregunta {
   preguntaId: string;
   respuesta: string;
-}
-
-export interface ResultadoEvaluacion {
-  porcentaje: number;
-  calificacionEstrellas: number;
-  aprobado: boolean;
 }
 
 /** La respuesta del estudiante no corresponde a las preguntas del reto. */
@@ -55,22 +47,19 @@ export function parsearClave(valor: unknown): PreguntaClave[] {
 }
 
 /**
- * Evalúa en el servidor la respuesta de un estudiante.
- * - porcentaje: puntos obtenidos / puntos posibles, truncado a entero (0-100).
- *   Se trunca para que un porcentaje mostrado como 80 nunca provenga de un 79.x.
- * - aprobado: porcentaje (como fracción) >= calificacionMinima. (Fase 1:
- *   calificacionMinima vuelve a ser siempre fracción 0.0-1.0, así que ya no
- *   hace falta detectar si venía en escala 0-100 — ver commit 9edafd1, que
- *   este cambio deja sin efecto).
- * - calificacionEstrellas (0-3): 3 si es perfecto, 2 si aprueba, 1 si alcanza
- *   al menos el 50%, 0 en otro caso (misma escala que usaba el mock del frontend).
- * Las preguntas sin responder cuentan como incorrectas.
+ * Evalúa en el servidor la respuesta de un estudiante y devuelve el
+ * porcentaje de precisión (puntos obtenidos / puntos posibles, truncado a
+ * entero 0-100; se trunca para que un porcentaje mostrado como 80 nunca
+ * provenga de un 79.x). Las preguntas sin responder cuentan como incorrectas.
+ *
+ * calificacionEstrellas y aprobado NO se calculan aquí: ver
+ * calificarPorPorcentaje() en calificacion-estrellas.ts (Fase 2, RN-04/RN-05),
+ * que además necesita saber si se usó ayuda para aplicar la penalización.
  */
-export function evaluarRespuestas(
+export function evaluarPorcentaje(
   clave: PreguntaClave[],
   respuestas: RespuestaPregunta[],
-  calificacionMinima: Prisma.Decimal,
-): ResultadoEvaluacion {
+): number {
   const clavePorId = new Map(clave.map((p) => [p.preguntaId, p]));
   const desconocidas = respuestas.filter((r) => !clavePorId.has(r.preguntaId));
   if (desconocidas.length > 0) {
@@ -91,15 +80,5 @@ export function evaluarRespuestas(
     0,
   );
 
-  const porcentaje = Math.floor((puntosObtenidos * 100) / puntosPosibles);
-  const aprobado = new Prisma.Decimal(porcentaje)
-    .div(100)
-    .gte(calificacionMinima);
-
-  let calificacionEstrellas = 0;
-  if (porcentaje === 100) calificacionEstrellas = 3;
-  else if (aprobado) calificacionEstrellas = 2;
-  else if (porcentaje >= 50) calificacionEstrellas = 1;
-
-  return { porcentaje, calificacionEstrellas, aprobado };
+  return Math.floor((puntosObtenidos * 100) / puntosPosibles);
 }
