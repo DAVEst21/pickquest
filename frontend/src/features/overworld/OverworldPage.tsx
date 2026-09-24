@@ -6,6 +6,7 @@ import { mensajeDeError } from '../../services/errores';
 import { useFases } from '../../services/queries';
 import type { EstadoFase, Fase } from '../../types';
 import { buscarFaseActiva } from '../fases/presentacion';
+import { ConectorSvg } from './ConectorSvg';
 import { ModalFase } from './ModalFase';
 import { TarjetaFase } from './TarjetaFase';
 
@@ -36,10 +37,29 @@ export const OverworldPage: React.FC = () => {
     );
   }
 
-  const faseActiva = buscarFaseActiva(fases);
+  const fasesOrdenadas = [...fases].sort((a, b) => a.orden - b.orden);
+  const faseActiva = buscarFaseActiva(fasesOrdenadas);
   const abrirMision = (fase: Fase) => {
     if (fase.estado !== 'bloqueada') navigate(`/mision/${fase.id}`);
   };
+
+  // Fase 5: layout en camino de zigzag (igual al mockup del Overworld) para
+  // el plan de estudios SDLC, que hoy son 7 fases fijas: [1,2] en la primera
+  // fila, [3] destacada, [4] centrada, [5,6,7] en la última fila. La
+  // posición depende del ÍNDICE (orden), no del contenido de cada fase —
+  // igual que los íconos de features/fases/presentacion.ts — así que si en
+  // el futuro se agregan más fases, aparecen en una fila extra en vez de
+  // romper el layout.
+  const [f1, f2, f3, f4, f5, f6, f7, ...resto] = fasesOrdenadas;
+  const tarjeta = (fase: Fase | undefined) =>
+    fase && (
+      <TarjetaFase
+        fase={fase}
+        esActiva={fase.id === faseActiva?.id}
+        onAbrir={() => abrirMision(fase)}
+        onInspeccionar={() => setFaseInspeccionada(fase)}
+      />
+    );
 
   return (
     <Pagina>
@@ -72,7 +92,7 @@ export const OverworldPage: React.FC = () => {
               >
                 <span className={`w-2.5 h-2.5 rounded-full ${punto}`}></span>
                 <span className="font-label-sm text-label-sm text-on-surface">
-                  {etiqueta} ({fases.filter((f) => f.estado === estado).length})
+                  {etiqueta} ({fasesOrdenadas.filter((f) => f.estado === estado).length})
                 </span>
               </div>
             ))}
@@ -108,19 +128,54 @@ export const OverworldPage: React.FC = () => {
           </div>
         )}
 
-        {/* Mapa de fases: una tarjeta por fase que devuelve el backend, en orden */}
-        <ol className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-space-lg bg-surface-container-lowest rounded-xl p-space-md lg:p-space-xl shadow-2xl border border-surface-container-high/40">
-          {fases.map((fase) => (
-            <li key={fase.id} className="flex">
-              <TarjetaFase
-                fase={fase}
-                esActiva={fase.id === faseActiva?.id}
-                onAbrir={() => abrirMision(fase)}
-                onInspeccionar={() => setFaseInspeccionada(fase)}
-              />
-            </li>
-          ))}
-        </ol>
+        {/* Mapa de fases en camino: posiciones fijas por índice, contenido real del backend. */}
+        <div className="relative w-full bg-surface-container-lowest rounded-xl p-space-md lg:p-space-xl shadow-2xl overflow-x-auto border border-surface-container-high/40">
+          <div className="relative min-w-[960px] pb-space-lg">
+            <ConectorSvg fases={[f1, f2, f3, f4, f5, f6, f7]} />
+
+            <div className="relative z-10 grid grid-cols-12 gap-y-16">
+              {f1 && (
+                <div className="col-span-4 flex flex-col items-center">{tarjeta(f1)}</div>
+              )}
+              <div className="col-span-1"></div>
+              {f2 && (
+                <div className="col-span-4 flex flex-col items-center">{tarjeta(f2)}</div>
+              )}
+              <div className="col-span-3"></div>
+
+              {f3 && (
+                <div className="col-span-12 flex justify-end pr-12 -mt-4">
+                  <div className="w-full max-w-md">{tarjeta(f3)}</div>
+                </div>
+              )}
+
+              {f4 && (
+                <div className="col-span-12 flex justify-center -mt-2">
+                  <div className="w-full max-w-xs">{tarjeta(f4)}</div>
+                </div>
+              )}
+
+              {(f5 || f6 || f7) && (
+                <>
+                  <div className="col-span-4 flex flex-col items-center">{tarjeta(f5)}</div>
+                  <div className="col-span-4 flex flex-col items-center">{tarjeta(f6)}</div>
+                  <div className="col-span-4 flex flex-col items-center">{tarjeta(f7)}</div>
+                </>
+              )}
+            </div>
+
+            {/* Si en el futuro hay más de 7 fases, se agregan aquí en vez de romper el camino de arriba. */}
+            {resto.length > 0 && (
+              <ol className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-space-lg mt-space-xl pt-space-xl border-t border-surface-container-high/40">
+                {resto.map((fase) => (
+                  <li key={fase.id} className="flex">
+                    {tarjeta(fase)}
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
+        </div>
 
         {faseInspeccionada && <ModalFase fase={faseInspeccionada} onCerrar={() => setFaseInspeccionada(null)} />}
       </div>
