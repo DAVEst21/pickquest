@@ -83,7 +83,7 @@ const RETOS: RetoSeed[] = [
     modo: 'OPCION_MULTIPLE',
     criteriosAceptacion:
       '[Reto de ejemplo del seed] Identificar el artefacto de planificación correcto (80% de precisión).',
-    calificacionMinima: '80.00',
+    calificacionMinima: '0.80',
     contenido: {
       enunciado: 'Selecciona el artefacto principal de planificación en Scrum.',
       claveRespuestas: [
@@ -99,7 +99,7 @@ const RETOS: RetoSeed[] = [
     modo: 'DRAG_AND_DROP',
     criteriosAceptacion:
       '[Reto de ejemplo del seed] Distinguir requisitos funcionales de no funcionales (80% de precisión).',
-    calificacionMinima: '80.00',
+    calificacionMinima: '0.80',
     contenido: {
       enunciado: 'Clasifica los siguientes requisitos según su categoría.',
       claveRespuestas: [
@@ -116,7 +116,7 @@ const RETOS: RetoSeed[] = [
     modo: 'COMPUESTO',
     criteriosAceptacion:
       '80% de precisión en trade-offs arquitectónicos y clasificación ISO 25010',
-    calificacionMinima: '80.00',
+    calificacionMinima: '0.80',
     contenido: {
       enunciado: 'Evalúa los atributos de calidad ISO 25010 y analiza los trade-offs de arquitectura.',
       claveRespuestas: [

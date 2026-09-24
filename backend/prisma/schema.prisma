@@ -59,7 +59,9 @@ model RachaEstudio {
   estudianteId    Int       @id
   diasActuales    Int       @default(0)
   diasRecord      Int       @default(0)
-  multiplicadorQP Float     @default(1.0)
+  // (Fase 1) Decimal, no Float: evita errores de redondeo binario en un
+  // multiplicador que afecta directamente el QP otorgado.
+  multiplicadorQP Decimal   @default(1.00) @db.Decimal(4, 2)
   ultimaActividad DateTime? @db.Date
 
   estudiante Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
@@ -87,7 +89,8 @@ model Reto {
   modo                ModoRespuesta
   contenido           Json // Estructura JSONB del ejercicio (enunciado, sub-ejercicios, opciones)
   criteriosAceptacion String?
-  calificacionMinima  Decimal       @db.Decimal(5, 2) // Umbral de aprobación (ej. 80.00)
+  // (Fase 1) Fracción 0.0-1.0, no escala 0-100 (0.80 = 80%).
+  calificacionMinima  Decimal       @db.Decimal(3, 2)
   recompensaXp        Int           @default(0)
   recompensaQp        Int           @default(0)
 
@@ -116,7 +119,8 @@ model IntentoReto {
   retoId                Int
   respuesta             Json // Almacena la solución enviada o el borrador del estudiante
   porcentaje            Int      @default(0)
-  calificacionEstrellas Float    @default(0.0)
+  // (Fase 1) Entero 0-3, no Float.
+  calificacionEstrellas Int      @default(0)
   xpGanado              Int      @default(0)
   qpGanado              Int      @default(0)
   aprobado              Boolean  @default(false)
@@ -124,9 +128,14 @@ model IntentoReto {
   creadoEn              DateTime @default(now())
 
   estudiante Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
-  reto       Reto       @relation(fields: [retoId], references: [id], onDelete: Cascade)
+  // (Fase 1) Restrict, no Cascade: no se puede borrar un Reto que ya tiene
+  // intentos (perdería el historial de progreso del estudiante).
+  reto       Reto       @relation(fields: [retoId], references: [id], onDelete: Restrict)
   ayudas     UsoAyuda[]
 
+  // (Fase 1) Restaura el índice perdido en el DROP/CREATE de la sync SCS:
+  // es la consulta que se dispara en cada GET /fases y en cada envío de intento.
+  @@index([estudianteId, retoId])
   @@map("intento_reto")
 }
 
@@ -139,8 +148,10 @@ model UsoAyuda {
   creadoEn     DateTime @default(now())
 
   estudiante Estudiante   @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
-  reto       Reto         @relation(fields: [retoId], references: [id], onDelete: Cascade)
-  objeto     Objeto       @relation(fields: [objetoId], references: [id], onDelete: Cascade)
+  // (Fase 1) Restrict, no Cascade: no se puede borrar un Reto ni un Objeto
+  // que ya tienen ayudas registradas.
+  reto       Reto         @relation(fields: [retoId], references: [id], onDelete: Restrict)
+  objeto     Objeto       @relation(fields: [objetoId], references: [id], onDelete: Restrict)
   intento    IntentoReto? @relation(fields: [intentoId], references: [id], onDelete: SetNull)
 
   @@map("uso_ayuda")
@@ -167,7 +178,9 @@ model InventarioObjeto {
   equipado     Boolean @default(false)
 
   estudiante Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
-  objeto     Objeto     @relation(fields: [objetoId], references: [id], onDelete: Cascade)
+  // (Fase 1) Restrict, no Cascade: no se puede borrar un Objeto que algún
+  // estudiante ya tiene en su inventario.
+  objeto     Objeto     @relation(fields: [objetoId], references: [id], onDelete: Restrict)
 
   @@id([estudianteId, objetoId])
   @@map("inventario_objeto")

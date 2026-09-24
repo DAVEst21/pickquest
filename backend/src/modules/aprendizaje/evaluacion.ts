@@ -58,7 +58,10 @@ export function parsearClave(valor: unknown): PreguntaClave[] {
  * Evalúa en el servidor la respuesta de un estudiante.
  * - porcentaje: puntos obtenidos / puntos posibles, truncado a entero (0-100).
  *   Se trunca para que un porcentaje mostrado como 80 nunca provenga de un 79.x.
- * - aprobado: porcentaje (como fracción o 0-100) >= calificacionMinima.
+ * - aprobado: porcentaje (como fracción) >= calificacionMinima. (Fase 1:
+ *   calificacionMinima vuelve a ser siempre fracción 0.0-1.0, así que ya no
+ *   hace falta detectar si venía en escala 0-100 — ver commit 9edafd1, que
+ *   este cambio deja sin efecto).
  * - calificacionEstrellas (0-3): 3 si es perfecto, 2 si aprueba, 1 si alcanza
  *   al menos el 50%, 0 en otro caso (misma escala que usaba el mock del frontend).
  * Las preguntas sin responder cuentan como incorrectas.
@@ -66,7 +69,7 @@ export function parsearClave(valor: unknown): PreguntaClave[] {
 export function evaluarRespuestas(
   clave: PreguntaClave[],
   respuestas: RespuestaPregunta[],
-  calificacionMinima: Prisma.Decimal | number,
+  calificacionMinima: Prisma.Decimal,
 ): ResultadoEvaluacion {
   const clavePorId = new Map(clave.map((p) => [p.preguntaId, p]));
   const desconocidas = respuestas.filter((r) => !clavePorId.has(r.preguntaId));
@@ -89,12 +92,9 @@ export function evaluarRespuestas(
   );
 
   const porcentaje = Math.floor((puntosObtenidos * 100) / puntosPosibles);
-  const minVal =
-    typeof calificacionMinima === 'number'
-      ? calificacionMinima
-      : Number(calificacionMinima);
-  const umbral = minVal > 1 ? minVal : minVal * 100;
-  const aprobado = porcentaje >= umbral;
+  const aprobado = new Prisma.Decimal(porcentaje)
+    .div(100)
+    .gte(calificacionMinima);
 
   let calificacionEstrellas = 0;
   if (porcentaje === 100) calificacionEstrellas = 3;

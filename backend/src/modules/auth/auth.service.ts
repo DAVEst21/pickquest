@@ -105,7 +105,9 @@ function aPerfil(estudiante: EstudianteConRacha): PerfilEstudianteDto {
       ? {
           diasActuales: estudiante.racha.diasActuales,
           diasRecord: estudiante.racha.diasRecord,
-          multiplicadorQP: estudiante.racha.multiplicadorQP,
+          // (Fase 1) multiplicadorQP ahora es Decimal en la BD: se convierte
+          // explícitamente para no serializar un objeto Decimal como string.
+          multiplicadorQP: Number(estudiante.racha.multiplicadorQP),
         }
       : null,
   };

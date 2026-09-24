@@ -94,10 +94,11 @@ export function buscarFaseActiva(fases: Fase[] | undefined): Fase | null {
   return fases.find((f) => f.estado === 'en_progreso') ?? fases.find((f) => f.estado === 'desbloqueada') ?? null;
 }
 
-/** Umbral de aprobación en porcentaje entero (soporta escala 0-100 como 80 o fracción 0-1 como 0.8). */
+/**
+ * Umbral de aprobación en porcentaje entero (0.8 -> 80). Fase 1: el backend
+ * vuelve a mandar siempre una fracción 0.0-1.0, así que ya no hace falta
+ * detectar si venía en escala 0-100 (commit 9edafd1, sin efecto desde aquí).
+ */
 export function umbralPorcentaje(calificacionMinima: number): number {
-  if (calificacionMinima > 1) {
-    return Math.round(calificacionMinima);
-  }
   return Math.round(calificacionMinima * 100);
 }

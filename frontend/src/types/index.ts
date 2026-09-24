@@ -22,7 +22,7 @@ export interface Reto {
   id: number;
   faseId: number;
   criteriosAceptacion: string;
-  calificacionMinima: number; // 0-100 (ej. 80.00) o fracción 0-1 (0.8)
+  calificacionMinima: number; // fracción 0-1 (0.8 = 80%)
   recompensaXp: number;
   recompensaQp: number;
   /** Identificadores de las preguntas que evalúa el backend. */
