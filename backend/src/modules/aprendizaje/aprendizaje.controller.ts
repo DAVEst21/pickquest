@@ -23,7 +23,11 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AprendizajeService } from './aprendizaje.service';
 import { EnviarIntentoDto } from './dto/enviar-intento.dto';
 import { FaseDetalleDto, FaseDto } from './dto/fase.dto';
-import { AyudaRegistradaDto, IntentoDto } from './dto/intento.dto';
+import {
+  AyudaRegistradaDto,
+  IntentoDto,
+  RegistrarAyudaDto,
+} from './dto/intento.dto';
 
 @ApiTags('Aprendizaje')
 @ApiBearerAuth()
@@ -55,7 +59,12 @@ export class AprendizajeController {
     return this.aprendizaje.detalleFase(estudiante.id, faseId);
   }
 
-  @Post('retos/:retoId/ayuda')
+  @Post([
+    'retos/:retoId/ayuda',
+    'retos/:retoId/ayudas',
+    'fases/:faseId/retos/:retoId/ayudas',
+    'fases/:faseId/retos/:retoId/ayuda',
+  ])
   @ApiOperation({
     summary: 'Registrar el uso de una ayuda en un reto',
     description:
@@ -66,11 +75,16 @@ export class AprendizajeController {
   registrarAyuda(
     @EstudianteActual() estudiante: EstudianteAutenticado,
     @Param('retoId', ParseIntPipe) retoId: number,
+    @Body() dto?: RegistrarAyudaDto,
   ): Promise<AyudaRegistradaDto> {
-    return this.aprendizaje.registrarAyuda(estudiante.id, retoId);
+    return this.aprendizaje.registrarAyuda(
+      estudiante.id,
+      retoId,
+      dto?.objetoId,
+    );
   }
 
-  @Post('retos/:retoId/intentos')
+  @Post(['retos/:retoId/intentos', 'fases/:faseId/retos/:retoId/intentos'])
   @ApiOperation({
     summary: 'Enviar la solución de un reto',
     description:

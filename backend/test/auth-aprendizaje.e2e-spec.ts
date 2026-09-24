@@ -132,7 +132,7 @@ describe('Auth + Aprendizaje (e2e)', () => {
       const reto = await prisma.reto.findUniqueOrThrow({
         where: { id: primera.retoId },
       });
-      const respuestas = parsearClave(reto.claveRespuestas).map((p) => ({
+      const respuestas = parsearClave(reto.contenido).map((p) => ({
         preguntaId: p.preguntaId,
         respuesta: p.correcta,
       }));

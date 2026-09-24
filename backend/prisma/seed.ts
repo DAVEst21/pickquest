@@ -6,7 +6,7 @@
  *
  * Es idempotente: se puede ejecutar varias veces sin duplicar datos.
  */
-import { Prisma, PrismaClient, TemaFase } from '@prisma/client';
+import { ModoRespuesta, Prisma, PrismaClient, TemaFase, TipoObjeto } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { calcularNivel } from '../src/modules/progreso/nivel';
 
@@ -64,55 +64,94 @@ const FASES: {
 
 interface RetoSeed {
   ordenFase: number;
+  orden: number;
+  modo: ModoRespuesta;
   criteriosAceptacion: string;
   calificacionMinima: string;
-  claveRespuestas: { preguntaId: string; correcta: string; peso: number }[];
+  contenido: {
+    enunciado?: string;
+    claveRespuestas: { preguntaId: string; correcta: string; peso: number }[];
+  };
   recompensaXp: number;
   recompensaQp: number;
 }
 
 const RETOS: RetoSeed[] = [
-  // PLACEHOLDER: el mock no define retos para las fases 1 y 2, pero sin un
-  // reto no se pueden completar y el resto del mapa quedaría bloqueado.
   {
     ordenFase: 1,
+    orden: 1,
+    modo: 'OPCION_MULTIPLE',
     criteriosAceptacion:
       '[Reto de ejemplo del seed] Identificar el artefacto de planificación correcto (80% de precisión).',
-    calificacionMinima: '0.80',
-    claveRespuestas: [
-      { preguntaId: 'artefacto', correcta: 'backlog', peso: 1 },
-    ],
+    calificacionMinima: '80.00',
+    contenido: {
+      enunciado: 'Selecciona el artefacto principal de planificación en Scrum.',
+      claveRespuestas: [
+        { preguntaId: 'artefacto', correcta: 'backlog', peso: 1 },
+      ],
+    },
     recompensaXp: 100,
     recompensaQp: 50,
   },
   {
     ordenFase: 2,
+    orden: 1,
+    modo: 'DRAG_AND_DROP',
     criteriosAceptacion:
       '[Reto de ejemplo del seed] Distinguir requisitos funcionales de no funcionales (80% de precisión).',
-    calificacionMinima: '0.80',
-    claveRespuestas: [
-      { preguntaId: 'req-1', correcta: 'funcional', peso: 1 },
-      { preguntaId: 'req-2', correcta: 'no_funcional', peso: 1 },
-    ],
+    calificacionMinima: '80.00',
+    contenido: {
+      enunciado: 'Clasifica los siguientes requisitos según su categoría.',
+      claveRespuestas: [
+        { preguntaId: 'req-1', correcta: 'funcional', peso: 1 },
+        { preguntaId: 'req-2', correcta: 'no_funcional', peso: 1 },
+      ],
+    },
     recompensaXp: 200,
     recompensaQp: 250,
   },
-  // Reto 204 del mock (RETO_FASE_3). La clave replica la evaluación del mock en
-  // frontend/src/services/api.ts: 3 clasificaciones (peso 1) + trade-off (peso 2).
-  // Recompensas tomadas de RETO_FASE_3.recompensas (350 XP / 120 QP).
   {
     ordenFase: 3,
+    orden: 1,
+    modo: 'COMPUESTO',
     criteriosAceptacion:
       '80% de precisión en trade-offs arquitectónicos y clasificación ISO 25010',
-    calificacionMinima: '0.80',
-    claveRespuestas: [
-      { preguntaId: 'req-1', correcta: 'seguridad', peso: 1 },
-      { preguntaId: 'req-2', correcta: 'desempeno', peso: 1 },
-      { preguntaId: 'req-3', correcta: 'usabilidad', peso: 1 },
-      { preguntaId: 'tradeoff', correcta: 'A', peso: 2 },
-    ],
+    calificacionMinima: '80.00',
+    contenido: {
+      enunciado: 'Evalúa los atributos de calidad ISO 25010 y analiza los trade-offs de arquitectura.',
+      claveRespuestas: [
+        { preguntaId: 'req-1', correcta: 'seguridad', peso: 1 },
+        { preguntaId: 'req-2', correcta: 'desempeno', peso: 1 },
+        { preguntaId: 'req-3', correcta: 'usabilidad', peso: 1 },
+        { preguntaId: 'tradeoff', correcta: 'A', peso: 2 },
+      ],
+    },
     recompensaXp: 350,
     recompensaQp: 120,
+  },
+];
+
+const OBJETOS_SEED = [
+  {
+    nombre: 'Poción de Sabiduría',
+    tipo: 'POCION' as TipoObjeto,
+    costoQP: 50,
+    efecto: 'Revela una pista contextual sobre los requisitos del reto.',
+    rareza: 'Común',
+  },
+  {
+    nombre: 'Pergamino de Claridad',
+    tipo: 'PERGAMINO' as TipoObjeto,
+    costoQP: 100,
+    efecto: 'Descarta una opción de respuesta incorrecta.',
+    rareza: 'Rara',
+  },
+  {
+    nombre: 'Reliquia del Arquitecto',
+    tipo: 'RELIQUIA' as TipoObjeto,
+    costoQP: 300,
+    efecto: 'Otorga un 50% extra de XP en el reto actual.',
+    rareza: 'Épica',
   },
 ];
 
@@ -153,31 +192,59 @@ async function main() {
     fasePorOrden.set(fase.orden, id);
   }
 
-  const retoPorOrden = new Map<number, number>();
-  for (const { ordenFase, ...datos } of RETOS) {
+  // Seed de Objetos
+  const objetosPorNombre = new Map<string, number>();
+  for (const obj of OBJETOS_SEED) {
+    const registro = await prisma.objeto.upsert({
+      where: { nombre: obj.nombre },
+      update: {
+        tipo: obj.tipo,
+        costoQP: obj.costoQP,
+        efecto: obj.efecto,
+        rareza: obj.rareza,
+      },
+      create: obj,
+    });
+    objetosPorNombre.set(obj.nombre, registro.id);
+  }
+
+  const retoPorOrdenFase = new Map<number, number>();
+  for (const { ordenFase, orden, modo, contenido, ...datos } of RETOS) {
     const faseId = fasePorOrden.get(ordenFase)!;
     const valores = {
       ...datos,
+      orden,
+      modo,
+      contenido,
       calificacionMinima: new Prisma.Decimal(datos.calificacionMinima),
     };
-    const { id } = await prisma.reto.upsert({
-      where: { faseId },
-      update: valores,
-      create: { ...valores, faseId },
+    const existente = await prisma.reto.findFirst({
+      where: { faseId, orden },
     });
-    retoPorOrden.set(ordenFase, id);
+    let retoId: number;
+    if (existente) {
+      const actualizado = await prisma.reto.update({
+        where: { id: existente.id },
+        data: valores,
+      });
+      retoId = actualizado.id;
+    } else {
+      const creado = await prisma.reto.create({
+        data: { ...valores, faseId },
+      });
+      retoId = creado.id;
+    }
+    retoPorOrdenFase.set(ordenFase, retoId);
   }
 
   const fase3 = fasePorOrden.get(3)!;
-  if ((await prisma.contenidoApoyo.count({ where: { faseId: fase3 } })) === 0) {
-    await prisma.contenidoApoyo.create({
-      data: { faseId: fase3, ...CONTENIDO_FASE_3 },
-    });
-  }
+  await prisma.contenidoApoyo.upsert({
+    where: { faseId: fase3 },
+    update: CONTENIDO_FASE_3,
+    create: { faseId: fase3, ...CONTENIDO_FASE_3 },
+  });
 
   // Estudiante demo con los mismos totales de XP/QP del mock (ESTUDIANTE_MOCK).
-  // El nivel se deriva del XP con la curva del backend (750 XP -> nivel 2),
-  // no se copia el nivel 5 del mock, que no es coherente con esa curva.
   const demo = await prisma.estudiante.upsert({
     where: { email: DEMO.email },
     update: {},
@@ -189,9 +256,29 @@ async function main() {
       nivel: calcularNivel(750).nivel,
       xpTotal: 750,
       qpTotal: 1420,
-      racha: { create: { diasActuales: 4, diasRecord: 4 } },
+      racha: { create: { diasActuales: 4, diasRecord: 4, multiplicadorQP: 1.0 } },
     },
   });
+
+  // Asignar poción al inventario del demo si no la tiene
+  const pocionId = objetosPorNombre.get('Poción de Sabiduría');
+  if (pocionId) {
+    await prisma.inventarioObjeto.upsert({
+      where: {
+        estudianteId_objetoId: {
+          estudianteId: demo.id,
+          objetoId: pocionId,
+        },
+      },
+      update: {},
+      create: {
+        estudianteId: demo.id,
+        objetoId: pocionId,
+        cantidad: 3,
+        equipado: true,
+      },
+    });
+  }
 
   if (
     (await prisma.intentoReto.count({ where: { estudianteId: demo.id } })) === 0
@@ -201,39 +288,48 @@ async function main() {
         // Fases 1 y 2 completadas con 3 estrellas.
         {
           estudianteId: demo.id,
-          retoId: retoPorOrden.get(1)!,
+          retoId: retoPorOrdenFase.get(1)!,
+          respuesta: [{ preguntaId: 'artefacto', respuesta: 'backlog' }],
           porcentaje: 100,
-          calificacionEstrellas: 3,
+          calificacionEstrellas: 3.0,
           aprobado: true,
         },
         {
           estudianteId: demo.id,
-          retoId: retoPorOrden.get(2)!,
+          retoId: retoPorOrdenFase.get(2)!,
+          respuesta: [
+            { preguntaId: 'req-1', respuesta: 'funcional' },
+            { preguntaId: 'req-2', respuesta: 'no_funcional' },
+          ],
           porcentaje: 100,
-          calificacionEstrellas: 3,
+          calificacionEstrellas: 3.0,
           aprobado: true,
         },
-        // Fase 3 en progreso: un intento fallido (el mock usa 68%, que no es
-        // alcanzable con los pesos del reto; 60% es el más cercano).
+        // Fase 3 en progreso: un intento fallido (60%).
         {
           estudianteId: demo.id,
-          retoId: retoPorOrden.get(3)!,
+          retoId: retoPorOrdenFase.get(3)!,
+          respuesta: [
+            { preguntaId: 'req-1', respuesta: 'seguridad' },
+            { preguntaId: 'tradeoff', respuesta: 'B' },
+          ],
           porcentaje: 60,
-          calificacionEstrellas: 1,
+          calificacionEstrellas: 1.0,
           aprobado: false,
         },
       ],
     });
   }
 
-  const [fases, retos, estudiantes, intentos] = await Promise.all([
+  const [fases, retos, objetos, estudiantes, intentos] = await Promise.all([
     prisma.fase.count(),
     prisma.reto.count(),
+    prisma.objeto.count(),
     prisma.estudiante.count(),
     prisma.intentoReto.count(),
   ]);
   console.log(
-    `Seed listo: ${fases} fases, ${retos} retos, ${estudiantes} estudiantes, ${intentos} intentos. ` +
+    `Seed listo: ${fases} fases, ${retos} retos, ${objetos} objetos, ${estudiantes} estudiantes, ${intentos} intentos. ` +
       `Usuario demo: ${DEMO.email} / ${DEMO.password}`,
   );
 }

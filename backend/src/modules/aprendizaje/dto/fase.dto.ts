@@ -24,7 +24,7 @@ export class FaseDto {
 export class RetoDto {
   id: number;
   faseId: number;
-  criteriosAceptacion: string;
+  criteriosAceptacion: string | null;
   /** Fracción 0.0-1.0 (0.8 = 80%). @example 0.8 */
   calificacionMinima: number;
   recompensaXp: number;

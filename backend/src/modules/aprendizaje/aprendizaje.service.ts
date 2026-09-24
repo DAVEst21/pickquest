@@ -32,7 +32,7 @@ const SELECCION_FASE = {
   tema: true,
   dificultad: true,
   orden: true,
-  reto: { select: { id: true } },
+  retos: { select: { id: true, orden: true }, orderBy: { orden: 'asc' } },
 } satisfies Prisma.FaseSelect;
 
 type FaseSeleccionada = Prisma.FaseGetPayload<{
@@ -60,39 +60,84 @@ export class AprendizajeService {
   ): Promise<FaseDetalleDto> {
     const fase = await this.prisma.fase.findUnique({
       where: { id: faseId },
-      include: { reto: true, contenidos: { orderBy: { id: 'asc' } } },
+      include: {
+        retos: { orderBy: { orden: 'asc' } },
+        contenidoApoyo: true,
+      },
     });
     if (!fase) {
       throw new NotFoundException(`La fase ${faseId} no existe`);
     }
     const { estados, resumen } = await this.cargarProgreso(estudianteId);
+    const primerReto = fase.retos[0] ?? null;
 
     return {
-      fase: aFaseDto(
-        { ...fase, reto: fase.reto ? { id: fase.reto.id } : null },
-        estados,
-        resumen,
-      ),
-      reto: fase.reto ? aRetoDto(fase.reto) : null,
-      contenidosApoyo: fase.contenidos.map((c) => ({
-        id: c.id,
-        contenidoTeorico: c.contenidoTeorico,
-        ejemplos: c.ejemplos,
-        glosario: c.glosario,
-      })),
+      fase: aFaseDto(fase, estados, resumen),
+      reto: primerReto ? aRetoDto(primerReto) : null,
+      contenidosApoyo: fase.contenidoApoyo
+        ? [
+            {
+              id: fase.contenidoApoyo.id,
+              contenidoTeorico: fase.contenidoApoyo.contenidoTeorico,
+              ejemplos: fase.contenidoApoyo.ejemplos,
+              glosario: fase.contenidoApoyo.glosario,
+            },
+          ]
+        : [],
     };
   }
 
   /**
    * Registra que el estudiante usó una ayuda en el reto. Queda pendiente y se
-   * asocia al próximo intento que envíe (Corrección d).
+   * asocia al próximo intento que envíe (CU-03 paso 4b).
    */
   async registrarAyuda(
     estudianteId: number,
     retoId: number,
+    objetoId?: number,
   ): Promise<AyudaRegistradaDto> {
     await this.obtenerRetoDisponible(this.prisma, estudianteId, retoId);
-    await this.prisma.usoAyuda.create({ data: { estudianteId, retoId } });
+
+    let idObjeto = objetoId;
+    if (!idObjeto) {
+      const inventario = await this.prisma.inventarioObjeto.findFirst({
+        where: { estudianteId, cantidad: { gt: 0 } },
+        select: { objetoId: true },
+      });
+      if (inventario) {
+        idObjeto = inventario.objetoId;
+      } else {
+        const obj = await this.prisma.objeto.findFirst({
+          where: { tipo: 'POCION' },
+          select: { id: true },
+        });
+        if (obj) {
+          idObjeto = obj.id;
+        } else {
+          const defaultObj = await this.prisma.objeto.upsert({
+            where: { nombre: 'Poción de Ayuda' },
+            update: {},
+            create: {
+              nombre: 'Poción de Ayuda',
+              tipo: 'POCION',
+              costoQP: 50,
+              efecto: 'Revela una pista sobre el reto',
+              rareza: 'Común',
+            },
+          });
+          idObjeto = defaultObj.id;
+        }
+      }
+    }
+
+    await this.prisma.usoAyuda.create({
+      data: {
+        estudianteId,
+        retoId,
+        objetoId: idObjeto,
+      },
+    });
+
     const ayudasPendientes = await this.prisma.usoAyuda.count({
       where: { estudianteId, retoId, intentoId: null },
     });
@@ -147,7 +192,7 @@ export class AprendizajeService {
     let resultado: ReturnType<typeof evaluarRespuestas>;
     try {
       resultado = evaluarRespuestas(
-        parsearClave(reto.claveRespuestas),
+        parsearClave(reto.contenido),
         dto.respuestas,
         reto.calificacionMinima,
       );
@@ -173,6 +218,7 @@ export class AprendizajeService {
       data: {
         estudianteId,
         retoId,
+        respuesta: dto.respuestas as unknown as Prisma.InputJsonValue,
         ...resultado,
         xpGanado,
         qpGanado,
@@ -254,7 +300,7 @@ export class AprendizajeService {
       fases.map((f) => ({
         id: f.id,
         orden: f.orden,
-        retoId: f.reto?.id ?? null,
+        retoId: f.retos[0]?.id ?? null,
       })),
       resumen,
     );
@@ -267,7 +313,7 @@ function aFaseDto(
   estados: Map<number, EstadoFase>,
   resumenPorReto: Map<number, ResumenReto>,
 ): FaseDto {
-  const retoId = fase.reto?.id ?? null;
+  const retoId = fase.retos[0]?.id ?? null;
   const resumen = retoId === null ? undefined : resumenPorReto.get(retoId);
   return {
     id: fase.id,
@@ -284,14 +330,20 @@ function aFaseDto(
 }
 
 function aRetoDto(reto: Reto): RetoDto {
+  let preguntas: string[] = [];
+  try {
+    preguntas = parsearClave(reto.contenido).map((p) => p.preguntaId);
+  } catch {
+    preguntas = [];
+  }
   return {
     id: reto.id,
     faseId: reto.faseId,
     criteriosAceptacion: reto.criteriosAceptacion,
-    calificacionMinima: reto.calificacionMinima.toNumber(),
+    calificacionMinima: Number(reto.calificacionMinima),
     recompensaXp: reto.recompensaXp,
     recompensaQp: reto.recompensaQp,
-    preguntas: parsearClave(reto.claveRespuestas).map((p) => p.preguntaId),
+    preguntas,
   };
 }
 
@@ -306,6 +358,7 @@ function aIntentoDto(intento: IntentoReto, faseId: number): IntentoDto {
     xpGanado: intento.xpGanado,
     qpGanado: intento.qpGanado,
     usoAyuda: intento.usoAyuda,
-    createdAt: intento.createdAt,
+    createdAt: intento.creadoEn,
+    creadoEn: intento.creadoEn,
   };
 }

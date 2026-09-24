@@ -1,9 +1,4 @@
-// Esquema de datos de PickQuest.
-// Las anotaciones "(Corrección x)" remiten a las correcciones de modelo acordadas
-// en la revisión de calidad de los diagramas de diseño.
-// Las restricciones CHECK (rangos de porcentaje, estrellas, calificacionMinima,
-// cantidades) no se pueden expresar en Prisma: están escritas a mano en la
-// migración inicial (prisma/migrations/*_init/migration.sql).
+// Esquema oficial de base de datos PickQuest - SCS v2.3 / SRS v2.1
 
 generator client {
   provider      = "prisma-client-js"
@@ -15,225 +10,199 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// (Corrección e) Enum en vez de string libre. Valores confirmados en
-// frontend/src/types/index.ts (TemaFase).
 enum TemaFase {
   ELICITACION
   ATRIBUTOS_CALIDAD
   CODIGO_PRUEBAS
 }
 
-// (Corrección e) Enum en vez de string libre. Única evidencia en el frontend:
-// itemGarantizado.tipo = 'Ítem Consumible de Inventario' (services/mocks/data.ts)
-// y las ranuras "Consumible" de RetoPage. No hay evidencia de otros tipos todavía.
-enum TipoObjeto {
-  CONSUMIBLE
+enum ModoRespuesta {
+  OPCION_MULTIPLE
+  DRAG_AND_DROP
+  CODIGO
+  COMPUESTO
 }
 
-// (Corrección e) Categoría de habilidad de un estudiante. Tiene los mismos tres
-// valores que TemaFase, duplicados a propósito: el SRS fija "3 temas educativos"
-// como restricción del proyecto, pero el tema de una fase y la categoría de
-// habilidad de un estudiante son conceptos distintos y no comparten tipo.
 enum CategoriaHabilidadSDLC {
   ELICITACION
   ATRIBUTOS_CALIDAD
   CODIGO_PRUEBAS
 }
 
+enum TipoObjeto {
+  POCION
+  PERGAMINO
+  RELIQUIA
+}
+
 model Estudiante {
-  id               Int      @id @default(autoincrement())
-  // No está en el diccionario de datos original; Auth lo necesita como identificador de login.
-  email            String   @unique
+  id               Int    @id @default(autoincrement())
+  email            String @unique
   passwordHash     String
-  nombreAventurero String   @unique
-  avatar           String?
-  // Derivado de xpTotal (ver src/modules/progreso/nivel.ts); se recalcula cada vez que cambia xpTotal.
-  nivel            Int      @default(1)
-  xpTotal          Int      @default(0)
-  qpTotal          Int      @default(0)
-  // (Corrección i) Sin campo titulo/tituloClase: pendiente de confirmar como requisito.
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  nombreAventurero String @unique
+  avatar           String
+  nivel            Int    @default(1)
+  xpTotal          Int    @default(0)
+  qpTotal          Int    @default(0)
 
-  racha       RachaEstudio?
-  intentos    IntentoReto[]
-  ayudas      UsoAyuda[]
-  inventario  InventarioObjeto[]
-  logros      LogroEstudiante[]
-  habilidades HabilidadSDLC[]
+  racha        RachaEstudio?
+  intentos     IntentoReto[]
+  ayudasUsadas UsoAyuda[]
+  inventario   InventarioObjeto[]
+  logros       LogroEstudiante[]
+  habilidades  HabilidadSDLC[]
+
+  @@map("estudiante")
 }
 
-// (Corrección f) estudianteId es la llave primaria: relación 1 a 1 con Estudiante.
 model RachaEstudio {
-  estudianteId    Int      @id
-  diasActuales    Int      @default(0)
-  diasRecord      Int      @default(0)
-  multiplicadorQP Decimal  @default(1.00) @db.Decimal(4, 2)
-  updatedAt       DateTime @updatedAt
+  estudianteId    Int       @id
+  diasActuales    Int       @default(0)
+  diasRecord      Int       @default(0)
+  multiplicadorQP Float     @default(1.0)
+  ultimaActividad DateTime? @db.Date
 
-  // (Corrección h) Dato exclusivo del estudiante.
   estudiante Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+
+  @@map("racha_estudio")
 }
 
-// (Corrección a) Fase NO tiene columna "estado", ni existe una tabla Progreso
-// que lo duplique. El estado (bloqueada/desbloqueada/en_progreso/completada)
-// depende de cada estudiante y lo calcula el servicio de Aprendizaje a partir
-// del historial de IntentoReto.
 model Fase {
   id         Int      @id @default(autoincrement())
   nombre     String
   tema       TemaFase
   dificultad String
-  // Único: define la secuencia de desbloqueo (la fase anterior es la de orden inmediato inferior).
   orden      Int      @unique
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
 
-  reto       Reto?
-  contenidos ContenidoApoyo[]
+  retos          Reto[]
+  contenidoApoyo ContenidoApoyo?
+
+  @@map("fase")
 }
 
 model Reto {
-  id                  Int      @id @default(autoincrement())
-  // Único: la regla de estado habla de "el reto de esa fase" (una fase, un reto).
-  faseId              Int      @unique
-  // (Corrección j) Texto libre; la rúbrica estructurada de objetivos/hitos queda pendiente.
-  criteriosAceptacion String
-  // (Corrección c) Fracción decimal 0.0-1.0 (0.80 = 80% de RN-03), Decimal y no float.
-  calificacionMinima  Decimal  @db.Decimal(3, 2)
-  // Clave de respuestas para evaluar en el servidor:
-  // [{ preguntaId, correcta, peso }]. Nunca se expone al cliente.
-  claveRespuestas     Json
-  // Recompensa que otorga la primera aprobación del reto.
-  recompensaXp        Int      @default(0)
-  recompensaQp        Int      @default(0)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                  Int           @id @default(autoincrement())
+  faseId              Int
+  orden               Int
+  modo                ModoRespuesta
+  contenido           Json // Estructura JSONB del ejercicio (enunciado, sub-ejercicios, opciones)
+  criteriosAceptacion String?
+  calificacionMinima  Decimal       @db.Decimal(5, 2) // Umbral de aprobación (ej. 80.00)
+  recompensaXp        Int           @default(0)
+  recompensaQp        Int           @default(0)
 
-  fase     Fase          @relation(fields: [faseId], references: [id], onDelete: Restrict)
-  intentos IntentoReto[]
-  ayudas   UsoAyuda[]
+  fase         Fase          @relation(fields: [faseId], references: [id], onDelete: Cascade)
+  intentos     IntentoReto[]
+  ayudasUsadas UsoAyuda[]
+
+  @@map("reto")
+}
+
+model ContenidoApoyo {
+  id               Int    @id @default(autoincrement())
+  faseId           Int    @unique
+  contenidoTeorico String @db.Text
+  ejemplos         String @db.Text
+  glosario         String @db.Text
+
+  fase Fase @relation(fields: [faseId], references: [id], onDelete: Cascade)
+
+  @@map("contenido_apoyo")
 }
 
 model IntentoReto {
   id                    Int      @id @default(autoincrement())
   estudianteId          Int
   retoId                Int
-  // (Corrección b) Nuevo campo 0-100. La aprobación compara porcentaje contra
-  // Reto.calificacionMinima, nunca calificacionEstrellas.
-  porcentaje            Int
-  // (Corrección b) Escala 0-3 (no 0-5).
-  calificacionEstrellas Int
+  respuesta             Json // Almacena la solución enviada o el borrador del estudiante
+  porcentaje            Int      @default(0)
+  calificacionEstrellas Float    @default(0.0)
   xpGanado              Int      @default(0)
   qpGanado              Int      @default(0)
-  aprobado              Boolean
-  // (Corrección d) Lo calcula el servidor a partir de UsoAyuda; nunca viene en el body.
+  aprobado              Boolean  @default(false)
   usoAyuda              Boolean  @default(false)
-  createdAt             DateTime @default(now())
+  creadoEn              DateTime @default(now())
 
-  // (Corrección h) Dato exclusivo del estudiante.
   estudiante Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
-  reto       Reto       @relation(fields: [retoId], references: [id], onDelete: Restrict)
+  reto       Reto       @relation(fields: [retoId], references: [id], onDelete: Cascade)
   ayudas     UsoAyuda[]
 
-  // (Corrección g) Consulta constante para calcular estado y mejor resultado.
-  @@index([estudianteId, retoId])
+  @@map("intento_reto")
 }
 
-// (Corrección d) Registro de cada invocación del endpoint de ayuda. Mientras
-// intentoId es null la ayuda está "pendiente"; al enviar la solución se asocia
-// al intento creado y ese intento queda con usoAyuda = true.
 model UsoAyuda {
   id           Int      @id @default(autoincrement())
   estudianteId Int
   retoId       Int
+  objetoId     Int
   intentoId    Int?
-  createdAt    DateTime @default(now())
+  creadoEn     DateTime @default(now())
 
   estudiante Estudiante   @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
-  reto       Reto         @relation(fields: [retoId], references: [id], onDelete: Restrict)
-  intento    IntentoReto? @relation(fields: [intentoId], references: [id], onDelete: Cascade)
+  reto       Reto         @relation(fields: [retoId], references: [id], onDelete: Cascade)
+  objeto     Objeto       @relation(fields: [objetoId], references: [id], onDelete: Cascade)
+  intento    IntentoReto? @relation(fields: [intentoId], references: [id], onDelete: SetNull)
 
-  @@index([estudianteId, retoId, intentoId])
+  @@map("uso_ayuda")
 }
 
 model Objeto {
-  id        Int        @id @default(autoincrement())
-  nombre    String     @unique
-  tipo      TipoObjeto
-  costoQP   Int
-  efecto    String
-  rareza    String
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id      Int        @id @default(autoincrement())
+  nombre  String     @unique
+  tipo    TipoObjeto
+  costoQP Int
+  efecto  String
+  rareza  String
 
-  inventarios InventarioObjeto[]
+  inventarios  InventarioObjeto[]
+  ayudasUsadas UsoAyuda[]
+
+  @@map("objeto")
 }
 
 model InventarioObjeto {
   estudianteId Int
   objetoId     Int
-  cantidad     Int      @default(0)
-  equipado     Boolean  @default(false)
-  updatedAt    DateTime @updatedAt
+  cantidad     Int     @default(1)
+  equipado     Boolean @default(false)
 
-  // (Corrección h) Dato exclusivo del estudiante.
   estudiante Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
-  objeto     Objeto     @relation(fields: [objetoId], references: [id], onDelete: Restrict)
+  objeto     Objeto     @relation(fields: [objetoId], references: [id], onDelete: Cascade)
 
   @@id([estudianteId, objetoId])
+  @@map("inventario_objeto")
 }
 
 model Logro {
-  id                  Int      @id @default(autoincrement())
-  nombre              String   @unique
+  id                  Int    @id @default(autoincrement())
+  nombre              String @unique
   condicionDesbloqueo String
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
 
   estudiantes LogroEstudiante[]
+
+  @@map("logro")
 }
 
 model LogroEstudiante {
   estudianteId  Int
   logroId       Int
-  fechaObtenido DateTime @default(now())
+  fechaObtenido DateTime @default(now()) @db.Date
 
-  // (Corrección h) Dato exclusivo del estudiante.
   estudiante Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
-  logro      Logro      @relation(fields: [logroId], references: [id], onDelete: Restrict)
+  logro      Logro      @relation(fields: [logroId], references: [id], onDelete: Cascade)
 
   @@id([estudianteId, logroId])
+  @@map("logro_estudiante")
 }
 
-// (Corrección f) id propio como PK + unicidad (estudianteId, categoria).
-// (Corrección e) categoria usa su propio enum CategoriaHabilidadSDLC.
 model HabilidadSDLC {
   id             Int                    @id @default(autoincrement())
   estudianteId   Int
   categoria      CategoriaHabilidadSDLC
-  nivelAlcanzado Int                    @default(0)
-  createdAt      DateTime               @default(now())
-  updatedAt      DateTime               @updatedAt
+  nivelAlcanzado Int                    @default(1)
 
-  // (Corrección h) Dato exclusivo del estudiante.
   estudiante Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
 
   @@unique([estudianteId, categoria])
-}
-
-// (Corrección f) id propio como PK. Sin campo "tema": es redundante con
-// faseId -> Fase.tema.
-model ContenidoApoyo {
-  id               Int      @id @default(autoincrement())
-  faseId           Int
-  contenidoTeorico String
-  ejemplos         String
-  glosario         String
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  fase Fase @relation(fields: [faseId], references: [id], onDelete: Cascade)
-
-  @@index([faseId])
+  @@map("habilidad_sdlc")
 }

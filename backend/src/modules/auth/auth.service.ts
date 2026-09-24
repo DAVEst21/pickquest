@@ -38,7 +38,7 @@ export class AuthService {
           email: dto.email,
           passwordHash,
           nombreAventurero: dto.nombreAventurero,
-          avatar: dto.avatar,
+          avatar: dto.avatar ?? '',
           racha: { create: {} },
         },
         include: { racha: true },
@@ -105,7 +105,7 @@ function aPerfil(estudiante: EstudianteConRacha): PerfilEstudianteDto {
       ? {
           diasActuales: estudiante.racha.diasActuales,
           diasRecord: estudiante.racha.diasRecord,
-          multiplicadorQP: estudiante.racha.multiplicadorQP.toNumber(),
+          multiplicadorQP: estudiante.racha.multiplicadorQP,
         }
       : null,
   };

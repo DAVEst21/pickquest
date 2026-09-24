@@ -21,12 +21,27 @@ export interface ResultadoEvaluacion {
 /** La respuesta del estudiante no corresponde a las preguntas del reto. */
 export class RespuestaInvalidaError extends Error {}
 
-/** Valida la forma de Reto.claveRespuestas (columna JSON). */
+/** Valida la forma de Reto.contenido (columna JSONB con claveRespuestas o array directo). */
 export function parsearClave(valor: unknown): PreguntaClave[] {
+  let lista = valor;
+  if (valor && typeof valor === 'object' && !Array.isArray(valor)) {
+    if (
+      'claveRespuestas' in valor &&
+      Array.isArray((valor as Record<string, unknown>).claveRespuestas)
+    ) {
+      lista = (valor as Record<string, unknown>).claveRespuestas;
+    } else if (
+      'preguntas' in valor &&
+      Array.isArray((valor as Record<string, unknown>).preguntas)
+    ) {
+      lista = (valor as Record<string, unknown>).preguntas;
+    }
+  }
+
   const esValida =
-    Array.isArray(valor) &&
-    valor.length > 0 &&
-    valor.every(
+    Array.isArray(lista) &&
+    lista.length > 0 &&
+    lista.every(
       (p) =>
         typeof p?.preguntaId === 'string' &&
         typeof p?.correcta === 'string' &&
@@ -34,16 +49,16 @@ export function parsearClave(valor: unknown): PreguntaClave[] {
         p.peso > 0,
     );
   if (!esValida) {
-    throw new Error('Reto.claveRespuestas tiene un formato inválido');
+    throw new Error('Reto.contenido tiene un formato de respuestas inválido');
   }
-  return valor as PreguntaClave[];
+  return lista as PreguntaClave[];
 }
 
 /**
  * Evalúa en el servidor la respuesta de un estudiante.
  * - porcentaje: puntos obtenidos / puntos posibles, truncado a entero (0-100).
  *   Se trunca para que un porcentaje mostrado como 80 nunca provenga de un 79.x.
- * - aprobado: porcentaje (como fracción) >= calificacionMinima (Corrección b).
+ * - aprobado: porcentaje (como fracción o 0-100) >= calificacionMinima.
  * - calificacionEstrellas (0-3): 3 si es perfecto, 2 si aprueba, 1 si alcanza
  *   al menos el 50%, 0 en otro caso (misma escala que usaba el mock del frontend).
  * Las preguntas sin responder cuentan como incorrectas.
@@ -51,7 +66,7 @@ export function parsearClave(valor: unknown): PreguntaClave[] {
 export function evaluarRespuestas(
   clave: PreguntaClave[],
   respuestas: RespuestaPregunta[],
-  calificacionMinima: Prisma.Decimal,
+  calificacionMinima: Prisma.Decimal | number,
 ): ResultadoEvaluacion {
   const clavePorId = new Map(clave.map((p) => [p.preguntaId, p]));
   const desconocidas = respuestas.filter((r) => !clavePorId.has(r.preguntaId));
@@ -74,9 +89,12 @@ export function evaluarRespuestas(
   );
 
   const porcentaje = Math.floor((puntosObtenidos * 100) / puntosPosibles);
-  const aprobado = new Prisma.Decimal(porcentaje)
-    .div(100)
-    .gte(calificacionMinima);
+  const minVal =
+    typeof calificacionMinima === 'number'
+      ? calificacionMinima
+      : Number(calificacionMinima);
+  const umbral = minVal > 1 ? minVal : minVal * 100;
+  const aprobado = porcentaje >= umbral;
 
   let calificacionEstrellas = 0;
   if (porcentaje === 100) calificacionEstrellas = 3;
