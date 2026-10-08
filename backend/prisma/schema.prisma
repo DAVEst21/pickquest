@@ -23,7 +23,20 @@ enum ModoRespuesta {
   COMPUESTO
 }
 
+enum RarezaLogro {
+  BRONCE
+  PLATA
+  ORO
+}
+
 enum CategoriaHabilidadSDLC {
+  PLANIFICACION
+  ANALISIS
+  DISENO
+  IMPLEMENTACION
+  TESTING
+  DESPLIEGUE
+  MANTENIMIENTO
   ELICITACION
   ATRIBUTOS_CALIDAD
   CODIGO_PRUEBAS
@@ -78,6 +91,7 @@ model Fase {
 
   retos          Reto[]
   contenidoApoyo ContenidoApoyo?
+  habilidades FaseHabilidad[]
 
   @@map("fase")
 }
@@ -190,6 +204,7 @@ model Logro {
   id                  Int    @id @default(autoincrement())
   nombre              String @unique
   condicionDesbloqueo String
+  rareza RarezaLogro?
 
   estudiantes LogroEstudiante[]
 
@@ -218,4 +233,14 @@ model HabilidadSDLC {
 
   @@unique([estudianteId, categoria])
   @@map("habilidad_sdlc")
+}
+
+// Asociación explícita, sin inferir categorías por tema, nombre u orden de fase.
+model FaseHabilidad {
+  faseId Int
+  categoria CategoriaHabilidadSDLC
+  fase Fase @relation(fields: [faseId], references: [id], onDelete: Cascade)
+
+  @@id([faseId, categoria])
+  @@map("fase_habilidad")
 }

@@ -1,3 +1,4 @@
+import { ProgresoPage } from './features/progreso/ProgresoPage';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { RutaProtegida } from './components/RutaProtegida';
 import { LoginPage } from './features/auth/LoginPage';
@@ -15,6 +16,7 @@ export const router = createBrowserRouter([
     element: <RutaProtegida />,
     children: [
       { path: '/', element: <OverworldPage /> },
+      { path: '/progreso', element: <ProgresoPage /> },
       { path: '/mision/:faseId', element: <MisionPage /> },
       { path: '/reto/:faseId', element: <RetoPage /> },
       { path: '/resultado/:intentoId', element: <ResultadoPage /> },

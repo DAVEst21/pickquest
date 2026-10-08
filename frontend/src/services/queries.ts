@@ -8,6 +8,7 @@ import {
   getFases,
   getIntento,
   getPerfil,
+  getProgreso,
   iniciarSesion,
   registrar,
   registrarAyuda,
@@ -15,6 +16,7 @@ import {
 
 export const QUERY_KEYS = {
   perfil: ['perfil'] as const,
+  progreso: ['progreso'] as const,
   fases: ['fases'] as const,
   faseDetalle: (id: number) => ['fase', id] as const,
   intento: (id: number) => ['intento', id] as const,
@@ -75,6 +77,7 @@ export function useEnviarIntento() {
     onSuccess: (intento) => {
       queryClient.setQueryData(QUERY_KEYS.intento(intento.id), intento);
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.perfil });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.progreso });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.fases });
       queryClient.invalidateQueries({ queryKey: ['fase'] });
     },
@@ -100,4 +103,8 @@ export function useLogin() {
 export function useRegistro() {
   const abrirSesion = useAbrirSesion();
   return useMutation({ mutationFn: registrar, onSuccess: abrirSesion });
+}
+
+export function useProgreso() {
+  return useQuery({ queryKey: QUERY_KEYS.progreso, queryFn: getProgreso });
 }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { buscarFaseActiva } from '../features/fases/presentacion';
 import { useFases } from '../services/queries';
@@ -7,6 +7,8 @@ import { usePlayerStore } from '../store/playerStore';
 
 export const Header: React.FC = () => {
   const location = useLocation();
+  const [menuAbierto, setMenuAbierto] = useState(false);
+  const isProgresoActive = location.pathname === '/progreso';
   const perfil = usePlayerStore((s) => s.perfil);
   const cerrarSesion = useAuthStore((s) => s.cerrarSesion);
   const { data: fases } = useFases();
@@ -26,7 +28,7 @@ export const Header: React.FC = () => {
 
   return (
     <header className="fixed top-0 w-full z-50 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_12px_rgba(0,0,0,0.45)]">
-      <div className="h-20 w-full max-w-7xl mx-auto px-gutter flex items-center justify-between gap-space-md">
+      <div className="h-20 w-full max-w-7xl mx-auto px-3 sm:px-gutter flex items-center justify-between gap-2 sm:gap-space-md">
         {/* Brand & Logo */}
         <div className="flex items-center gap-space-lg shrink-0">
           <Link to="/" className="flex items-center gap-space-sm group">
@@ -39,7 +41,7 @@ export const Header: React.FC = () => {
               <span className="font-headline-sm text-headline-sm tracking-tight text-primary leading-none">
                 PickQuest
               </span>
-              <span className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mt-space-xs">
+              <span className="hidden sm:block font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mt-space-xs">
                 SDLC Chronicles · v2.4
               </span>
             </div>
@@ -70,20 +72,24 @@ export const Header: React.FC = () => {
             >
               Misiones
             </Link>
+            <Link to="/progreso" aria-current={isProgresoActive ? 'page' : undefined}
+              className={`px-space-md py-space-sm rounded-lg font-title-md text-title-md transition-all ${isProgresoActive ? 'bg-surface-container-high text-primary' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'}`}>
+              Progreso de aprendizaje
+            </Link>
             <span
-              className="hidden 2xl:inline-block px-space-md py-space-sm rounded-lg font-title-md text-title-md text-on-surface-variant/50 cursor-not-allowed"
+              className="hidden min-[1800px]:inline-block px-space-md py-space-sm rounded-lg font-title-md text-title-md text-on-surface-variant/50 cursor-not-allowed"
               title="Próximamente"
             >
               Ficha Dev
             </span>
             <span
-              className="hidden 2xl:inline-block px-space-md py-space-sm rounded-lg font-title-md text-title-md text-on-surface-variant/50 cursor-not-allowed"
+              className="hidden min-[1800px]:inline-block px-space-md py-space-sm rounded-lg font-title-md text-title-md text-on-surface-variant/50 cursor-not-allowed"
               title="Próximamente"
             >
               Leaderboard
             </span>
             <span
-              className="hidden 2xl:inline-block px-space-md py-space-sm rounded-lg font-title-md text-title-md text-on-surface-variant/50 cursor-not-allowed"
+              className="hidden min-[1800px]:inline-block px-space-md py-space-sm rounded-lg font-title-md text-title-md text-on-surface-variant/50 cursor-not-allowed"
               title="Próximamente"
             >
               Tienda del Gremio
@@ -91,10 +97,13 @@ export const Header: React.FC = () => {
           </nav>
         </div>
 
+        <button type="button" className="xl:hidden ml-auto p-2 rounded-lg hover:bg-surface-container-high text-primary" aria-label="Abrir navegación" aria-expanded={menuAbierto} aria-controls="navegacion-movil" onClick={() => setMenuAbierto(!menuAbierto)}>
+          <span className="material-symbols-outlined" aria-hidden="true">{menuAbierto ? 'close' : 'menu'}</span>
+        </button>
         {/* Player Status Hub */}
-        <div className="flex items-center gap-space-md shrink-0">
+        <div className="flex items-center gap-1 sm:gap-space-md shrink-0">
           {/* XP Level Bar */}
-          <div className="hidden lg:flex flex-col items-end w-[220px]">
+          <div className="hidden min-[1600px]:flex flex-col items-end w-[220px]">
             <div className="flex items-center justify-between w-full mb-space-xs gap-space-sm">
               <span className="font-label-sm text-label-sm text-tertiary uppercase truncate" id="hud-nivel">
                 Nivel {perfil?.nivel ?? '-'} · {perfil?.nombreAventurero}
@@ -112,7 +121,7 @@ export const Header: React.FC = () => {
           </div>
 
           {/* QP Badge */}
-          <div className="flex items-center gap-space-xs bg-surface-container-low px-space-md py-space-xs rounded-full shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] shrink-0">
+          <div className="flex items-center gap-space-xs bg-surface-container-low px-2 sm:px-space-md py-space-xs rounded-full shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] shrink-0">
             <span className="material-symbols-outlined text-primary text-title-md">toll</span>
             <span className="font-label-md text-label-md text-primary font-bold tracking-tight" id="hud-qp">
               {(perfil?.qpTotal ?? 0).toLocaleString()} QP
@@ -159,6 +168,14 @@ export const Header: React.FC = () => {
           </div>
         </div>
       </div>
+      {menuAbierto && <nav id="navegacion-movil" aria-label="Navegación móvil" className="xl:hidden flex flex-col gap-space-xs px-gutter pb-space-md bg-surface-container-lowest">
+        {[
+          { to: '/', nombre: 'Overworld', activo: isOverworldActive },
+          { to: rutaMisiones, nombre: 'Misiones', activo: isMisionesActive },
+          { to: '/progreso', nombre: 'Progreso de aprendizaje', activo: isProgresoActive },
+        ].map(({ to, nombre, activo }) => <Link key={nombre} to={to} aria-current={activo ? 'page' : undefined} onClick={() => setMenuAbierto(false)} className={`rounded-lg px-space-md py-space-sm ${activo ? 'bg-surface-container-high text-primary' : 'text-on-surface-variant hover:text-on-surface'}`}>{nombre}</Link>)}
+        <span className="px-space-md py-space-sm text-on-surface-variant/50">Ficha Dev · Próximamente</span>
+      </nav>}
     </header>
   );
 };

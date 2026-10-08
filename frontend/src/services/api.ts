@@ -1,3 +1,4 @@
+import type { ProgresoAprendizaje } from '../types/progreso';
 import type {
   AyudaRegistrada,
   Credenciales,
@@ -53,4 +54,8 @@ export function enviarIntento(retoId: number, respuestas: RespuestaPregunta[]): 
 /** Resultado de un intento propio (CU-04). 404 si no existe. */
 export function getIntento(intentoId: number): Promise<IntentoReto> {
   return http(`/intentos/${intentoId}`);
+}
+
+export function getProgreso(): Promise<ProgresoAprendizaje> {
+  return http('/progreso');
 }
