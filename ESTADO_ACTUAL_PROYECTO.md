@@ -1,3 +1,5 @@
+> **DOCUMENTO HISTÓRICO.** Este diagnóstico describe el proyecto *antes* del Sprint 1 (sin autenticación, con datos simulados en el frontend y sin integración real). **No describe el estado actual.** Para el estado actual ver el [README](README.md), [REPORTE_SPRINT2.md](REPORTE_SPRINT2.md) y [ADENDA_SPRINT2.md](ADENDA_SPRINT2.md).
+
 # ESTADO ACTUAL DEL PROYECTO PICKQUEST
 
 > NOTA: este es el diagnóstico INICIAL, previo a construir el backend. Desde entonces se implementaron el esquema de
