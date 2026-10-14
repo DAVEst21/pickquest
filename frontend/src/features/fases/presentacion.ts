@@ -1,66 +1,20 @@
-import type { EstadoFase, Fase, TemaFase } from '../../types';
+import type { EstadoFase, EstadoReto, Fase, Mecanica, TemaFase } from '../../types';
 
 /**
- * Textos e iconos de presentación de cada fase. El backend todavía no guarda
- * subtítulo, descripción narrativa ni icono de una Fase, así que viven aquí
- * (copiados de la versión simulada), indexados por Fase.orden y con respaldo
- * por tema. Es solo presentación: estado, reto y recompensas vienen del backend.
+ * Presentación de las fases. Los textos narrativos (descripción) viven en la
+ * base de datos (Fase.descripcion); aquí solo quedan etiquetas e íconos,
+ * indexados por tema, que son decoración de la interfaz.
  */
-export interface PresentacionFase {
-  icono: string;
-  subtitulo: string;
-  descripcion: string;
-}
-
-const POR_ORDEN: Record<number, PresentacionFase> = {
-  1: {
-    icono: 'event_note',
-    subtitulo: 'Sprint 0 · Alcance y Épicas',
-    descripcion: 'Definición de épicas, estimación y planificación inicial del backlog.',
-  },
-  2: {
-    icono: 'contactless',
-    subtitulo: 'User Stories & Criterios',
-    descripcion: 'Elicitación de requerimientos funcionales y criterios de aceptación Gherkin.',
-  },
-  3: {
-    icono: 'account_tree',
-    subtitulo: 'Tácticas de Disponibilidad & C4',
-    descripcion:
-      'La fortaleza digital del Reino experimenta latencia crítica y vulnerabilidades en sus accesos perimetrales. Evalúa los compromisos del sistema, equilibra los requisitos no funcionales y redacta el plano arquitectónico definitivo antes del despliegue masivo.',
-  },
-  4: {
-    icono: 'architecture',
-    subtitulo: 'Diagramas de Clase & Esquemas',
-    descripcion: 'Modelado orientado a objetos, esquemas relacionales y patrones GoF.',
-  },
-  5: {
-    icono: 'code',
-    subtitulo: 'Clean Code & Repositorio',
-    descripcion: 'Codificación estructurada siguiendo principios SOLID y Clean Architecture.',
-  },
-  6: {
-    icono: 'rule',
-    subtitulo: 'Unit, E2E & Mutaciones',
-    descripcion: 'Estrategias de testing piramidal, pruebas de mutación y análisis estático.',
-  },
-  7: {
-    icono: 'rocket_launch',
-    subtitulo: 'Pipeline CI/CD a Producción',
-    descripcion: 'Orquestación de contenedores, despliegue Blue/Green y monitoreo con Prometheus.',
-  },
-};
-
 export const ETIQUETA_TEMA: Record<TemaFase, string> = {
+  CICLO_VIDA: 'Ciclo de vida',
   ELICITACION: 'Elicitación',
-  ATRIBUTOS_CALIDAD: 'Atributos de Calidad',
-  CODIGO_PRUEBAS: 'Código y Pruebas',
+  ATRIBUTOS_CALIDAD: 'Atributos de calidad',
 };
 
 const ICONO_TEMA: Record<TemaFase, string> = {
+  CICLO_VIDA: 'event_note',
   ELICITACION: 'contactless',
-  ATRIBUTOS_CALIDAD: 'account_tree',
-  CODIGO_PRUEBAS: 'code',
+  ATRIBUTOS_CALIDAD: 'verified',
 };
 
 export const ETIQUETA_ESTADO: Record<EstadoFase, string> = {
@@ -70,14 +24,26 @@ export const ETIQUETA_ESTADO: Record<EstadoFase, string> = {
   bloqueada: 'Bloqueada',
 };
 
-export function presentacionFase(fase: Pick<Fase, 'orden' | 'tema'>): PresentacionFase {
-  return (
-    POR_ORDEN[fase.orden] ?? {
-      icono: ICONO_TEMA[fase.tema],
-      subtitulo: ETIQUETA_TEMA[fase.tema],
-      descripcion: '',
-    }
-  );
+export const ETIQUETA_ESTADO_RETO: Record<EstadoReto, string> = {
+  BLOQUEADO: 'Bloqueado',
+  DISPONIBLE: 'Disponible',
+  EN_CURSO: 'En curso',
+  APROBADO: 'Aprobado',
+};
+
+export const MECANICA: Record<Mecanica, { nombre: string; icono: string; caso: string }> = {
+  DIALOGO_STAKEHOLDER: { nombre: 'Diálogo con stakeholder', icono: 'forum', caso: 'CU-01' },
+  ARMADO_PIEZAS: { nombre: 'Armado de piezas', icono: 'extension', caso: 'CU-02' },
+  TABLERO_MOSCOW: { nombre: 'Tablero MoSCoW', icono: 'view_kanban', caso: 'CU-03' },
+  INSPECCION_SISTEMA: { nombre: 'Inspección de un sistema', icono: 'bug_report', caso: 'CU-04' },
+  SIMULADOR_ESCENARIOS: { nombre: 'Simulador de escenarios', icono: 'science', caso: 'CU-05' },
+  REPARTO_PRESUPUESTO: { nombre: 'Reparto de presupuesto', icono: 'tune', caso: 'CU-06' },
+  EXPEDIENTE_PROYECTO: { nombre: 'Expediente de proyecto', icono: 'folder_open', caso: 'CU-07' },
+  LINEA_TIEMPO: { nombre: 'Línea de tiempo', icono: 'timeline', caso: 'CU-08' },
+};
+
+export function iconoFase(fase: Pick<Fase, 'tema'>): string {
+  return ICONO_TEMA[fase.tema];
 }
 
 /** "Fase 03" */
@@ -92,13 +58,4 @@ export function etiquetaFase(orden: number): string {
 export function buscarFaseActiva(fases: Fase[] | undefined): Fase | null {
   if (!fases) return null;
   return fases.find((f) => f.estado === 'en_progreso') ?? fases.find((f) => f.estado === 'desbloqueada') ?? null;
-}
-
-/**
- * Umbral de aprobación en porcentaje entero (0.8 -> 80). Fase 1: el backend
- * vuelve a mandar siempre una fracción 0.0-1.0, así que ya no hace falta
- * detectar si venía en escala 0-100 (commit 9edafd1, sin efecto desde aquí).
- */
-export function umbralPorcentaje(calificacionMinima: number): number {
-  return Math.round(calificacionMinima * 100);
 }

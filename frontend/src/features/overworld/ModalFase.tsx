@@ -1,15 +1,14 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { mensajeDeError } from '../../services/errores';
-import { useFaseDetalle } from '../../services/queries';
+import { useTablon } from '../../services/queries';
 import type { Fase } from '../../types';
-import { etiquetaFase, presentacionFase, umbralPorcentaje } from '../fases/presentacion';
+import { etiquetaFase, MECANICA } from '../fases/presentacion';
 
-/** Vista rápida de una fase: objetivo y recompensas reales de su reto. */
+/** Vista rápida de una fase: su descripción y los retos con sus recompensas reales. */
 export const ModalFase: React.FC<{ fase: Fase; onCerrar: () => void }> = ({ fase, onCerrar }) => {
   const navigate = useNavigate();
-  const { data, isPending, isError, error } = useFaseDetalle(fase.id);
-  const reto = data?.reto;
+  const { data, isPending, isError, error } = useTablon(fase.id);
 
   return (
     <div
@@ -20,7 +19,7 @@ export const ModalFase: React.FC<{ fase: Fase; onCerrar: () => void }> = ({ fase
       aria-labelledby="modal-title"
     >
       <div
-        className="relative w-full max-w-xl bg-surface-container rounded-xl shadow-2xl p-space-lg overflow-hidden border border-outline-variant/30"
+        className="relative w-full max-w-xl bg-surface-container rounded-xl shadow-2xl p-space-lg overflow-hidden border border-outline-variant/30 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-space-md">
@@ -44,33 +43,34 @@ export const ModalFase: React.FC<{ fase: Fase; onCerrar: () => void }> = ({ fase
 
         <div className="space-y-space-md mb-space-lg">
           <div className="bg-surface-container-low p-space-md rounded-lg">
-            <span className="font-label-sm text-label-sm text-tertiary uppercase">Objetivo</span>
-            <p className="font-body-md text-body-md text-on-surface mt-1">
-              {reto?.criteriosAceptacion ?? presentacionFase(fase).descripcion}
-            </p>
+            <span className="font-label-sm text-label-sm text-tertiary uppercase">Descripción</span>
+            <p className="font-body-md text-body-md text-on-surface mt-1">{fase.descripcion}</p>
           </div>
-          {isPending && <p className="font-body-sm text-body-sm text-on-surface-variant">Cargando recompensas...</p>}
+          {isPending && <p className="font-body-sm text-body-sm text-on-surface-variant">Cargando retos...</p>}
           {isError && <p className="font-body-sm text-body-sm text-error">{mensajeDeError(error)}</p>}
-          {data && !reto && (
-            <p className="font-body-sm text-body-sm text-on-surface-variant">Esta fase todavía no tiene reto disponible.</p>
-          )}
-          {reto && (
-            <div className="grid grid-cols-3 gap-space-sm">
-              <div className="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
-                <span className="font-label-sm text-label-sm text-on-surface-variant">Recompensa XP</span>
-                <span className="font-headline-sm text-headline-sm text-tertiary font-bold">+{reto.recompensaXp} XP</span>
-              </div>
-              <div className="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
-                <span className="font-label-sm text-label-sm text-on-surface-variant">Recompensa QP</span>
-                <span className="font-headline-sm text-headline-sm text-primary font-bold">+{reto.recompensaQp} QP</span>
-              </div>
-              <div className="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
-                <span className="font-label-sm text-label-sm text-on-surface-variant">Para aprobar</span>
-                <span className="font-headline-sm text-headline-sm text-on-surface font-bold">
-                  {umbralPorcentaje(reto.calificacionMinima)}%
-                </span>
-              </div>
-            </div>
+          {data && (
+            <ul className="space-y-space-sm">
+              {data.retos.map((reto) => (
+                <li key={reto.id} className="bg-surface-container-low p-space-md rounded-lg flex flex-col gap-1">
+                  <div className="flex items-center justify-between gap-space-sm">
+                    <span className="font-title-md text-title-md text-on-surface flex items-center gap-space-xs">
+                      <span className="material-symbols-outlined text-secondary text-title-md">
+                        {MECANICA[reto.mecanica].icono}
+                      </span>
+                      {reto.orden}. {reto.titulo}
+                    </span>
+                    <span className="font-label-sm text-label-sm text-on-surface-variant shrink-0">
+                      {MECANICA[reto.mecanica].nombre}
+                    </span>
+                  </div>
+                  <p className="font-body-sm text-body-sm text-on-surface-variant">{reto.objetivo}</p>
+                  <div className="flex gap-space-md font-label-sm text-label-sm font-bold">
+                    <span className="text-tertiary">+{reto.recompensaXp} XP</span>
+                    <span className="text-primary">+{reto.recompensaQp} QP</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
 
@@ -85,7 +85,7 @@ export const ModalFase: React.FC<{ fase: Fase; onCerrar: () => void }> = ({ fase
             onClick={() => navigate(`/mision/${fase.id}`)}
             className="px-space-lg py-space-sm rounded-lg bg-primary-container hover:bg-primary text-on-primary-container font-title-md text-title-md flex items-center gap-space-xs transition-colors"
           >
-            <span>Ir a la Misión</span>
+            <span>Ir al tablón</span>
             <span className="material-symbols-outlined text-title-md">arrow_forward</span>
           </button>
         </div>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Estrellas } from '../../components/Estrellas';
 import type { EstadoFase, Fase } from '../../types';
-import { etiquetaFase, presentacionFase } from '../fases/presentacion';
+import { ETIQUETA_TEMA, etiquetaFase, iconoFase } from '../fases/presentacion';
 
 interface TarjetaFaseProps {
   fase: Fase;
@@ -40,10 +40,10 @@ const ESTILO: Record<EstadoFase, { tarjeta: string; acento: string; icono: strin
 };
 
 export const TarjetaFase: React.FC<TarjetaFaseProps> = ({ fase, esActiva, onAbrir, onInspeccionar }) => {
-  const { icono, subtitulo } = presentacionFase(fase);
+  const icono = iconoFase(fase);
+  const subtitulo = ETIQUETA_TEMA[fase.tema];
   const estilo = ESTILO[fase.estado];
   const bloqueada = fase.estado === 'bloqueada';
-  const esBoss = fase.dificultad === 'Boss Raid';
   const sinRetoTodavia = fase.retoId === null;
 
   return (
@@ -69,15 +69,13 @@ export const TarjetaFase: React.FC<TarjetaFaseProps> = ({ fase, esActiva, onAbri
       <div className={`flex items-center justify-between mb-space-xs ${esActiva ? 'mt-space-xs' : ''}`}>
         <span className={`font-label-sm text-label-sm uppercase font-bold ${estilo.acento}`}>
           {etiquetaFase(fase.orden)} ·{' '}
-          {esBoss && bloqueada
-            ? 'Boss Raid'
-            : fase.estado === 'completada'
-              ? '100%'
-              : fase.estado === 'desbloqueada'
-                ? 'Disponible'
-                : fase.estado === 'bloqueada'
-                  ? 'Bloqueada'
-                  : 'En progreso'}
+          {fase.estado === 'completada'
+            ? '100%'
+            : fase.estado === 'desbloqueada'
+              ? 'Disponible'
+              : fase.estado === 'bloqueada'
+                ? 'Bloqueada'
+                : 'En progreso'}
         </span>
         {/* En progreso: badge de % separado (mockup: "65% Progreso"), no el ícono de estado. */}
         {fase.estado === 'en_progreso' && fase.progreso !== null ? (
@@ -112,7 +110,9 @@ export const TarjetaFase: React.FC<TarjetaFaseProps> = ({ fase, esActiva, onAbri
           >
             {fase.nombre}
           </h2>
-          <span className="font-body-sm text-body-sm text-on-surface-variant">{subtitulo}</span>
+          <span className="font-body-sm text-body-sm text-on-surface-variant">
+            {subtitulo} · {fase.dificultad}
+          </span>
         </div>
       </div>
 

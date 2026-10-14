@@ -4,8 +4,10 @@ import { ApiError } from './errores';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 interface OpcionesPeticion {
-  method?: 'GET' | 'POST';
+  method?: 'GET' | 'POST' | 'PUT';
   body?: unknown;
+  /** Permite que la petición termine aunque se cierre la pestaña (guardado al salir). */
+  keepalive?: boolean;
 }
 
 /**
@@ -29,6 +31,7 @@ export async function http<T>(ruta: string, opciones: OpcionesPeticion = {}): Pr
       method: opciones.method ?? 'GET',
       headers,
       body: opciones.body === undefined ? undefined : JSON.stringify(opciones.body),
+      keepalive: opciones.keepalive,
     });
   } catch {
     throw new ApiError(0, 'No se pudo conectar con el servidor');

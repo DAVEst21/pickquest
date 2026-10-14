@@ -2,21 +2,18 @@ import React from 'react';
 import type { EstadoFase, Fase } from '../../types';
 
 /**
- * Líneas conectoras entre las tarjetas del camino del Overworld (mockup,
- * Fase 5). Las coordenadas son fijas: van pegadas al layout en zigzag de
- * OverworldPage.tsx (grid-cols-12, viewBox 1000x680), no al contenido de
- * cada fase. El color de cada tramo sí es real: se toma del estado de la
- * fase de ORIGEN (completada -> cian recorrido; en_progreso -> ámbar
- * animado, "aquí vas"; desbloqueada/bloqueada -> gris, todavía sin recorrer).
+ * Líneas conectoras entre las tarjetas del camino del Overworld. El camino
+ * alterna izquierda/derecha una fase por fila, así que se dibuja para N fases
+ * (las que devuelva el backend). Las coordenadas van pegadas al layout de
+ * OverworldPage (grid de 12 columnas, viewBox de ancho 1000, ALTO_FILA px por
+ * fila). El color de cada tramo se toma del estado de la fase de ORIGEN
+ * (completada -> cian recorrido; en_progreso -> ámbar animado, "aquí vas";
+ * desbloqueada/bloqueada -> gris, todavía sin recorrer).
  */
-const TRAMOS: { d: string }[] = [
-  { d: 'M 200 110 L 460 110' }, // 1 -> 2
-  { d: 'M 540 110 C 720 110, 780 200, 780 280' }, // 2 -> 3
-  { d: 'M 720 330 C 580 330, 480 380, 480 440' }, // 3 -> 4
-  { d: 'M 400 470 C 260 470, 220 520, 220 570' }, // 4 -> 5
-  { d: 'M 300 600 L 520 600' }, // 5 -> 6
-  { d: 'M 600 600 L 820 600' }, // 6 -> 7
-];
+export const ALTO_FILA = 236;
+const X_IZQUIERDA = 208; // centro de las columnas 1-5 de 12
+const X_DERECHA = 792; // centro de las columnas 8-12 de 12
+const MEDIA_TARJETA = 78;
 
 const ESTILO_TRAMO: Record<EstadoFase, { stroke: string; dash: string; clase?: string }> = {
   completada: { stroke: '#54ddfc', dash: '6 6' },
@@ -25,24 +22,29 @@ const ESTILO_TRAMO: Record<EstadoFase, { stroke: string; dash: string; clase?: s
   bloqueada: { stroke: '#2d3449', dash: '6 6' },
 };
 
-export const ConectorSvg: React.FC<{ fases: (Fase | undefined)[] }> = ({ fases }) => (
+const xDe = (indice: number) => (indice % 2 === 0 ? X_IZQUIERDA : X_DERECHA);
+const yDe = (indice: number) => indice * ALTO_FILA + ALTO_FILA / 2;
+
+export const ConectorSvg: React.FC<{ fases: Fase[] }> = ({ fases }) => (
   <svg
-    className="absolute inset-0 w-full h-full pointer-events-none"
+    className="absolute inset-0 w-full pointer-events-none"
+    style={{ height: fases.length * ALTO_FILA }}
     fill="none"
     preserveAspectRatio="none"
-    viewBox="0 0 1000 680"
+    viewBox={`0 0 1000 ${fases.length * ALTO_FILA}`}
     aria-hidden="true"
   >
-    {TRAMOS.map((tramo, i) => {
-      const origen = fases[i];
-      const destino = fases[i + 1];
-      if (!origen || !destino) return null;
+    {fases.slice(0, -1).map((origen, i) => {
+      const x1 = xDe(i);
+      const y1 = yDe(i) + MEDIA_TARJETA;
+      const x2 = xDe(i + 1);
+      const y2 = yDe(i + 1) - MEDIA_TARJETA;
       const estilo = ESTILO_TRAMO[origen.estado];
       return (
         <path
-          key={tramo.d}
+          key={origen.id}
           className={estilo.clase}
-          d={tramo.d}
+          d={`M ${x1} ${y1} C ${x1} ${y1 + 50}, ${x2} ${y2 - 50}, ${x2} ${y2}`}
           stroke={estilo.stroke}
           strokeDasharray={estilo.dash}
           strokeLinecap="round"

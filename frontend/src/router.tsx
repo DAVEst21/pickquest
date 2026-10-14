@@ -15,8 +15,10 @@ export const router = createBrowserRouter([
     element: <RutaProtegida />,
     children: [
       { path: '/', element: <OverworldPage /> },
+      // Tablón de la fase (RF-18)
       { path: '/mision/:faseId', element: <MisionPage /> },
-      { path: '/reto/:faseId', element: <RetoPage /> },
+      // Un intento en curso (se inicia o retoma desde el tablón)
+      { path: '/intento/:intentoId', element: <RetoPage /> },
       { path: '/resultado/:intentoId', element: <ResultadoPage /> },
     ],
   },
