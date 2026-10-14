@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
+import { ProgresoService } from './progreso.service';
 
-// Módulo registrado pero vacío: se implementará en una iteración posterior.
-@Module({})
+@Module({
+  providers: [ProgresoService],
+  exports: [ProgresoService],
+})
 export class ProgresoModule {}

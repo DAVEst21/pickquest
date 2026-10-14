@@ -212,3 +212,26 @@ function maximo(a: number | null, b: number | null): number | null {
   if (b === null) return a;
   return Math.max(a, b);
 }
+
+export const ESTADOS_RETO = ['BLOQUEADO', 'DISPONIBLE', 'EN_CURSO', 'APROBADO'] as const;
+export type EstadoReto = (typeof ESTADOS_RETO)[number];
+
+/**
+ * Estado de un reto en el tablón de la fase (RF-18):
+ * - BLOQUEADO: su fase está bloqueada (RN-01) o falta aprobar un reto
+ *   anterior de la fase (RN-08).
+ * - EN_CURSO: hay un intento sin enviar (incluso si el reto ya estaba
+ *   aprobado y se está reintentando).
+ * - APROBADO: tiene un intento calificado y aprobado.
+ * - DISPONIBLE: en cualquier otro caso.
+ */
+export function calcularEstadoReto(
+  bloqueado: boolean,
+  aprobado: boolean,
+  enCurso: boolean,
+): EstadoReto {
+  if (bloqueado) return 'BLOQUEADO';
+  if (enCurso) return 'EN_CURSO';
+  if (aprobado) return 'APROBADO';
+  return 'DISPONIBLE';
+}
