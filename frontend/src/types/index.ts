@@ -119,6 +119,8 @@ export interface IntentoEnCurso<C = unknown, B = unknown> {
   contenido: C;
   borrador: B;
   ayudaUsada: boolean;
+  /** Pista de la ayuda ya usada en este intento (el servidor la guarda); null si no usó ayuda. */
+  pista: Pista | null;
   contenidosApoyo: ContenidoApoyo[];
   creadoEn: string;
   actualizadoEn: string;
@@ -272,7 +274,6 @@ export interface PistaRestriccion {
   tipo: 'RESTRICCION';
   atributoEscenarioId: number | null;
   minimo: number | null;
-  medidorActual: number | null;
 }
 
 // CU-01 Diálogo con stakeholder
@@ -315,14 +316,21 @@ export interface AyudaAplicada {
 // Retroalimentación de cada mecánica
 // ---------------------------------------------------------------------
 
+/**
+ * Los campos marcados «solo aprobado» (la respuesta de referencia) únicamente
+ * llegan cuando el intento quedó aprobado (`referenciaCompleta`): un intento
+ * no aprobado recibe solo lo que está mal.
+ */
 export interface RetroLineaTiempo {
   mecanica: 'LINEA_TIEMPO';
+  referenciaCompleta: boolean;
   finCalculado: number;
   duracionMaximaSemanas: number;
   dentroDelPlazo: boolean;
   dependenciasIncumplidas: { bloque: string; requiere: string }[];
-  entregablesMalAsociados: { entregable: string; faseElegida: string | null; faseCorrecta: string }[];
-  planReferencia: {
+  entregablesMalAsociados: { entregable: string; faseElegida: string | null; faseCorrecta?: string }[];
+  /** solo aprobado */
+  planReferencia?: {
     bloqueId: number;
     nombre: string;
     tipo: TipoBloque;
@@ -330,11 +338,13 @@ export interface RetroLineaTiempo {
     duracionSemanas: number;
     inicioElegido: number | null;
   }[];
-  finReferencia: number;
+  /** solo aprobado */
+  finReferencia?: number;
 }
 
 export interface RetroMoscow {
   mecanica: 'TABLERO_MOSCOW';
+  referenciaCompleta: boolean;
   capacidad: number;
   tarjetas: {
     tarjetaId: number;
@@ -342,28 +352,37 @@ export interface RetroMoscow {
     puntos: number;
     columnaElegida: ColumnaMoscow | null;
     tipoElegido: TipoRequerimiento | null;
-    columnaCorrecta: ColumnaMoscow;
-    tipoCorrecto: TipoRequerimiento;
+    /** solo aprobado */
+    columnaCorrecta?: ColumnaMoscow;
+    /** solo aprobado */
+    tipoCorrecto?: TipoRequerimiento;
     columnaAcertada: boolean;
     tipoAcertado: boolean;
   }[];
-  ordenMustReferencia: { tarjetaId: number; texto: string; orden: number }[];
+  /** solo aprobado */
+  ordenMustReferencia?: { tarjetaId: number; texto: string; orden: number }[];
   ordenMustConcordantes: number;
   ordenMustPares: number;
 }
 
 export interface RetroInspeccion {
   mecanica: 'INSPECCION_SISTEMA';
+  referenciaCompleta: boolean;
   encontradas: {
     elementoId: number;
     etiqueta: string;
     pantalla: string;
-    atributoCorrecto: AtributoCalidad;
+    /** solo aprobado */
+    atributoCorrecto?: AtributoCalidad;
     atributoElegido: AtributoCalidad | null;
     atributoAcertado: boolean;
-    explicacion: string;
+    /** solo aprobado */
+    explicacion?: string;
   }[];
-  noEncontradas: {
+  /** Cuántas fallas faltaron (sin decir cuáles); solo en intentos no aprobados. */
+  fallasNoEncontradas?: number;
+  /** solo aprobado */
+  noEncontradas?: {
     elementoId: number;
     etiqueta: string;
     pantallaId: number;
@@ -376,30 +395,41 @@ export interface RetroInspeccion {
 
 export interface RetroPresupuesto {
   mecanica: 'REPARTO_PRESUPUESTO';
+  referenciaCompleta: boolean;
   presupuesto: number;
   atributos: {
     atributoEscenarioId: number;
     atributo: AtributoCalidad;
     asignado: number;
-    referencia: number;
+    /** solo aprobado */
+    referencia?: number;
     medidor: number;
-    medidorReferencia: number;
+    /** solo aprobado */
+    medidorReferencia?: number;
     minimo: number | null;
     cumple: boolean | null;
   }[];
   restriccionesCumplidas: number;
   restriccionesTotales: number;
   justificacionElegida: { id: number; texto: string } | null;
-  justificacionCorrecta: { id: number; texto: string } | null;
+  /** solo aprobado */
+  justificacionCorrecta?: { id: number; texto: string } | null;
   justificacionAcertada: boolean;
 }
 
 export interface RetroDialogo {
   mecanica: 'DIALOGO_STAKEHOLDER';
+  referenciaCompleta: boolean;
   tecnicaElegida: TecnicaElicitacion | null;
-  tecnicaCorrecta: TecnicaElicitacion;
+  /** solo aprobado */
+  tecnicaCorrecta?: TecnicaElicitacion;
+  /** solo en intentos no aprobados */
+  tecnicaAcertada?: boolean;
   descubiertos: Libreta[];
-  noDescubiertos: Libreta[];
+  /** solo aprobado */
+  noDescubiertos?: Libreta[];
+  /** solo en intentos no aprobados */
+  noDescubiertosCantidad?: number;
   preguntasImproductivas: number;
   turnosUsados: number;
   turnosMaximos: number;

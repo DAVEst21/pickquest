@@ -183,7 +183,6 @@ export class RepartoPresupuestoEvaluador implements EvaluadorMecanica {
       tipo: 'RESTRICCION',
       atributoEscenarioId: lejana?.atributo.id ?? null,
       minimo: lejana?.atributo.minimoObligatorio ?? null,
-      medidorActual: lejana ? (medidores.get(lejana.atributo.id) ?? 0) : null,
     };
   }
 }

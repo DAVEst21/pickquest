@@ -57,6 +57,8 @@ export class IntentoEnCursoDto {
   borrador: Record<string, unknown>;
   /** Ya se usó la ayuda de este intento (RN-10: máximo 1). */
   ayudaUsada: boolean;
+  /** Pista de la ayuda ya usada en este intento, para volver a dibujarla al retomarlo (null si no usó ayuda). */
+  pista: PistaDto | null;
   contenidosApoyo: ContenidoApoyoDto[];
   creadoEn: Date;
   actualizadoEn: Date;

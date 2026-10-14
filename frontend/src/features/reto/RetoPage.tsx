@@ -79,7 +79,8 @@ const ResolverReto: React.FC<{ intento: IntentoEnCurso }> = ({ intento }) => {
   const usarAyuda = useUsarAyuda(intentoId);
   const enviarIntento = useEnviarIntento();
 
-  const [pista, setPista] = useState<Pista | null>(null);
+  // La pista de la ayuda ya usada la devuelve el servidor, así que sobrevive a recargar el intento.
+  const [pista, setPista] = useState<Pista | null>(intento.pista);
   const [ayudaUsada, setAyudaUsada] = useState(intento.ayudaUsada);
   const [estadoEnvio, setEstadoEnvio] = useState<EstadoEnvio>({ faltantes: [] });
   const [confirmando, setConfirmando] = useState(false);

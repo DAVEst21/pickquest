@@ -305,15 +305,41 @@ model IntentoReto {
   @@map("intento_reto")
 }
 
-// Una ayuda pertenece a un intento concreto (RN-10: máximo 1 por intento).
-model UsoAyuda {
-  id        Int      @id @default(autoincrement())
-  intentoId Int      @unique
-  objetoId  Int
-  creadoEn  DateTime @default(now())
+// Tipo de pista que devolvió una ayuda (cada tipo apunta a un elemento de contenido).
+enum TipoPista {
+  OPCION_DIALOGO // opcionId
+  COLUMNA_TARJETA // tarjetaId (la columna se obtiene de la tarjeta)
+  PANTALLA // pantallaId
+  RESTRICCION // atributoEscenarioId (el mínimo se obtiene del atributo)
+  DEPENDENCIA // bloqueId y requiereId
+}
 
-  intento IntentoReto @relation(fields: [intentoId], references: [id], onDelete: Cascade)
-  objeto  Objeto      @relation(fields: [objetoId], references: [id], onDelete: Restrict)
+// Una ayuda pertenece a un intento concreto (RN-10: máximo 1 por intento).
+// La pista se guarda de forma relacional (tipo + referencia al elemento de
+// contenido al que apunta) para poder volver a dibujarla al retomar el intento.
+model UsoAyuda {
+  id        Int        @id @default(autoincrement())
+  intentoId Int        @unique
+  objetoId  Int
+  creadoEn  DateTime   @default(now())
+  // null solo en ayudas registradas antes de que se guardara la pista
+  tipoPista TipoPista?
+
+  opcionId            Int?
+  tarjetaId           Int?
+  pantallaId          Int?
+  atributoEscenarioId Int?
+  bloqueId            Int?
+  requiereId          Int?
+
+  intento           IntentoReto           @relation(fields: [intentoId], references: [id], onDelete: Cascade)
+  objeto            Objeto                @relation(fields: [objetoId], references: [id], onDelete: Restrict)
+  opcion            OpcionDialogo?        @relation(fields: [opcionId], references: [id], onDelete: Restrict)
+  tarjeta           TarjetaRequerimiento? @relation(fields: [tarjetaId], references: [id], onDelete: Restrict)
+  pantalla          PantallaSimulada?     @relation(fields: [pantallaId], references: [id], onDelete: Restrict)
+  atributoEscenario AtributoEscenario?    @relation(fields: [atributoEscenarioId], references: [id], onDelete: Restrict)
+  bloque            BloquePlan?           @relation("PistaBloque", fields: [bloqueId], references: [id], onDelete: Restrict)
+  requiere          BloquePlan?           @relation("PistaRequiere", fields: [requiereId], references: [id], onDelete: Restrict)
 
   @@map("uso_ayuda")
 }
@@ -375,6 +401,7 @@ model OpcionDialogo {
   requerimiento RequerimientoOculto? @relation(fields: [requerimientoId], references: [id], onDelete: SetNull)
   siguienteNodo NodoDialogo?         @relation("NodoSiguiente", fields: [siguienteNodoId], references: [id], onDelete: SetNull)
   turnos        TurnoDialogo[]
+  ayudas        UsoAyuda[]
 
   @@map("opcion_dialogo")
 }
@@ -427,6 +454,7 @@ model TarjetaRequerimiento {
 
   reto       Reto               @relation(fields: [retoId], references: [id], onDelete: Cascade)
   respuestas RespuestaTarjeta[]
+  ayudas     UsoAyuda[]
 
   @@map("tarjeta_requerimiento")
 }
@@ -467,6 +495,7 @@ model PantallaSimulada {
 
   reto      Reto               @relation(fields: [retoId], references: [id], onDelete: Cascade)
   elementos ElementoPantalla[]
+  ayudas    UsoAyuda[]
 
   @@map("pantalla_simulada")
 }
@@ -536,6 +565,7 @@ model AtributoEscenario {
   efectosComoOrigen  EfectoCruzado[]    @relation("EfectoOrigen")
   efectosComoDestino EfectoCruzado[]    @relation("EfectoDestino")
   asignaciones       AsignacionPuntos[]
+  ayudas             UsoAyuda[]
 
   @@unique([retoId, atributo])
   @@map("atributo_escenario")
@@ -616,6 +646,8 @@ model BloquePlan {
   entregablesQueProduce EntregablePlan[]
   posiciones            PosicionBloque[]
   asociaciones          AsociacionEntregable[]
+  pistasComoBloque      UsoAyuda[]             @relation("PistaBloque")
+  pistasComoRequerido   UsoAyuda[]             @relation("PistaRequiere")
 
   @@map("bloque_plan")
 }

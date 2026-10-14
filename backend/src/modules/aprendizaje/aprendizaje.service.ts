@@ -33,7 +33,9 @@ import {
 } from './estado-fases';
 import { calificarPorPorcentaje } from './calificacion-estrellas';
 import { MecanicasRegistro } from './mecanicas/mecanicas.registro';
-import { Db, EvaluadorMecanica } from './mecanicas/tipos';
+import { columnasAPista, pistaAColumnas } from './mecanicas/pista';
+import { redactarRetroalimentacion } from './mecanicas/retroalimentacion';
+import { Db, EvaluadorMecanica, PistaDto } from './mecanicas/tipos';
 
 const SELECCION_FASE = {
   id: true,
@@ -208,7 +210,8 @@ export class AprendizajeService {
       }
       await this.economia.consumirObjetoEquipado(tx, estudianteId, objetoId);
       const pista = await this.mecanicas.obtener(intento.reto.mecanica).aplicarAyuda(tx, intentoId);
-      await tx.usoAyuda.create({ data: { intentoId, objetoId } });
+      // La pista se guarda de forma relacional para volver a dibujarla al retomar el intento.
+      await tx.usoAyuda.create({ data: { intentoId, objetoId, ...pistaAColumnas(pista) } });
       await tx.intentoReto.update({ where: { id: intentoId }, data: { usoAyuda: true } });
       return { intentoId, objetoId, pista };
     });
@@ -411,6 +414,18 @@ export class AprendizajeService {
     return { reto, fase: faseDto, contenidosApoyo: aContenidosApoyo(fase.contenidoApoyo) };
   }
 
+  /** Pista de la ayuda de este intento, reconstruida desde UsoAyuda (null si no usó ayuda). */
+  private async pistaGuardada(db: Db, intentoId: number): Promise<PistaDto | null> {
+    const uso = await db.usoAyuda.findUnique({
+      where: { intentoId },
+      include: {
+        tarjeta: { select: { columnaCorrecta: true } },
+        atributoEscenario: { select: { minimoObligatorio: true } },
+      },
+    });
+    return columnasAPista(uso);
+  }
+
   private async construirEnCurso(db: Db, intento: IntentoConReto): Promise<IntentoEnCursoDto> {
     const evaluador: EvaluadorMecanica = this.mecanicas.obtener(intento.reto.mecanica);
     return {
@@ -420,6 +435,7 @@ export class AprendizajeService {
       contenido: await evaluador.contenidoPublico(db, intento.retoId),
       borrador: await evaluador.borrador(db, intento.id),
       ayudaUsada: intento.usoAyuda,
+      pista: await this.pistaGuardada(db, intento.id),
       creadoEn: intento.creadoEn,
       actualizadoEn: intento.actualizadoEn,
     };
@@ -427,7 +443,9 @@ export class AprendizajeService {
 
   private async construirCalificado(db: Db, intento: IntentoConReto): Promise<IntentoCalificadoDto> {
     const evaluador = this.mecanicas.obtener(intento.reto.mecanica);
-    const { retroalimentacion } = await evaluador.calificar(db, intento.id);
+    const { retroalimentacion: completa } = await evaluador.calificar(db, intento.id);
+    // Solo un intento aprobado recibe la respuesta de referencia completa.
+    const retroalimentacion = redactarRetroalimentacion(completa, intento.aprobado);
     return {
       estado: 'CALIFICADO',
       intentoId: intento.id,

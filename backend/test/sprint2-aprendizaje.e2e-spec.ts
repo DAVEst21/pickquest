@@ -36,6 +36,29 @@ describe('Sprint 2: aprendizaje por mecánicas (e2e)', () => {
   };
   const get = (e: EstudiantePrueba, ruta: string) => http(app).get(ruta).set(auth(e));
 
+  /** Campos con la respuesta de referencia que un intento NO aprobado nunca debe recibir. */
+  const CAMPOS_DE_REFERENCIA = [
+    'planReferencia',
+    'finReferencia',
+    'faseCorrecta',
+    'columnaCorrecta',
+    'tipoCorrecto',
+    'ordenMustReferencia',
+    'atributoCorrecto',
+    'explicacion',
+    'noEncontradas',
+    'referencia',
+    'medidorReferencia',
+    'justificacionCorrecta',
+    'tecnicaCorrecta',
+    'noDescubiertos',
+  ];
+  const sinReferencia = (retro: unknown) => {
+    const claves = clavesDe(retro);
+    for (const campo of CAMPOS_DE_REFERENCIA) expect(claves.has(campo)).toBe(false);
+    expect((retro as { referenciaCompleta: boolean }).referenciaCompleta).toBe(false);
+  };
+
   beforeAll(async () => {
     ({ app, prisma } = await crearApp());
     retos = await retosEnOrden(prisma);
@@ -244,6 +267,8 @@ describe('Sprint 2: aprendizaje por mecánicas (e2e)', () => {
       expect(intento.reto.mecanica).toBe(r.mecanica);
       expect(intento.fase.orden).toBe(faseOrden);
 
+      expect(intento.pista).toBeNull();
+
       // RF-03: la ayuda devuelve el efecto de su mecánica y consume una unidad.
       const ayuda = await http(app)
         .post(`/intentos/${intento.intentoId}/ayuda`)
@@ -251,6 +276,16 @@ describe('Sprint 2: aprendizaje por mecánicas (e2e)', () => {
         .send({ objetoId: await idPocion(prisma) })
         .expect(200);
       expect(ayuda.body.pista.tipo).toBe(PISTA[r.mecanica]);
+
+      // La pista se guarda de forma relacional y se devuelve al consultar y al retomar el intento.
+      const uso = await prisma.usoAyuda.findUniqueOrThrow({ where: { intentoId: intento.intentoId } });
+      expect(uso.tipoPista).toBe(PISTA[r.mecanica]);
+      const consultado = (await get(e, `/intentos/${intento.intentoId}`).expect(200)).body;
+      expect(consultado.pista).toEqual(ayuda.body.pista);
+      const retomado = await iniciarIntento(app, e, r.id);
+      expect(retomado.intentoId).toBe(intento.intentoId);
+      expect(retomado.pista).toEqual(ayuda.body.pista);
+      expect(retomado.ayudaUsada).toBe(true);
 
       await resolver(app, prisma, e, intento);
       const res = await http(app).post(`/intentos/${intento.intentoId}/enviar`).set(auth(e)).expect(200);
@@ -409,16 +444,33 @@ describe('Sprint 2: aprendizaje por mecánicas (e2e)', () => {
       const consulta = (await get(e, `/intentos/${intento.intentoId}`).expect(200)).body;
       expect(consulta.estado).toBe('CALIFICADO');
       expect(consulta.resultado.porcentaje).toBe(100);
+      expect(consulta.retroalimentacion.referenciaCompleta).toBe(true);
       expect(consulta.retroalimentacion.planReferencia.length).toBe(8);
     });
 
-    it('CU-08 retroalimentación: señala dependencias incumplidas, entregables mal asociados y el plan de referencia', async () => {
+    it('CU-08 retroalimentación de un intento NO aprobado: dice qué está mal, pero no el plan de referencia ni la fase correcta', async () => {
       const e = await estudiante();
       const res = await jugarReto(app, prisma, e, reto(1, 1).id, 'malo');
+      expect(res.resultado.aprobado).toBe(false);
       expect(res.retroalimentacion.dependenciasIncumplidas.length).toBeGreaterThan(0);
       expect(res.retroalimentacion.entregablesMalAsociados.length).toBeGreaterThan(0);
+      expect(res.retroalimentacion.entregablesMalAsociados[0]).toEqual({
+        entregable: expect.any(String),
+        faseElegida: expect.any(String),
+      });
       expect(res.retroalimentacion.dentroDelPlazo).toBe(true);
+      sinReferencia(res.retroalimentacion);
+      // lo mismo al consultar el intento después
+      sinReferencia((await get(e, `/intentos/${res.intentoId}`).expect(200)).body.retroalimentacion);
+    });
+
+    it('CU-08 retroalimentación de un intento aprobado: incluye el plan de referencia completo', async () => {
+      const e = await estudiante();
+      const res = await jugarReto(app, prisma, e, reto(1, 1).id);
+      expect(res.retroalimentacion.referenciaCompleta).toBe(true);
+      expect(res.retroalimentacion.planReferencia).toHaveLength(8);
       expect(res.retroalimentacion.planReferencia[0]).toHaveProperty('inicio');
+      expect(res.retroalimentacion.finReferencia).toBe(14);
     });
   });
 
@@ -436,6 +488,52 @@ describe('Sprint 2: aprendizaje por mecánicas (e2e)', () => {
       const res = await http(app).post(`/intentos/${intento.intentoId}/enviar`).set(auth(e)).expect(200);
       expect(res.body.resultado).toMatchObject({ porcentaje: 100, calificacionEstrellas: 2, usoAyuda: true });
       expect(await prisma.usoAyuda.count({ where: { intentoId: intento.intentoId } })).toBe(1);
+    });
+
+    it('la pista se guarda de forma relacional (tipo + elemento al que apunta) y se vuelve a dibujar al consultar y retomar el intento', async () => {
+      const e = await estudiante(3);
+      const intento = await iniciarIntento(app, e, reto(1, 1).id);
+      const ayuda = await http(app)
+        .post(`/intentos/${intento.intentoId}/ayuda`)
+        .set(auth(e))
+        .send({ objetoId: await idPocion(prisma) })
+        .expect(200);
+      const { bloqueId, requiereId } = ayuda.body.pista;
+      expect(bloqueId).toEqual(expect.any(Number));
+      expect(requiereId).toEqual(expect.any(Number));
+
+      // en la base: columnas con el tipo y los ids, sin JSON
+      const uso = await prisma.usoAyuda.findUniqueOrThrow({ where: { intentoId: intento.intentoId } });
+      expect(uso).toMatchObject({
+        tipoPista: 'DEPENDENCIA',
+        bloqueId,
+        requiereId,
+        opcionId: null,
+        tarjetaId: null,
+        pantallaId: null,
+        atributoEscenarioId: null,
+      });
+
+      // al consultar el intento y al retomarlo vuelve la misma pista
+      const esperada = { tipo: 'DEPENDENCIA', bloqueId, requiereId };
+      expect((await get(e, `/intentos/${intento.intentoId}`).expect(200)).body.pista).toEqual(esperada);
+      const retomado = await iniciarIntento(app, e, reto(1, 1).id);
+      expect(retomado).toMatchObject({ intentoId: intento.intentoId, ayudaUsada: true, pista: esperada });
+
+      // una ayuda registrada antes de guardar pistas (tipoPista null) no rompe: ayudaUsada sí, pista no
+      await prisma.usoAyuda.update({
+        where: { intentoId: intento.intentoId },
+        data: { tipoPista: null, bloqueId: null, requiereId: null },
+      });
+      const antigua = await iniciarIntento(app, e, reto(1, 1).id);
+      expect(antigua.ayudaUsada).toBe(true);
+      expect(antigua.pista).toBeNull();
+    });
+
+    it('un intento nuevo, o uno sin ayuda, no trae pista', async () => {
+      const e = await estudiante(1);
+      const intento = await iniciarIntento(app, e, reto(1, 1).id);
+      expect(intento).toMatchObject({ ayudaUsada: false, pista: null });
     });
 
     it('la ayuda se ata al intento: el siguiente intento empieza sin ayuda y puede sacar 3 estrellas', async () => {
@@ -651,6 +749,10 @@ describe('Sprint 2: aprendizaje por mecánicas (e2e)', () => {
       expect(res.resultado).toMatchObject({ porcentaje: 0, aprobado: false });
       expect(res.retroalimentacion.preguntasImproductivas).toBe(1);
       expect(res.retroalimentacion.tecnicaElegida).toBe('CUESTIONARIO');
+      // dice que la técnica está mal y cuántos requerimientos faltaron, pero no cuál era ni cuáles
+      expect(res.retroalimentacion.tecnicaAcertada).toBe(false);
+      expect(res.retroalimentacion.noDescubiertosCantidad).toBe(6);
+      sinReferencia(res.retroalimentacion);
     });
   });
 
@@ -719,6 +821,9 @@ describe('Sprint 2: aprendizaje por mecánicas (e2e)', () => {
       const res = await jugarReto(app, prisma, e, moscowId(), 'malo');
       expect(res.resultado.aprobado).toBe(false);
       expect(res.retroalimentacion.tarjetas.filter((t: { columnaAcertada: boolean }) => !t.columnaAcertada)).toHaveLength(9);
+      // señala las tarjetas mal colocadas, pero no la columna correcta ni el orden de referencia
+      expect(res.retroalimentacion.tarjetas[0]).not.toHaveProperty('columnaCorrecta');
+      sinReferencia(res.retroalimentacion);
     });
   });
 
@@ -775,6 +880,7 @@ describe('Sprint 2: aprendizaje por mecánicas (e2e)', () => {
       const res = await jugarReto(app, prisma, e, inspeccionId());
       expect(res.resultado.porcentaje).toBe(100);
       expect(res.retroalimentacion.encontradas).toHaveLength(6);
+      expect(res.retroalimentacion.referenciaCompleta).toBe(true);
       expect(res.retroalimentacion.noEncontradas).toHaveLength(0);
       expect(res.retroalimentacion.encontradas[0].explicacion.length).toBeGreaterThan(20);
     });
@@ -783,8 +889,9 @@ describe('Sprint 2: aprendizaje por mecánicas (e2e)', () => {
       const res = await jugarReto(app, prisma, e, inspeccionId(), 'malo');
       expect(res.resultado).toMatchObject({ porcentaje: 0, aprobado: false });
       expect(res.retroalimentacion.marcasSinFalla).toHaveLength(3);
-      expect(res.retroalimentacion.noEncontradas).toHaveLength(6);
-      expect(res.retroalimentacion.noEncontradas[0]).toHaveProperty('pantalla');
+      // no revela cuáles fallas se escaparon, solo cuántas
+      expect(res.retroalimentacion.fallasNoEncontradas).toBe(6);
+      sinReferencia(res.retroalimentacion);
     });
 
     it('CU-06: el contenido público trae lo necesario para el medidor, pero no el reparto de referencia', async () => {
@@ -827,6 +934,9 @@ describe('Sprint 2: aprendizaje por mecánicas (e2e)', () => {
       expect(res.retroalimentacion.restriccionesCumplidas).toBe(2);
       expect(res.retroalimentacion.restriccionesTotales).toBe(3);
       expect(res.retroalimentacion.justificacionAcertada).toBe(false);
+      // muestra las restricciones incumplidas, pero no el reparto de referencia ni la justificación correcta
+      expect(res.retroalimentacion.atributos.filter((a: { cumple: boolean | null }) => a.cumple === false)).toHaveLength(1);
+      sinReferencia(res.retroalimentacion);
     });
 
     it('RN-21: el reparto de referencia con la justificación correcta da 100 y revela el reparto de referencia', async () => {
