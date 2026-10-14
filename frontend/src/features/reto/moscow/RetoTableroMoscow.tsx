@@ -387,7 +387,7 @@ export const RetoTableroMoscow: React.FC<PropsMecanica<ContenidoMoscow, Borrador
         </div>
 
         {/* Columnas MoSCoW */}
-        <div className="grid grid-cols-1 xl:grid-cols-4 md:grid-cols-2 gap-space-md">
+        <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-4 gap-space-md">
           {COLUMNAS.map((c) => {
             const info = INFO[c];
             const puntos = columnas[c].reduce((s, id) => s + (porId.get(id)?.puntos ?? 0), 0);
