@@ -155,15 +155,29 @@ export class TableroMoscowEvaluador implements EvaluadorMecanica {
     };
   }
 
-  /** FA2: revela la columna correcta de una tarjeta mal colocada o sin colocar. */
+  /** FA2: coloca y guarda una tarjeta en su columna correcta. */
   async aplicarAyuda(db: Db, intentoId: number): Promise<PistaDto> {
     const retoId = await retoIdDeIntento(db, intentoId);
     const tarjetas = await this.cargarTarjetas(db, intentoId, retoId);
-    const objetivo = tarjetas.find((t) => t.columna !== t.columnaCorrecta) ?? tarjetas[0];
+    const objetivo = tarjetas.find((t) => t.columna !== t.columnaCorrecta);
+    if (!objetivo) {
+      throw new BadRequestException('Todas las tarjetas ya están en su columna correcta; no se consumió la ayuda');
+    }
+    const ultimoMust = Math.max(0, ...tarjetas.map((t) => t.ordenMust ?? 0));
+    await this.guardarBorrador(db, intentoId, {
+      tarjetas: tarjetas.map((t) => ({
+        tarjetaId: t.id,
+        columna: t.id === objetivo.id ? objetivo.columnaCorrecta : t.columna,
+        tipo: t.tipo,
+        ordenMust: t.id === objetivo.id
+          ? (objetivo.columnaCorrecta === 'MUST' ? ultimoMust + 1 : null)
+          : t.ordenMust,
+      })),
+    });
     return {
       tipo: 'COLUMNA_TARJETA',
-      tarjetaId: objetivo?.id ?? null,
-      columna: objetivo?.columnaCorrecta ?? null,
+      tarjetaId: objetivo.id,
+      columna: objetivo.columnaCorrecta,
     };
   }
 }

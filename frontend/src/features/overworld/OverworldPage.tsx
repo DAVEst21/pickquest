@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PantallaCarga, PantallaError } from '../../components/EstadoPantalla';
 import { Pagina } from '../../components/Pagina';
-import { mensajeDeError } from '../../services/errores';
-import { useFases } from '../../services/queries';
+import { esRecuperable, mensajeDeError } from '../../services/errores';
+import { useFases, useTablon, useIniciarIntento } from '../../services/queries';
 import type { EstadoFase, Fase } from '../../types';
 import { buscarFaseActiva } from '../fases/presentacion';
 import { ALTO_FILA, ConectorSvg } from './ConectorSvg';
 import { ModalFase } from './ModalFase';
+import { Toast } from '../../components/Toast';
 import { TarjetaFase } from './TarjetaFase';
 
 const LEYENDA: { estado: EstadoFase; etiqueta: string; punto: string }[] = [
@@ -19,7 +20,11 @@ const LEYENDA: { estado: EstadoFase; etiqueta: string; punto: string }[] = [
 
 export const OverworldPage: React.FC = () => {
   const navigate = useNavigate();
-  const { data: fases, isPending, isError, error } = useFases();
+  const { data: fases, isPending, isError, error, refetch, isFetching } = useFases();
+  const faseActiva = buscarFaseActiva(fases);
+  const tablonActivo = useTablon(faseActiva?.id);
+  const iniciar = useIniciarIntento();
+  const [aviso, setAviso] = useState('');
   const [faseInspeccionada, setFaseInspeccionada] = useState<Fase | null>(null);
 
   if (isPending) {
@@ -32,13 +37,20 @@ export const OverworldPage: React.FC = () => {
   if (isError) {
     return (
       <Pagina>
-        <PantallaError titulo="No se pudo cargar el mapa" mensaje={mensajeDeError(error)} accion={<span />} />
+        <PantallaError titulo="No se pudo cargar el mapa" mensaje={mensajeDeError(error)} onReintentar={esRecuperable(error) ? () => void refetch() : undefined} reintentando={isFetching} />
       </Pagina>
     );
   }
 
   const fasesOrdenadas = [...fases].sort((a, b) => a.orden - b.orden);
-  const faseActiva = buscarFaseActiva(fasesOrdenadas);
+  const retoActivo = tablonActivo.data?.retos.find((r) => r.estado === 'EN_CURSO' || r.estado === 'DISPONIBLE');
+  const comenzar = () => {
+    if (!retoActivo) return;
+    iniciar.mutate(retoActivo.id, {
+      onSuccess: (intento) => navigate(`/intento/${intento.intentoId}`),
+      onError: (e) => setAviso(mensajeDeError(e)),
+    });
+  };
   const abrirMision = (fase: Fase) => {
     if (fase.estado !== 'bloqueada') navigate(`/mision/${fase.id}`);
   };
@@ -99,14 +111,20 @@ export const OverworldPage: React.FC = () => {
                 <span className="font-title-lg text-title-lg text-on-surface">Fase Activa: {faseActiva.nombre}</span>
               </div>
             </div>
+            <div className="flex flex-wrap gap-space-sm z-10">
+            <button type="button" onClick={comenzar} disabled={!retoActivo || iniciar.isPending}
+              className="px-space-lg py-space-sm rounded-lg bg-primary-container text-on-primary-container font-title-md disabled:opacity-50">
+              {retoActivo?.estado === 'EN_CURSO' ? 'Continuar intento' : 'Iniciar reto'}
+            </button>
             <button
               onClick={() => setFaseInspeccionada(faseActiva)}
-              className="z-10 w-full md:w-auto px-space-lg py-space-sm rounded-lg bg-primary-container hover:bg-primary text-on-primary-container font-title-md text-title-md flex items-center justify-center gap-space-xs shadow-lg transition-all active:translate-y-0.5"
+              className="z-10 w-full md:w-auto px-space-lg py-space-sm rounded-lg bg-surface-container-high hover:bg-surface-bright text-on-surface font-title-md text-title-md flex items-center justify-center gap-space-xs shadow-lg transition-all active:translate-y-0.5"
               id="btn-quick-inspect"
             >
               <span className="material-symbols-outlined text-title-md">visibility</span>
               <span>Ver objetivos y recompensas</span>
             </button>
+            </div>
           </div>
         )}
 
@@ -131,6 +149,7 @@ export const OverworldPage: React.FC = () => {
           </div>
         </div>
 
+        <Toast visible={!!aviso} message={aviso} icon="error" />
         {faseInspeccionada && <ModalFase fase={faseInspeccionada} onCerrar={() => setFaseInspeccionada(null)} />}
       </div>
     </Pagina>

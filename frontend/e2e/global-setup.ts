@@ -49,6 +49,9 @@ export default async function globalSetup() {
     );
   }
 
+  // Reejecución de recuperación sobre el demo ya preparado por 01/02; no reinicia su progreso.
+  if (process.env.E2E_CONSERVAR_DEMO === '1') return;
+
   const cliente = new Client({ connectionString: DATABASE_URL });
   await cliente.connect();
   try {

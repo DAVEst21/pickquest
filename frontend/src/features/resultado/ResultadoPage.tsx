@@ -5,7 +5,7 @@ import { Estrellas } from '../../components/Estrellas';
 import { ModalConfirmar } from '../../components/ModalConfirmar';
 import { Pagina } from '../../components/Pagina';
 import { Toast } from '../../components/Toast';
-import { esError, mensajeDeError } from '../../services/errores';
+import { esError, esRecuperable, mensajeDeError } from '../../services/errores';
 import { useIniciarIntento, useIntento, useLibreta, useTablon } from '../../services/queries';
 import { UMBRAL_APROBACION } from '../../types';
 import { etiquetaFase, MECANICA } from '../fases/presentacion';
@@ -17,7 +17,7 @@ const CIRCUNFERENCIA = 2 * Math.PI * 50;
 export const ResultadoPage: React.FC = () => {
   const intentoId = Number(useParams<{ intentoId: string }>().intentoId);
   const navigate = useNavigate();
-  const { data: intento, isPending, isError, error } = useIntento(intentoId);
+  const { data: intento, isPending, isError, error, refetch, isFetching } = useIntento(intentoId);
   const tablon = useTablon(intento?.fase.id);
   const iniciar = useIniciarIntento();
   const libreta = useLibreta(intento?.estado === 'CALIFICADO' && intento.reto.mecanica === 'DIALOGO_STAKEHOLDER' ? intento.reto.id : undefined);
@@ -49,7 +49,7 @@ export const ResultadoPage: React.FC = () => {
   if (isError) {
     return (
       <Pagina>
-        <PantallaError titulo="No se pudo cargar el resultado" mensaje={mensajeDeError(error)} />
+        <PantallaError titulo="No se pudo cargar el resultado" mensaje={mensajeDeError(error)} onReintentar={esRecuperable(error) ? () => void refetch() : undefined} reintentando={isFetching} />
       </Pagina>
     );
   }

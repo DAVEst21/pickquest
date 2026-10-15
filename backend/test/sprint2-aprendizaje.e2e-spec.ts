@@ -195,9 +195,9 @@ describe('Sprint 2: aprendizaje por mecánicas (e2e)', () => {
         http(app).post(`/retos/${reto(1, 1).id}/intentos`).set(auth(e)),
         http(app).post(`/retos/${reto(1, 1).id}/intentos`).set(auth(e)),
       ]);
-      // Puede haber un 409 por conflicto Serializable (se reintentó una vez); nunca dos intentos.
-      expect([201, 409]).toContain(a.status);
-      expect([201, 409]).toContain(b.status);
+      expect(a.status).toBe(201);
+      expect(b.status).toBe(201);
+      expect(a.body.intentoId).toBe(b.body.intentoId);
       expect(
         await prisma.intentoReto.count({
           where: { estudianteId: e.id, retoId: reto(1, 1).id, estado: 'EN_CURSO' },
@@ -425,17 +425,19 @@ describe('Sprint 2: aprendizaje por mecánicas (e2e)', () => {
         http(app).post(`/intentos/${intento.intentoId}/enviar`).set(auth(e)),
         http(app).post(`/intentos/${intento.intentoId}/enviar`).set(auth(e)),
       ]);
-      expect([a.status, b.status].sort()).toEqual([200, 409]);
+      expect([a.status, b.status]).toEqual([200, 200]);
+      expect(a.body.resultado).toEqual(b.body.resultado);
       const perfil = (await get(e, '/auth/perfil').expect(200)).body;
       expect(perfil.xpTotal).toBe(150);
     });
 
-    it('un intento ya calificado no se puede enviar ni modificar de nuevo (409) y devuelve su resultado', async () => {
+    it('reenviar recupera el mismo resultado, pero modificar un intento calificado sigue dando 409', async () => {
       const e = await estudiante();
       const intento = await iniciarIntento(app, e, reto(1, 1).id);
       await resolver(app, prisma, e, intento);
       await http(app).post(`/intentos/${intento.intentoId}/enviar`).set(auth(e)).expect(200);
-      await http(app).post(`/intentos/${intento.intentoId}/enviar`).set(auth(e)).expect(409);
+      const recuperado = await http(app).post(`/intentos/${intento.intentoId}/enviar`).set(auth(e)).expect(200);
+      expect(recuperado.body.resultado.porcentaje).toBe(100);
       await http(app)
         .put(`/intentos/${intento.intentoId}/borrador`)
         .set(auth(e))
@@ -765,6 +767,49 @@ describe('Sprint 2: aprendizaje por mecánicas (e2e)', () => {
       e = await estudiante();
       await aprobarFases(app, prisma, e, 1);
       await jugarReto(app, prisma, e, reto(2, 1).id);
+    });
+
+    it('FA2 mueve una tarjeta, conserva tipos y orden, persiste al retomar y cobra una sola ayuda', async () => {
+      const alumno = await estudiante();
+      await aprobarFases(app, prisma, alumno, 1);
+      await jugarReto(app, prisma, alumno, reto(2, 1).id);
+      const intento = await iniciarIntento(app, alumno, moscowId());
+      const tarjetas = await prisma.tarjetaRequerimiento.findMany({ where: { retoId: moscowId() }, orderBy: { orden: 'asc' } });
+      const objetivo = tarjetas[0];
+      expect(objetivo.columnaCorrecta).toBe('MUST');
+      const borrador = { tarjetas: tarjetas.map((t) => ({
+        tarjetaId: t.id, columna: t.id === objetivo.id ? 'WONT' : t.columnaCorrecta,
+        tipo: 'NO_FUNCIONAL', ordenMust: t.id === objetivo.id ? null : t.ordenMustReferencia,
+      })) };
+      await http(app).put(`/intentos/${intento.intentoId}/borrador`).set(auth(alumno)).send(borrador).expect(200);
+      const ayuda = await http(app).post(`/intentos/${intento.intentoId}/ayuda`).set(auth(alumno))
+        .send({ objetoId: await idPocion(prisma) }).expect(200);
+      const actual = ayuda.body.borradorActualizado.tarjetas;
+      expect(actual.find((t: { tarjetaId: number }) => t.tarjetaId === objetivo.id))
+        .toMatchObject({ columna: 'MUST', tipo: 'NO_FUNCIONAL', ordenMust: 4 });
+      expect(actual.every((t: { tipo: string }) => t.tipo === 'NO_FUNCIONAL')).toBe(true);
+      const consulta = (await get(alumno, `/intentos/${intento.intentoId}`).expect(200)).body;
+      expect(consulta.borrador).toEqual(ayuda.body.borradorActualizado);
+      expect((await iniciarIntento(app, alumno, moscowId())).borrador).toEqual(consulta.borrador);
+      await http(app).post(`/intentos/${intento.intentoId}/ayuda`).set(auth(alumno))
+        .send({ objetoId: await idPocion(prisma) }).expect(409);
+      expect((await get(alumno, '/inventario/equipados')).body[0].cantidad).toBe(2);
+      await resolver(app, prisma, alumno, intento);
+      const resultado = await http(app).post(`/intentos/${intento.intentoId}/enviar`).set(auth(alumno)).expect(200);
+      expect(resultado.body.resultado).toMatchObject({ porcentaje: 100, calificacionEstrellas: 2 });
+    });
+
+    it('FA2 sin tarjeta que corregir no consume inventario ni registra ayuda', async () => {
+      const alumno = await estudiante();
+      await aprobarFases(app, prisma, alumno, 1);
+      await jugarReto(app, prisma, alumno, reto(2, 1).id);
+      const intento = await iniciarIntento(app, alumno, moscowId());
+      await resolver(app, prisma, alumno, intento);
+      await http(app).post(`/intentos/${intento.intentoId}/ayuda`).set(auth(alumno))
+        .send({ objetoId: await idPocion(prisma) }).expect(400);
+      expect((await get(alumno, '/inventario/equipados')).body[0].cantidad).toBe(3);
+      expect(await prisma.usoAyuda.count({ where: { intentoId: intento.intentoId } })).toBe(0);
+      expect((await get(alumno, `/intentos/${intento.intentoId}`)).body.ayudaUsada).toBe(false);
     });
 
     it('CU-03 FE1: enviar con tarjetas sin columna o sin tipo → 400 con la lista', async () => {

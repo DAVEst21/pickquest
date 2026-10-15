@@ -12,6 +12,8 @@ export class FaseDto {
   orden: number;
   /** Descripción narrativa de la fase (se guarda en la base de datos). */
   descripcion: string;
+  /** Mecánicas de sus retos en orden, para el mapa. */
+  mecanicas: Mecanica[];
   /** Calculado para el estudiante autenticado a partir de sus intentos CALIFICADOS. */
   @ApiProperty({ enum: ESTADOS_FASE, enumName: 'EstadoFase' })
   estado: EstadoFase;

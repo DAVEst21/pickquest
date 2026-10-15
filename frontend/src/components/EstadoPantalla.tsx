@@ -14,10 +14,12 @@ interface PantallaErrorProps {
   icono?: string;
   /** Acción principal; por defecto, volver al mapa. */
   accion?: React.ReactNode;
+  onReintentar?: () => void;
+  reintentando?: boolean;
 }
 
 /** Panel para errores esperados del backend (403 fase bloqueada, 404 inexistente...). */
-export const PantallaError: React.FC<PantallaErrorProps> = ({ titulo, mensaje, icono = 'error', accion }) => (
+export const PantallaError: React.FC<PantallaErrorProps> = ({ titulo, mensaje, icono = 'error', accion, onReintentar, reintentando }) => (
   <div className="max-w-xl mx-auto px-gutter py-24" role="alert">
     <div className="bg-surface-container-low rounded-xl p-space-xl shadow-xl flex flex-col items-center text-center gap-space-md border border-surface-container-high/40">
       <div className="w-14 h-14 rounded-full bg-error-container/30 text-error flex items-center justify-center">
@@ -25,6 +27,12 @@ export const PantallaError: React.FC<PantallaErrorProps> = ({ titulo, mensaje, i
       </div>
       <h1 className="font-headline-sm text-headline-sm text-on-surface">{titulo}</h1>
       <p className="font-body-md text-body-md text-on-surface-variant">{mensaje}</p>
+      {onReintentar && (
+        <button type="button" onClick={onReintentar} disabled={reintentando}
+          className="px-space-lg py-space-sm rounded-lg bg-primary-container text-on-primary-container font-title-md disabled:opacity-50">
+          {reintentando ? 'Reintentando...' : 'Reintentar'}
+        </button>
+      )}
       {accion ?? (
         <Link
           to="/"

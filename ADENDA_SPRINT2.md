@@ -1,13 +1,15 @@
 # Adenda al reporte del Sprint 2
 
+Para las correcciones y verificaciones posteriores, consultar [VERIFICACION_SPRINT2.md](docs/VERIFICACION_SPRINT2.md). Los resultados siguientes corresponden al hito original de esta adenda.
+
 Rama `feature/sprint2-mecanicas`. Cambios hechos después de `REPORTE_SPRINT2.md`. No se hizo merge ni se crearon etiquetas.
 
 Commits:
 
 ```
-ec2238d fix(aprendizaje): pista de la ayuda persistente y retroalimentación sin la referencia en intentos no aprobados (RF-03, RF-01)
-9c96ae5 test(frontend): suite de Playwright del recorrido completo con capturas en docs/capturas
-ce9a6b4 docs: README de la raíz (stack, cómo levantarlo, pruebas, estructura, usuario demo) y README breves; ESTADO_ACTUAL marcado como histórico
+bc7c2cd fix(aprendizaje): pista de la ayuda persistente y retroalimentación sin la referencia en intentos no aprobados (RF-03, RF-01)
+b973f5d test(frontend): suite de Playwright del recorrido completo con capturas en docs/capturas
+18c0379 docs: README de la raíz (stack, cómo levantarlo, pruebas, estructura, usuario demo) y README breves; ESTADO_ACTUAL marcado como histórico
 + el commit que agrega esta adenda
 ```
 

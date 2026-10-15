@@ -4,7 +4,8 @@ import { PantallaCarga, PantallaError } from '../../components/EstadoPantalla';
 import { ModalConfirmar } from '../../components/ModalConfirmar';
 import { Pagina } from '../../components/Pagina';
 import { Toast } from '../../components/Toast';
-import { esError, mensajeDeError } from '../../services/errores';
+import { esError, esRecuperable, mensajeDeError } from '../../services/errores';
+import { getIntento } from '../../services/api';
 import { useEnviarIntento, useEquipados, useIntento, useUsarAyuda } from '../../services/queries';
 import {
   type ContenidoDialogo,
@@ -34,7 +35,7 @@ import { type EstadoGuardado, useAutoguardado } from './useAutoguardado';
 /** Pantalla de un intento en curso: elige el componente por la mecánica del reto. */
 export const RetoPage: React.FC = () => {
   const intentoId = Number(useParams<{ intentoId: string }>().intentoId);
-  const { data, isPending, isError, error } = useIntento(intentoId);
+  const { data, isPending, isError, error, refetch, isFetching } = useIntento(intentoId);
 
   if (!Number.isInteger(intentoId) || intentoId <= 0 || esError(error, 404)) {
     return (
@@ -53,7 +54,7 @@ export const RetoPage: React.FC = () => {
   if (isError) {
     return (
       <Pagina>
-        <PantallaError titulo="No se pudo cargar el reto" mensaje={mensajeDeError(error)} />
+        <PantallaError titulo="No se pudo cargar el reto" mensaje={mensajeDeError(error)} onReintentar={esRecuperable(error) ? () => void refetch() : undefined} reintentando={isFetching} />
       </Pagina>
     );
   }
@@ -80,6 +81,9 @@ const ResolverReto: React.FC<{ intento: IntentoEnCurso }> = ({ intento }) => {
   const enviarIntento = useEnviarIntento();
 
   // La pista de la ayuda ya usada la devuelve el servidor, así que sobrevive a recargar el intento.
+  const [operando, setOperando] = useState(false);
+  const [falloEnvio, setFalloEnvio] = useState(false);
+  const [borradorAyuda, setBorradorAyuda] = useState<BorradorMoscow | null>(null);
   const [pista, setPista] = useState<Pista | null>(intento.pista);
   const [ayudaUsada, setAyudaUsada] = useState(intento.ayudaUsada);
   const [estadoEnvio, setEstadoEnvio] = useState<EstadoEnvio>({ faltantes: [] });
@@ -97,30 +101,40 @@ const ResolverReto: React.FC<{ intento: IntentoEnCurso }> = ({ intento }) => {
     [],
   );
 
-  const usar = (objetoId: number) => {
-    usarAyuda.mutate(objetoId, {
-      onSuccess: (res) => {
-        setPista(res.pista);
-        setAyudaUsada(true);
-        mostrarToast('Ayuda usada: la pista quedó marcada en el reto', 'auto_awesome');
-      },
-      onError: (e) => mostrarToast(mensajeDeError(e), 'error'),
-    });
-  };
-
-  /** Guarda lo pendiente y envía a calificar: el servidor califica lo que tiene guardado. */
-  const enviar = async () => {
-    setConfirmando(false);
+  const usar = async (objetoId: number) => {
+    if (operando) return;
+    setOperando(true);
     try {
       await autoguardado.vaciar();
+      const res = await usarAyuda.mutateAsync(objetoId);
+      if (res.borradorActualizado) setBorradorAyuda(res.borradorActualizado);
+      setPista(res.pista);
+      setAyudaUsada(true);
+      mostrarToast('Ayuda usada: el avance y la pista quedaron guardados', 'auto_awesome');
     } catch (e) {
       mostrarToast(mensajeDeError(e), 'error');
-      return;
+    } finally {
+      setOperando(false);
     }
-    enviarIntento.mutate(intentoId, {
-      onSuccess: () => navigate(`/resultado/${intentoId}`),
-      onError: (e) => mostrarToast(mensajeDeError(e), 'error'),
-    });
+  };
+
+  /** Consulta antes de guardar: una respuesta perdida puede corresponder a un intento ya calificado. */
+  const enviar = async () => {
+    if (operando) return;
+    setConfirmando(false);
+    setOperando(true);
+    try {
+      const actual = await getIntento(intentoId);
+      if (actual.estado === 'EN_CURSO') await autoguardado.vaciar();
+      await enviarIntento.mutateAsync(intentoId);
+      setFalloEnvio(false);
+      navigate(`/resultado/${intentoId}`);
+    } catch (e) {
+      setFalloEnvio(true);
+      mostrarToast(mensajeDeError(e), 'error');
+    } finally {
+      setOperando(false);
+    }
   };
 
   const alPulsarEnviar = () => {
@@ -131,7 +145,7 @@ const ResolverReto: React.FC<{ intento: IntentoEnCurso }> = ({ intento }) => {
 
   const comun = {
     pista,
-    deshabilitado: enviarIntento.isPending,
+    deshabilitado: operando,
     onCambio: autoguardado.guardar,
     onEstado: alCambiarEstado,
   };
@@ -150,9 +164,10 @@ const ResolverReto: React.FC<{ intento: IntentoEnCurso }> = ({ intento }) => {
       case 'TABLERO_MOSCOW':
         return (
           <RetoTableroMoscow
+            key={borradorAyuda ? 'ayuda-aplicada' : 'inicial'}
             {...comun}
             contenido={intento.contenido as ContenidoMoscow}
-            borrador={intento.borrador as BorradorMoscow}
+            borrador={borradorAyuda ?? intento.borrador as BorradorMoscow}
           />
         );
       case 'INSPECCION_SISTEMA':
@@ -294,7 +309,7 @@ const ResolverReto: React.FC<{ intento: IntentoEnCurso }> = ({ intento }) => {
             <ul className="space-y-space-sm">
               {equipados.data?.map((objeto) => {
                 const sinUnidades = objeto.cantidad <= 0;
-                const bloqueado = ayudaUsada || sinUnidades || usarAyuda.isPending || enviarIntento.isPending;
+                const bloqueado = ayudaUsada || sinUnidades || operando;
                 return (
                   <li
                     key={objeto.objetoId}
@@ -362,18 +377,18 @@ const ResolverReto: React.FC<{ intento: IntentoEnCurso }> = ({ intento }) => {
           <button
             type="button"
             id="btn-enviar"
-            onClick={alPulsarEnviar}
-            disabled={bloqueaEnvio || enviarIntento.isPending}
+            onClick={falloEnvio ? () => void enviar() : alPulsarEnviar}
+            disabled={operando || (bloqueaEnvio && !falloEnvio)}
             className="px-space-xl py-2.5 rounded-lg bg-primary-container hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed text-on-primary-container font-title-md text-title-md font-bold transition-all shadow-[0_4px_16px_rgba(245,158,11,0.35)] flex items-center gap-space-xs"
           >
-            {enviarIntento.isPending ? (
+            {operando ? (
               <>
                 <span className="material-symbols-outlined animate-spin text-title-md">progress_activity</span>
                 <span>Evaluando...</span>
               </>
             ) : (
               <>
-                <span>{reto.mecanica === 'DIALOGO_STAKEHOLDER' ? 'Terminar entrevista' : 'Enviar solución'}</span>
+                <span>{falloEnvio ? 'Reintentar envío' : reto.mecanica === 'DIALOGO_STAKEHOLDER' ? 'Terminar entrevista' : 'Enviar solución'}</span>
                 <span className="material-symbols-outlined text-title-md font-bold">arrow_forward</span>
               </>
             )}

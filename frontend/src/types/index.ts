@@ -43,6 +43,7 @@ export interface Fase {
   orden: number;
   /** Descripción narrativa; vive en la base de datos. */
   descripcion: string;
+  mecanicas: Mecanica[];
   estado: EstadoFase;
   /** El "reto actual" de la fase: el siguiente sin aprobar, o el último si ya se aprobaron todos. */
   retoId: number | null;
@@ -310,6 +311,7 @@ export interface AyudaAplicada {
   intentoId: number;
   objetoId: number;
   pista: Pista;
+  borradorActualizado?: BorradorMoscow;
 }
 
 // ---------------------------------------------------------------------

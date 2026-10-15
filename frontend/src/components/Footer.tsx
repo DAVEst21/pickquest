@@ -18,7 +18,7 @@ export const Footer: React.FC = () => {
             </span>
           </div>
           <p className="font-body-sm text-body-sm text-on-surface-variant text-center md:text-left">
-            Entrena patrones de arquitectura, pipelines de entrega continua y despliegues épicos sin bugs.
+            Aprende el ciclo de vida del software, elicitación de requerimientos y atributos de calidad.
           </p>
         </div>
 

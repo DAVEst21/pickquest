@@ -1,0 +1,23 @@
+{
+  "fecha": "2026-10-15T03:11:53.561Z",
+  "resultados": [
+    {
+      "motor": "Chromium",
+      "version": "136.0.7103.25",
+      "resultado": "Pass",
+      "alcance": "Inicio de sesión y mapa con tres fases; no recorrido completo ni certificación de dos versiones de cada navegador."
+    },
+    {
+      "motor": "Firefox",
+      "version": "137.0",
+      "resultado": "Pass",
+      "alcance": "Inicio de sesión y mapa con tres fases; no recorrido completo ni certificación de dos versiones de cada navegador."
+    },
+    {
+      "motor": "WebKit",
+      "version": "18.4",
+      "resultado": "Pass",
+      "alcance": "Inicio de sesión y mapa con tres fases; no recorrido completo ni certificación de dos versiones de cada navegador."
+    }
+  ]
+}

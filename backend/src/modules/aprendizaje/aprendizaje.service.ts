@@ -44,7 +44,7 @@ const SELECCION_FASE = {
   dificultad: true,
   orden: true,
   descripcion: true,
-  retos: { select: { id: true, orden: true }, orderBy: { orden: 'asc' } },
+  retos: { select: { id: true, orden: true, mecanica: true }, orderBy: { orden: 'asc' } },
 } satisfies Prisma.FaseSelect;
 
 type FaseSeleccionada = Prisma.FaseGetPayload<{ select: typeof SELECCION_FASE }>;
@@ -128,13 +128,13 @@ export class AprendizajeService {
 
   /** Inicia un intento o retoma el EN_CURSO existente (FA3). Valida RN-01 y RN-08. */
   iniciarIntento(estudianteId: number, retoId: number): Promise<IntentoEnCursoDto> {
-    return this.enTransaccion(async (tx) => {
+    return this.enTransaccion(estudianteId, async (tx) => {
       const reto = await tx.reto.findUnique({ where: { id: retoId } });
       if (!reto) throw new NotFoundException(`El reto ${retoId} no existe`);
       await this.validarRetoDisponible(tx, estudianteId, reto);
       this.mecanicas.obtener(reto.mecanica); // 501 si la mecánica no está implementada
 
-      // Un solo intento EN_CURSO por estudiante y reto (se controla aquí, dentro de la transacción Serializable).
+      // Un solo intento EN_CURSO por estudiante y reto (se controla aquí, bajo el bloqueo del estudiante).
       const existente = await tx.intentoReto.findFirst({
         where: { estudianteId, retoId, estado: 'EN_CURSO' },
         orderBy: { id: 'asc' },
@@ -161,7 +161,7 @@ export class AprendizajeService {
     intentoId: number,
     cuerpo: unknown,
   ): Promise<BorradorGuardadoDto> {
-    return this.enTransaccion(async (tx) => {
+    return this.enTransaccion(estudianteId, async (tx) => {
       const intento = await this.intentoEnCurso(tx, estudianteId, intentoId);
       await this.mecanicas.obtener(intento.reto.mecanica).guardarBorrador(tx, intentoId, cuerpo);
       const { actualizadoEn } = await tx.intentoReto.update({
@@ -175,7 +175,7 @@ export class AprendizajeService {
 
   /** CU-01: registra la técnica de elicitación elegida. */
   registrarTecnica(estudianteId: number, intentoId: number, tecnica: TecnicaElicitacion) {
-    return this.enTransaccion(async (tx) => {
+    return this.enTransaccion(estudianteId, async (tx) => {
       await this.intentoDialogoEnCurso(tx, estudianteId, intentoId);
       return this.mecanicas.dialogo.registrarTecnica(tx, intentoId, tecnica);
     });
@@ -183,7 +183,7 @@ export class AprendizajeService {
 
   /** CU-01: registra un turno del diálogo y devuelve el nuevo estado. */
   registrarTurno(estudianteId: number, intentoId: number, opcionId: number) {
-    return this.enTransaccion(async (tx) => {
+    return this.enTransaccion(estudianteId, async (tx) => {
       await this.intentoDialogoEnCurso(tx, estudianteId, intentoId);
       return this.mecanicas.dialogo.registrarTurno(tx, intentoId, opcionId);
     });
@@ -203,7 +203,7 @@ export class AprendizajeService {
     intentoId: number,
     objetoId: number,
   ): Promise<AyudaAplicadaDto> {
-    return this.enTransaccion(async (tx) => {
+    return this.enTransaccion(estudianteId, async (tx) => {
       const intento = await this.intentoEnCurso(tx, estudianteId, intentoId);
       if (intento.usoAyuda) {
         throw new ConflictException('Ya usaste una ayuda en este intento (máximo 1)');
@@ -213,18 +213,23 @@ export class AprendizajeService {
       // La pista se guarda de forma relacional para volver a dibujarla al retomar el intento.
       await tx.usoAyuda.create({ data: { intentoId, objetoId, ...pistaAColumnas(pista) } });
       await tx.intentoReto.update({ where: { id: intentoId }, data: { usoAyuda: true } });
-      return { intentoId, objetoId, pista };
+      const borradorActualizado = intento.reto.mecanica === Mecanica.TABLERO_MOSCOW
+        ? await this.mecanicas.obtener(intento.reto.mecanica).borrador(tx, intentoId)
+        : undefined;
+      return { intentoId, objetoId, pista, borradorActualizado };
     });
   }
 
   /**
    * RF-01: califica el intento. Aplica RN-04 y RN-06 (estrellas), RN-07
    * (recompensas solo en la primera aprobación) y RN-13 (multiplicador de QP).
-   * Serializable: dos envíos simultáneos no pueden cobrar dos veces.
+   * El bloqueo del estudiante evita que dos envíos simultáneos cobren dos veces.
    */
   enviarIntento(estudianteId: number, intentoId: number): Promise<IntentoCalificadoDto> {
-    return this.enTransaccion(async (tx) => {
-      const intento = await this.intentoEnCurso(tx, estudianteId, intentoId);
+    return this.enTransaccion(estudianteId, async (tx) => {
+      const intento = await this.obtenerIntentoPropio(tx, estudianteId, intentoId);
+      // Un reenvío recupera el resultado si la primera respuesta se perdió en la red.
+      if (intento.estado === 'CALIFICADO') return this.construirCalificado(tx, intento);
       const evaluador = this.mecanicas.obtener(intento.reto.mecanica);
 
       const faltantes = await evaluador.faltantes(tx, intentoId);
@@ -280,12 +285,18 @@ export class AprendizajeService {
   // Apoyo
   // ===================================================================
 
-  /** Ejecuta en una transacción Serializable; ante un conflicto reintenta una vez y luego responde 409. */
-  private async enTransaccion<T>(trabajo: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
-    const opciones = { isolationLevel: Prisma.TransactionIsolationLevel.Serializable };
+  /** Serializa las escrituras de cada estudiante sin conflictos de predicado entre alumnos.
+   * READ COMMITTED toma una vista fresca después de adquirir el bloqueo de la fila.
+   * Ante un conflicto transitorio (p. ej. deadlock), reintenta una vez y luego responde 409.
+   */
+  private async enTransaccion<T>(estudianteId: number, trabajo: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
+    const opciones = { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted };
     for (let intento = 1; ; intento++) {
       try {
-        return await this.prisma.$transaction(trabajo, opciones);
+        return await this.prisma.$transaction(async (tx) => {
+          await tx.$queryRaw`SELECT id FROM estudiante WHERE id = ${estudianteId} FOR UPDATE`;
+          return trabajo(tx);
+        }, opciones);
       } catch (error) {
         if (!esConflictoTransaccion(error)) throw error;
         if (intento >= 2) {
@@ -507,6 +518,7 @@ function aFaseDto(
     dificultad: fase.dificultad,
     orden: fase.orden,
     descripcion: fase.descripcion,
+    mecanicas: fase.retos.map((r) => r.mecanica),
     estado: estados.get(fase.id) ?? 'bloqueada',
     retoId,
     intentosRealizados: resumen?.intentos ?? 0,

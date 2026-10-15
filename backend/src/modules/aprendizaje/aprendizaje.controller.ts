@@ -159,7 +159,7 @@ export class AprendizajeController {
   @ApiOperation({
     summary: 'Usar una ayuda en el intento (RF-03, RN-10)',
     description:
-      'Consume una unidad de un objeto equipado, marca el intento con usoAyuda y devuelve la pista de la mecánica.',
+      'Consume una unidad de un objeto equipado, marca el intento con usoAyuda y devuelve la pista de la mecánica; en MoSCoW también mueve la tarjeta y devuelve borradorActualizado.',
   })
   @ApiBadRequestResponse({ description: 'Objeto no equipado, sin unidades o que no es del estudiante' })
   @ApiNotFoundResponse({ description: 'El intento no existe o no pertenece al estudiante' })
@@ -177,11 +177,11 @@ export class AprendizajeController {
   @ApiOperation({
     summary: 'Enviar el intento para calificarlo (RF-01)',
     description:
-      'Si hay faltantes responde 400 con la lista. Si no, califica (RN-16/18/19/21/23), aplica RN-04, RN-06 y RN-07 y otorga las recompensas.',
+      'Si ya está calificado, recupera el resultado existente con 200 sin otorgar recompensas otra vez. Si hay faltantes responde 400 con la lista. Si no, califica (RN-16/18/19/21/23), aplica RN-04, RN-06 y RN-07 y otorga las recompensas.',
   })
   @ApiBadRequestResponse({ description: 'Faltan elementos para enviar (campo "faltantes")' })
   @ApiNotFoundResponse({ description: 'El intento no existe o no pertenece al estudiante' })
-  @ApiConflictResponse({ description: 'Ya calificado o conflicto de concurrencia' })
+  @ApiConflictResponse({ description: 'Conflicto de concurrencia: vuelve a intentar' })
   enviarIntento(
     @EstudianteActual() estudiante: EstudianteAutenticado,
     @Param('intentoId', ParseIntPipe) intentoId: number,

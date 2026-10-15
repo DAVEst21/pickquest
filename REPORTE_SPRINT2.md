@@ -1,15 +1,17 @@
 # Reporte Sprint 2 — PickQuest
 
+Este reporte describe el hito inicial del Sprint 2. Los cambios posteriores están en [ADENDA_SPRINT2.md](ADENDA_SPRINT2.md) y el cierre actual en [VERIFICACION_SPRINT2.md](docs/VERIFICACION_SPRINT2.md).
+
 Rama `feature/sprint2-mecanicas` (a partir de `feature/db-sync-scs`). Fecha: 2026-10-14.
 
 Commits de la rama:
 
 ```
-a5d4611 chore: compose en modo desarrollo y sin variables de Judge0
-e78ff6b feat(db): modelo relacional por mecánica, migración y seed del Sprint 2 (CU-01, CU-03, CU-04, CU-06, CU-08)
-afe0e97 feat(aprendizaje): motor de mecánicas, intentos EN_CURSO/CALIFICADO y borrador en servidor (RF-01, RF-02, RF-03, RN-02, RN-04..RN-10, RN-13)
-c942579 feat(frontend): mecánicas CU-08, CU-03, CU-01, CU-06 y CU-04, tablón de fase y resultado con retroalimentación (RF-04, RF-06, RF-07, RF-09, RF-11, RF-18)
-5f461d5 fix(frontend): MoSCoW en 2 columnas hasta pantallas 2xl (CU-03, RNF-US-04)
+ffbbe4b chore: compose en modo desarrollo y sin variables de Judge0
+d59a393 feat(db): modelo relacional por mecánica, migración y seed del Sprint 2 (CU-01, CU-03, CU-04, CU-06, CU-08)
+90a040e feat(aprendizaje): motor de mecánicas, intentos EN_CURSO/CALIFICADO y borrador en servidor (RF-01, RF-02, RF-03, RN-02, RN-04..RN-10, RN-13)
+52983fd feat(frontend): mecánicas CU-08, CU-03, CU-01, CU-06 y CU-04, tablón de fase y resultado con retroalimentación (RF-04, RF-06, RF-07, RF-09, RF-11, RF-18)
+0328942 fix(frontend): MoSCoW en 2 columnas hasta pantallas 2xl (CU-03, RNF-US-04)
 + el commit que agrega este reporte
 ```
 

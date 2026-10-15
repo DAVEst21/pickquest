@@ -91,6 +91,8 @@ export class AyudaAplicadaDto {
   objetoId: number;
   /** Efecto de la ayuda para la interfaz de la mecánica (resaltar una opción, tarjeta, pantalla...). */
   pista: PistaDto;
+  /** CU-03: tablero persistido después de mover la tarjeta con la ayuda. */
+  borradorActualizado?: Record<string, unknown>;
 }
 
 export class LibretaDto {

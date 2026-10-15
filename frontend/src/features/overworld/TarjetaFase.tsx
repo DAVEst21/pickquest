@@ -1,7 +1,7 @@
 import React from 'react';
 import { Estrellas } from '../../components/Estrellas';
 import type { EstadoFase, Fase } from '../../types';
-import { ETIQUETA_TEMA, etiquetaFase, iconoFase } from '../fases/presentacion';
+import { ETIQUETA_TEMA, etiquetaFase, iconoFase, MECANICA } from '../fases/presentacion';
 
 interface TarjetaFaseProps {
   fase: Fase;
@@ -116,6 +116,9 @@ export const TarjetaFase: React.FC<TarjetaFaseProps> = ({ fase, esActiva, onAbri
         </div>
       </div>
 
+      <p className="font-body-sm text-body-sm text-on-surface-variant mb-space-sm">
+        {fase.mecanicas.map((m) => MECANICA[m].nombre).join(' · ')}
+      </p>
       {/* Barra de progreso: solo la fase en_progreso (mockup). */}
       {fase.estado === 'en_progreso' && fase.progreso !== null && (
         <div className="w-full bg-surface-container-lowest h-2 rounded-full mb-space-md overflow-hidden">

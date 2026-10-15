@@ -117,7 +117,25 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
+La suite también ejecuta los 24 casos del libro de CU-03/CU-04 con estudiantes temporales y guarda evidencia en `docs/evidencias/`. Las pruebas de recuperación simulan fallos de carga, guardado y respuesta de envío perdida.
+
 Variables opcionales de la suite: `E2E_BASE_URL` (por defecto `http://localhost:5173`), `E2E_FRONT_URL` y `E2E_BACK_URL` (para las comprobaciones previas), `E2E_DATABASE_URL` (por defecto `postgresql://pickquest:pickquest@localhost:5432/pickquest`) y `E2E_CAPTURAS` (carpeta de las capturas).
+
+Para reejecutar únicamente recuperación después del recorrido completo, sin reiniciar el demo:
+
+```bash
+docker compose --profile e2e run --rm -e E2E_CONSERVAR_DEMO=1 e2e sh -c 'npm ci --no-audit --no-fund && npx playwright test e2e/04-recuperacion.spec.ts'
+```
+
+### Carga de 30 estudiantes
+
+Con la API levantada y el seed cargado:
+
+```bash
+docker compose exec backend npx ts-node --transpile-only test/carga-sprint2.ts
+```
+
+Ejecuta cinco lotes de 30 envíos concurrentes, uno por mecánica; crea y elimina sus propios estudiantes. El informe HTTP se escribe en `/tmp/carga-sprint2.json` dentro del contenedor. No incluye el tiempo de renderizado del navegador.
 
 ### Compilación y lint
 
@@ -181,4 +199,5 @@ pickquest/
 
 - [`REPORTE_SPRINT2.md`](REPORTE_SPRINT2.md): esquema de la base de datos, endpoints, decisiones, contenido del seed y pasos de prueba manual de cada caso de uso.
 - [`ADENDA_SPRINT2.md`](ADENDA_SPRINT2.md): cambios hechos después del reporte.
+- [`docs/VERIFICACION_SPRINT2.md`](docs/VERIFICACION_SPRINT2.md): correcciones, contratos, trazabilidad y resultados de esta entrega.
 - [`ESTADO_ACTUAL_PROYECTO.md`](ESTADO_ACTUAL_PROYECTO.md): diagnóstico **histórico** del proyecto antes del Sprint 1 (no describe el estado actual).

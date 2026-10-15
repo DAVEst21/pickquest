@@ -5,7 +5,7 @@ import { Estrellas } from '../../components/Estrellas';
 import { ModalConfirmar } from '../../components/ModalConfirmar';
 import { Pagina } from '../../components/Pagina';
 import { Toast } from '../../components/Toast';
-import { esError, mensajeDeError } from '../../services/errores';
+import { esError, esRecuperable, mensajeDeError } from '../../services/errores';
 import { useIniciarIntento, useTablon } from '../../services/queries';
 import { type EstadoReto, type RetoTablon, UMBRAL_APROBACION } from '../../types';
 import {
@@ -36,7 +36,7 @@ const TEXTO_BOTON: Record<EstadoReto, string> = {
 export const MisionPage: React.FC = () => {
   const faseId = Number(useParams<{ faseId: string }>().faseId);
   const navigate = useNavigate();
-  const { data, isPending, isError, error } = useTablon(faseId);
+  const { data, isPending, isError, error, refetch, isFetching } = useTablon(faseId);
   const iniciar = useIniciarIntento();
   const [confirmarReintento, setConfirmarReintento] = useState<RetoTablon | null>(null);
   const [guiaAbierta, setGuiaAbierta] = useState(false);
@@ -59,7 +59,7 @@ export const MisionPage: React.FC = () => {
   if (isError) {
     return (
       <Pagina>
-        <PantallaError titulo="No se pudo cargar el tablón" mensaje={mensajeDeError(error)} />
+        <PantallaError titulo="No se pudo cargar el tablón" mensaje={mensajeDeError(error)} onReintentar={esRecuperable(error) ? () => void refetch() : undefined} reintentando={isFetching} />
       </Pagina>
     );
   }
