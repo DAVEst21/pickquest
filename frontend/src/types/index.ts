@@ -304,7 +304,19 @@ export interface PistaOpcionDialogo {
   opcionId: number | null;
 }
 
-export type Pista = PistaDependencia | PistaColumna | PistaPantalla | PistaRestriccion | PistaOpcionDialogo;
+export type TipoPiezaHistoria = 'ROL' | 'FUNCIONALIDAD' | 'BENEFICIO' | 'DADO' | 'CUANDO' | 'ENTONCES';
+export interface ContenidoHistorias {
+  historias: { id: number; orden: number; necesidad: string; casillas: { id: number; tipo: TipoPiezaHistoria }[] }[];
+  piezas: { id: number; tipo: TipoPiezaHistoria; texto: string }[];
+}
+export interface BorradorHistorias { colocaciones: { casillaId: number; piezaId: number }[] }
+export interface PistaDistractores { tipo: 'DISTRACTORES_RETIRADOS'; piezaIds: number[] }
+export interface RetroHistorias {
+  mecanica: 'ARMADO_PIEZAS'; referenciaCompleta: boolean;
+  historias: { historiaId: number; orden: number; necesidad: string; casillas: { casillaId: number; tipo: TipoPiezaHistoria; piezaElegida: string | null; acertada: boolean }[] }[];
+}
+
+export type Pista = PistaDistractores | PistaDependencia | PistaColumna | PistaPantalla | PistaRestriccion | PistaOpcionDialogo;
 
 /** POST /intentos/:id/ayuda */
 export interface AyudaAplicada {
@@ -438,6 +450,7 @@ export interface RetroDialogo {
 }
 
 export type Retroalimentacion =
+  | RetroHistorias
   | RetroLineaTiempo
   | RetroMoscow
   | RetroInspeccion

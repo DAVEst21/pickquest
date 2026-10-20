@@ -2,7 +2,7 @@
 //
 // Sprint 2: el contenido de los retos y las respuestas de los estudiantes ya
 // NO se guardan en JSON. Cada mecánica tiene sus propias tablas:
-//   CU-01 diálogo con stakeholder, CU-03 tablero MoSCoW, CU-04 inspección,
+//   CU-01 diálogo, CU-02 historias, CU-03 tablero MoSCoW, CU-04 inspección,
 //   CU-06 reparto de presupuesto, CU-08 línea de tiempo.
 // Las tablas de contenido se borran en cascada con su Reto; las de respuesta,
 // con su IntentoReto; las referencias de una respuesta hacia el contenido
@@ -30,10 +30,10 @@ enum CategoriaHabilidadSDLC {
   ATRIBUTOS_CALIDAD
 }
 
-// Las 8 mecánicas del SRS; en este sprint solo se implementan 5.
+// Las 8 mecánicas del SRS; en este sprint se implementan 6.
 enum Mecanica {
   DIALOGO_STAKEHOLDER // CU-01
-  ARMADO_PIEZAS // CU-02 (Sprint 3)
+  ARMADO_PIEZAS // CU-02 (Sprint 2)
   TABLERO_MOSCOW // CU-03
   INSPECCION_SISTEMA // CU-04
   SIMULADOR_ESCENARIOS // CU-05 (Sprint 3)
@@ -253,6 +253,9 @@ model Reto {
   stakeholder           Stakeholder?
   requerimientosOcultos RequerimientoOculto[]
   nodosDialogo          NodoDialogo[]
+  // CU-02
+  historias HistoriaUsuario[]
+  piezas PiezaHistoria[]
   // CU-03
   tablero               TableroPriorizacion?
   tarjetas              TarjetaRequerimiento[]
@@ -291,6 +294,7 @@ model IntentoReto {
   // Restrict: no se puede borrar un Reto que ya tiene intentos.
   reto       Reto       @relation(fields: [retoId], references: [id], onDelete: Restrict)
 
+  colocacionesHistoria RespuestaCasilla[]
   ayuda                  UsoAyuda?
   respuestaDialogo       RespuestaDialogo?
   turnosDialogo          TurnoDialogo[]
@@ -307,6 +311,7 @@ model IntentoReto {
 
 // Tipo de pista que devolvió una ayuda (cada tipo apunta a un elemento de contenido).
 enum TipoPista {
+  DISTRACTORES_RETIRADOS
   OPCION_DIALOGO // opcionId
   COLUMNA_TARJETA // tarjetaId (la columna se obtiene de la tarjeta)
   PANTALLA // pantallaId
@@ -340,6 +345,8 @@ model UsoAyuda {
   atributoEscenario AtributoEscenario?    @relation(fields: [atributoEscenarioId], references: [id], onDelete: Restrict)
   bloque            BloquePlan?           @relation("PistaBloque", fields: [bloqueId], references: [id], onDelete: Restrict)
   requiere          BloquePlan?           @relation("PistaRequiere", fields: [requiereId], references: [id], onDelete: Restrict)
+
+  distractoresRetirados DistractorRetirado[]
 
   @@map("uso_ayuda")
 }
@@ -699,4 +706,73 @@ model AsociacionEntregable {
 
   @@id([intentoId, entregableId])
   @@map("asociacion_entregable")
+}
+
+
+// CU-02: el banco y la referencia privada están separados de las respuestas.
+enum TipoPiezaHistoria {
+  ROL
+  FUNCIONALIDAD
+  BENEFICIO
+  DADO
+  CUANDO
+  ENTONCES
+}
+
+model HistoriaUsuario {
+  id Int @id @default(autoincrement())
+  retoId Int
+  orden Int
+  necesidad String @db.Text
+  reto Reto @relation(fields: [retoId], references: [id], onDelete: Cascade)
+  casillas CasillaHistoria[]
+  @@unique([retoId, orden])
+  @@map("historia_usuario")
+}
+
+model PiezaHistoria {
+  id Int @id @default(autoincrement())
+  retoId Int
+  tipo TipoPiezaHistoria
+  texto String
+  orden Int
+  reto Reto @relation(fields: [retoId], references: [id], onDelete: Cascade)
+  referencias CasillaHistoria[]
+  respuestas RespuestaCasilla[]
+  retiradas DistractorRetirado[]
+  @@unique([retoId, orden])
+  @@map("pieza_historia")
+}
+
+model CasillaHistoria {
+  id Int @id @default(autoincrement())
+  historiaId Int
+  tipo TipoPiezaHistoria
+  piezaCorrectaId Int
+  historia HistoriaUsuario @relation(fields: [historiaId], references: [id], onDelete: Cascade)
+  piezaCorrecta PiezaHistoria @relation(fields: [piezaCorrectaId], references: [id], onDelete: Restrict)
+  respuestas RespuestaCasilla[]
+  @@unique([historiaId, tipo])
+  @@map("casilla_historia")
+}
+
+model RespuestaCasilla {
+  intentoId Int
+  casillaId Int
+  piezaId Int
+  intento IntentoReto @relation(fields: [intentoId], references: [id], onDelete: Cascade)
+  casilla CasillaHistoria @relation(fields: [casillaId], references: [id], onDelete: Restrict)
+  pieza PiezaHistoria @relation(fields: [piezaId], references: [id], onDelete: Restrict)
+  @@id([intentoId, casillaId])
+  @@unique([intentoId, piezaId])
+  @@map("respuesta_casilla")
+}
+
+model DistractorRetirado {
+  usoAyudaId Int
+  piezaId Int
+  usoAyuda UsoAyuda @relation(fields: [usoAyudaId], references: [id], onDelete: Cascade)
+  pieza PiezaHistoria @relation(fields: [piezaId], references: [id], onDelete: Restrict)
+  @@id([usoAyudaId, piezaId])
+  @@map("distractor_retirado")
 }

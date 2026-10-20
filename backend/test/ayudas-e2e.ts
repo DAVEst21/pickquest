@@ -123,6 +123,12 @@ export async function resolver(
       );
       return;
     }
+    case 'ARMADO_PIEZAS': {
+      const casillas = await prisma.casillaHistoria.findMany({ where: { historia: { retoId } } });
+      const distractores = await prisma.piezaHistoria.findMany({ where: { retoId, referencias: { none: {} } } });
+      await guardar({ colocaciones: casillas.map((c, i) => ({ casillaId: c.id, piezaId: modo === 'malo' && i < 6 ? distractores.find(p => p.tipo === c.tipo)!.id : c.piezaCorrectaId })) });
+      return;
+    }
     case 'TABLERO_MOSCOW': {
       const tarjetas = await prisma.tarjetaRequerimiento.findMany({ where: { retoId } });
       await guardar({

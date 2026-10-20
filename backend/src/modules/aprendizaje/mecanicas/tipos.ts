@@ -39,7 +39,7 @@ export interface EvaluadorMecanica {
   guardarBorrador(db: Db, intentoId: number, cuerpo: unknown): Promise<void>;
   /** Flujos de excepción: qué falta para poder enviar (vacío = se puede enviar). */
   faltantes(db: Db, intentoId: number): Promise<string[]>;
-  /** Calcula el porcentaje (RN-16/18/19/21/23) y la retroalimentación. No escribe. */
+  /** Calcula el porcentaje (RN-16/17/18/19/21/23) y la retroalimentación. No escribe. */
   calificar(db: Db, intentoId: number): Promise<ResultadoCalificacion>;
   /** Efecto de la ayuda (FA2) sobre el estado actual del intento. No escribe. */
   aplicarAyuda(db: Db, intentoId: number): Promise<PistaDto>;

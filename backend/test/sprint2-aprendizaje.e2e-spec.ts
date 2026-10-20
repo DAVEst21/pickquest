@@ -19,7 +19,7 @@ import {
   retosEnOrden,
 } from './ayudas-e2e';
 
-// Requiere la base migrada y con el seed cargado (3 fases, 5 retos).
+// Requiere la base migrada y con el seed cargado (3 fases, 6 retos).
 // Los estudiantes de prueba se borran al terminar (cascada a sus intentos).
 describe('Sprint 2: aprendizaje por mecánicas (e2e)', () => {
   let app: INestApplication;
@@ -118,6 +118,7 @@ describe('Sprint 2: aprendizaje por mecánicas (e2e)', () => {
       const t2 = (await get(e, `/fases/${fase2}`).expect(200)).body;
       expect(t2.retos.map((r: { mecanica: string }) => r.mecanica)).toEqual([
         'DIALOGO_STAKEHOLDER',
+        'ARMADO_PIEZAS',
         'TABLERO_MOSCOW',
       ]);
       expect(t2.retos.every((r: { estado: string }) => r.estado === 'BLOQUEADO')).toBe(true);
@@ -164,6 +165,7 @@ describe('Sprint 2: aprendizaje por mecánicas (e2e)', () => {
       await aprobarFases(app, prisma, e, 1);
       await http(app).post(`/retos/${reto(2, 2).id}/intentos`).set(auth(e)).expect(403);
       await jugarReto(app, prisma, e, reto(2, 1).id);
+      await jugarReto(app, prisma, e, reto(2, 2).id);
       await http(app).post(`/retos/${reto(2, 2).id}/intentos`).set(auth(e)).expect(201);
     });
 
@@ -222,6 +224,7 @@ describe('Sprint 2: aprendizaje por mecánicas (e2e)', () => {
         'requerimientos',
         'requerimiento',
       ],
+      ARMADO_PIEZAS: ['piezaCorrectaId', 'referencias', 'esDistractor'],
       TABLERO_MOSCOW: ['columnaCorrecta', 'tipoCorrecto', 'ordenMustReferencia'],
       INSPECCION_SISTEMA: ['falla', 'explicacion', 'atributoCorrecto'],
       REPARTO_PRESUPUESTO: ['asignacionReferencia', 'correcta'],
@@ -229,6 +232,7 @@ describe('Sprint 2: aprendizaje por mecánicas (e2e)', () => {
     const PISTA: Record<string, string> = {
       LINEA_TIEMPO: 'DEPENDENCIA',
       DIALOGO_STAKEHOLDER: 'OPCION_DIALOGO',
+      ARMADO_PIEZAS: 'DISTRACTORES_RETIRADOS',
       TABLERO_MOSCOW: 'COLUMNA_TARJETA',
       INSPECCION_SISTEMA: 'PANTALLA',
       REPARTO_PRESUPUESTO: 'RESTRICCION',
@@ -317,8 +321,10 @@ describe('Sprint 2: aprendizaje por mecánicas (e2e)', () => {
       expect(await estados()).toEqual(['completada', 'en_progreso', 'bloqueada']);
     });
 
-    it('fase 2, reto 2 (CU-03): con todos sus retos aprobados se completa y desbloquea la fase 3 (RN-09)', async () => {
+    it('fase 2, retos 2 (CU-02) y 3 (CU-03): con todos sus retos aprobados se completa y desbloquea la fase 3 (RN-09)', async () => {
       await recorrer(2, 2);
+      expect(await estados()).toEqual(['completada', 'en_progreso', 'bloqueada']);
+      await recorrer(2, 3);
       expect(await estados()).toEqual(['completada', 'completada', 'desbloqueada']);
     });
 
@@ -342,12 +348,12 @@ describe('Sprint 2: aprendizaje por mecánicas (e2e)', () => {
     it('consumió una unidad de poción por cada ayuda (RN-10)', async () => {
       const equipados = (await get(e, '/inventario/equipados').expect(200)).body;
       expect(equipados).toHaveLength(1);
-      expect(equipados[0]).toMatchObject({ nombre: 'Poción de Sabiduría', cantidad: 10 - 5 });
+      expect(equipados[0]).toMatchObject({ nombre: 'Poción de Sabiduría', cantidad: 10 - 6 });
     });
 
-    it('el tablón de la fase 2 muestra ambos retos APROBADOS con su mejor calificación', async () => {
+    it('el tablón de la fase 2 muestra los tres retos APROBADOS con su mejor calificación', async () => {
       const tablon = (await get(e, `/fases/${reto(2, 1).faseId}`).expect(200)).body;
-      expect(tablon.retos.map((r: { estado: string }) => r.estado)).toEqual(['APROBADO', 'APROBADO']);
+      expect(tablon.retos.map((r: { estado: string }) => r.estado)).toEqual(['APROBADO', 'APROBADO', 'APROBADO']);
       expect(tablon.retos[0]).toMatchObject({ mejorPorcentaje: 100, mejorCalificacionEstrellas: 2 });
     });
   });
@@ -761,18 +767,20 @@ describe('Sprint 2: aprendizaje por mecánicas (e2e)', () => {
   // ===================================================================
   describe('CU-03 Tablero MoSCoW (RF-06, RN-18)', () => {
     let e: EstudiantePrueba;
-    const moscowId = () => reto(2, 2).id;
+    const moscowId = () => reto(2, 3).id;
 
     beforeAll(async () => {
       e = await estudiante();
       await aprobarFases(app, prisma, e, 1);
       await jugarReto(app, prisma, e, reto(2, 1).id);
+      await jugarReto(app, prisma, e, reto(2, 2).id);
     });
 
     it('FA2 mueve una tarjeta, conserva tipos y orden, persiste al retomar y cobra una sola ayuda', async () => {
       const alumno = await estudiante();
       await aprobarFases(app, prisma, alumno, 1);
       await jugarReto(app, prisma, alumno, reto(2, 1).id);
+      await jugarReto(app, prisma, alumno, reto(2, 2).id);
       const intento = await iniciarIntento(app, alumno, moscowId());
       const tarjetas = await prisma.tarjetaRequerimiento.findMany({ where: { retoId: moscowId() }, orderBy: { orden: 'asc' } });
       const objetivo = tarjetas[0];
@@ -803,6 +811,7 @@ describe('Sprint 2: aprendizaje por mecánicas (e2e)', () => {
       const alumno = await estudiante();
       await aprobarFases(app, prisma, alumno, 1);
       await jugarReto(app, prisma, alumno, reto(2, 1).id);
+      await jugarReto(app, prisma, alumno, reto(2, 2).id);
       const intento = await iniciarIntento(app, alumno, moscowId());
       await resolver(app, prisma, alumno, intento);
       await http(app).post(`/intentos/${intento.intentoId}/ayuda`).set(auth(alumno))

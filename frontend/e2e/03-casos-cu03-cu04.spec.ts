@@ -44,6 +44,9 @@ for (const cu of ['CU-03', 'CU-04']) {
           const [o] = await rows('SELECT o.id FROM opcion_dialogo o JOIN nodo_dialogo n ON n.id=o."nodoId" WHERE n."retoId"=$1 AND o.pregunta=$2', [r.id, pregunta]);
           await api(`/intentos/${id}/dialogo/turnos`, 'POST', { opcionId: o.id });
         }
+      } else if (r.mecanica === 'ARMADO_PIEZAS') {
+        const casillas = await rows('SELECT c.* FROM casilla_historia c JOIN historia_usuario h ON h.id=c."historiaId" WHERE h."retoId"=$1', [r.id]);
+        await api(`/intentos/${id}/borrador`, 'PUT', { colocaciones: casillas.map(c => ({ casillaId: c.id, piezaId: c.piezaCorrectaId })) });
       } else {
         const t = await rows('SELECT * FROM tarjeta_requerimiento WHERE "retoId"=$1 ORDER BY orden', [r.id]);
         await api(`/intentos/${id}/borrador`, 'PUT', { tarjetas: t.map(x => ({ tarjetaId: x.id, columna: x.columnaCorrecta, tipo: x.tipoCorrecto, ordenMust: x.ordenMustReferencia })) });

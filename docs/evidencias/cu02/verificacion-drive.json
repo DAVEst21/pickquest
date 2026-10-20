@@ -1,0 +1,20 @@
+[
+  {
+    "id": "19TInffxzcHwoIYqx-UBHu6rL1OE3WNqH",
+    "archivo": "TSP_A26_PICKSITOS_SRS_SPRINT2.docx",
+    "sha256": "10fac8ae0f3de0c9479a387b84ed73b86e26c54b6f0dd2c34c0d55dadf6f105f",
+    "verificacion": "Lectura posterior idéntica al archivo actualizado"
+  },
+  {
+    "id": "1tp4rKTMlILjSqYrHPYwCaGdUs5xvbPZl",
+    "archivo": "TSP_A26_PICKSITOS_CASOS_PRUEBA.xlsx",
+    "sha256": "1a664e97b2401500af08ff1d0d1688fec23bd67d753a6815bc30770009366e63",
+    "verificacion": "Lectura posterior idéntica al archivo actualizado"
+  },
+  {
+    "id": "1ETOQji2kJMVvEoEL7FHw39_8wHq_yKQ9",
+    "archivo": "TSP_A26_PICKSITOS_Bitacora_Defectos.xlsx",
+    "sha256": "5905d5a3f3fdc2f267943826e01c9bc5f414d49b106b89e32296386ebb7233d0",
+    "verificacion": "Lectura posterior idéntica al archivo actualizado"
+  }
+]

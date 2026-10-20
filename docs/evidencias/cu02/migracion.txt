@@ -1,0 +1,11 @@
+Respaldo anterior a CU-02 restaurado en una base temporal. Se agregó un intento aprobado de MoSCoW con sus diez respuestas; se aplicó la migración y se ejecutó dos veces el seed.
+Formato: id_reto | orden | mecánica | intentos.
+1|1|LINEA_TIEMPO|0
+2|1|DIALOGO_STAKEHOLDER|0
+3|3|TABLERO_MOSCOW|1
+4|1|INSPECCION_SISTEMA|0
+5|2|REPARTO_PRESUPUESTO|0
+18|2|ARMADO_PIEZAS|0
+10
+
+MoSCoW conserva ID 3 y orden 3; un intento y diez respuestas conservados. Total: seis retos, tres fases.

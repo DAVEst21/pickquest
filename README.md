@@ -8,6 +8,7 @@ Retos disponibles (Sprint 2):
 |---|---|---|
 | 1. Ciclo de vida del software | Planificar un proyecto en una línea de tiempo (CU-08) | Gantt con dependencias y fecha límite |
 | 2. Elicitación de requerimientos | Descubrir requerimientos dialogando con un stakeholder (CU-01) | Diálogo ramificado conducido por el servidor |
+| 2. Elicitación de requerimientos | Construir historias de usuario armando sus piezas (CU-02) | Piezas Como/Quiero/Para y Dado/Cuando/Entonces |
 | 2. Elicitación de requerimientos | Priorizar requerimientos en un tablero MoSCoW (CU-03) | Tablero de priorización |
 | 3. Atributos de calidad | Detectar fallas de calidad inspeccionando un sistema (CU-04) | Inspección de una aplicación ficticia |
 | 3. Atributos de calidad | Equilibrar atributos de calidad repartiendo un presupuesto (CU-06) | Medidores con efectos cruzados |
@@ -135,7 +136,7 @@ Con la API levantada y el seed cargado:
 docker compose exec backend npx ts-node --transpile-only test/carga-sprint2.ts
 ```
 
-Ejecuta cinco lotes de 30 envíos concurrentes, uno por mecánica; crea y elimina sus propios estudiantes. El informe HTTP se escribe en `/tmp/carga-sprint2.json` dentro del contenedor. No incluye el tiempo de renderizado del navegador.
+Ejecuta seis lotes de 30 envíos concurrentes, uno por mecánica; crea y elimina sus propios estudiantes. El informe HTTP se escribe en `/tmp/carga-sprint2.json` dentro del contenedor. No incluye el tiempo de renderizado del navegador.
 
 ### Compilación y lint
 
@@ -169,7 +170,7 @@ pickquest/
 │   ├── prisma/
 │   │   ├── schema.prisma       # modelo relacional
 │   │   ├── migrations/         # migraciones SQL
-│   │   ├── seed.ts             # 3 fases, 5 retos, objetos y usuario demo (idempotente)
+│   │   ├── seed.ts             # 3 fases, 6 retos, objetos y usuario demo (idempotente)
 │   │   ├── contenido/          # contenido educativo de cada reto
 │   │   └── contenido-archivado/# retos de opción múltiple del Sprint 1 (solo datos)
 │   ├── src/
@@ -201,3 +202,16 @@ pickquest/
 - [`ADENDA_SPRINT2.md`](ADENDA_SPRINT2.md): cambios hechos después del reporte.
 - [`docs/VERIFICACION_SPRINT2.md`](docs/VERIFICACION_SPRINT2.md): correcciones, contratos, trazabilidad y resultados de esta entrega.
 - [`ESTADO_ACTUAL_PROYECTO.md`](ESTADO_ACTUAL_PROYECTO.md): diagnóstico **histórico** del proyecto antes del Sprint 1 (no describe el estado actual).
+
+
+### CU-02 y cuenta de revisión
+
+CU-02 forma parte del Sprint 2 y se abre desde el mismo mapa y tablón que los demás retos. El orden de Elicitación es diálogo → historias de usuario → MoSCoW. La migración conserva el ID y los intentos de MoSCoW al moverlo al tercer lugar; no requiere borrar la base.
+
+Para generar una cuenta independiente con los seis retos resueltos al 100 %, usando las operaciones de la API:
+
+```bash
+docker compose exec backend npm run revision:preparar
+```
+
+La herramienta genera credenciales nuevas y las guarda en `/tmp/pickquest-revision.json` dentro del contenedor (fuera de Git). Si el correo previsto ya existe, crea otro sin sobrescribirlo. La cuenta no se usa para pruebas destructivas. Consulta los resultados de esta entrega en [Verificación de CU-02](docs/VERIFICACION_CU02.md).

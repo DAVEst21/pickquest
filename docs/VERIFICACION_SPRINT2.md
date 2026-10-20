@@ -1,5 +1,7 @@
 # Cierre de correcciones del Sprint 2
 
+> Este informe corresponde al cierre anterior a CU-02. La ampliación del Sprint 2 está documentada en [VERIFICACION_CU02.md](VERIFICACION_CU02.md).
+
 Referencia: `archivos/TSP_A26_PICKSITOS_SRS_SPRINT2.pdf`. Base: `feature/sprint2-mecanicas`, commit inicial `57d1f23`.
 
 ## Base de datos y ramas

@@ -17,6 +17,8 @@ const lista = (valor: unknown): Obj[] => (Array.isArray(valor) ? (valor as Obj[]
 function sinReferencia(retro: RetroalimentacionDto): RetroalimentacionDto {
   const r = retro as Obj;
   switch (retro.mecanica) {
+    case 'ARMADO_PIEZAS':
+      return retro; // Solo contiene elecciones y aciertos, nunca la asociación de referencia.
     case 'LINEA_TIEMPO':
       return {
         mecanica: retro.mecanica,

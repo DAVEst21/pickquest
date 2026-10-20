@@ -10,7 +10,7 @@ import {
 
 /**
  * Recorrido completo con el usuario demo: mapa → tablón → reto → resultado de
- * las 5 mecánicas (CU-08, CU-01, CU-03, CU-04 y CU-06), resolviendo cada reto
+ * las 6 mecánicas (CU-08, CU-01, CU-03, CU-04 y CU-06), resolviendo cada reto
  * como lo haría una persona. Guarda las capturas de docs/capturas/.
  * El progreso del usuario demo se reinicia en global-setup.ts.
  */
@@ -138,7 +138,30 @@ test.describe('Recorrido completo: mapa → tablón → reto → resultado', () 
     await capturar(page, '06-dialogo-resultado', 2000);
   });
 
-  test('CU-03 Tablero MoSCoW (fase 2, reto 2), con ayuda y pista que sobrevive a recargar', async () => {
+  test('CU-02 Historias de usuario (fase 2, reto 2)', async () => {
+    await abrirFaseDesdeElMapa(page, 2);
+    await page.locator('[data-reto-id]').filter({ hasText: 'Historias para La Esquina' }).getByRole('button', { name: /Iniciar reto/ }).click();
+    await page.waitForURL(/\/intento\/\d+/);
+    const textos = [
+      ['mesero', 'registrar el pedido de una mesa', 'evitar que se pierdan pedidos', 'una mesa con clientes y un mesero autenticado', 'el mesero confirma los productos del pedido', 'el pedido queda asociado a la mesa y aparece en cocina'],
+      ['cajera', 'registrar el pago de una cuenta', 'cerrar la venta con un comprobante', 'una cuenta abierta con su importe calculado', 'la cajera confirma un pago válido', 'la cuenta queda pagada y se genera su comprobante'],
+      ['encargado de inventario', 'recibir avisos de ingredientes escasos', 'reponer ingredientes antes de que se agoten', 'un ingrediente con un mínimo de existencias configurado', 'las existencias del ingrediente caen por debajo del mínimo', 'el sistema muestra un aviso de reposición al encargado'],
+    ];
+    for (let h = 0; h < 3; h++) {
+      const casillas = page.locator('[data-historia-id]').nth(h).locator('[data-casilla-id]');
+      for (let c = 0; c < 6; c++) {
+        await page.getByRole('region', { name: 'Banco de piezas', exact: true }).getByText(textos[h][c], { exact: true }).click();
+        await casillas.nth(c).getByRole('button', { name: /Colocar pieza/ }).click();
+      }
+    }
+    await esperarGuardado(page);
+    await capturar(page, 'cu02-historias-en-curso', 1800);
+    const resultado = await enviarYLeerResultado(page);
+    expect(resultado.porcentaje).toBe(100);
+    await capturar(page, 'cu02-historias-resultado', 1800);
+  });
+
+  test('CU-03 Tablero MoSCoW (fase 2, reto 3), con ayuda y pista que sobrevive a recargar', async () => {
     await page.locator('#siguiente-btn').click();
     await page.waitForURL(/\/intento\/\d+/);
     await page.getByText('Capacidad usada en MUST').waitFor();
@@ -254,7 +277,7 @@ test.describe('Recorrido completo: mapa → tablón → reto → resultado', () 
     const estados = await page.locator('[data-fase-orden]').evaluateAll((els) => els.map((e) => e.getAttribute('data-estado')));
     expect(estados).toEqual(['completada', 'completada', 'completada']);
     const hud = (await page.locator('header').innerText()).replace(/\s+/g, ' ');
-    expect(hud).toContain('1120 / 1500 XP'); // 150 + 200 + 220 + 250 + 300
-    expect(hud).toContain('770 QP'); // 100 + 120 + 150 + 180 + 220
+    expect(hud).toContain('1320 / 1500 XP'); // 150 + 200 + 220 + 250 + 300
+    expect(hud).toContain('890 QP'); // 100 + 120 + 150 + 180 + 220
   });
 });

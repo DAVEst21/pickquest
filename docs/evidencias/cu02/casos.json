@@ -1,0 +1,142 @@
+[
+  {
+    "id": "CP-HU-01",
+    "nombre": "Flujo normal completo",
+    "tipo": "Positivo",
+    "pasos": "Llenar correctamente las 18 casillas y enviar.",
+    "esperado": "100 %, tres estrellas, recompensas únicas e historias calificadas."
+  },
+  {
+    "id": "CP-HU-02",
+    "nombre": "Colocar arrastrando",
+    "tipo": "Positivo",
+    "pasos": "Arrastrar una pieza del banco a una casilla de su tipo.",
+    "esperado": "La pieza aparece en la casilla y el contador aumenta sin indicar si es correcta."
+  },
+  {
+    "id": "CP-HU-03",
+    "nombre": "Seleccionar pieza y casilla",
+    "tipo": "Positivo",
+    "pasos": "Seleccionar una pieza y activar la casilla compatible con clic o teclado.",
+    "esperado": "Se coloca la pieza sin depender del arrastre."
+  },
+  {
+    "id": "CP-HU-04",
+    "nombre": "Sustituir una pieza",
+    "tipo": "Alternativo (FA4)",
+    "pasos": "Colocar una pieza y sustituirla por otra del mismo tipo.",
+    "esperado": "La anterior regresa al banco y solo una pieza ocupa la casilla."
+  },
+  {
+    "id": "CP-HU-05",
+    "nombre": "Retirar y mover piezas",
+    "tipo": "Alternativo (FA4)",
+    "pasos": "Mover una pieza a otra casilla compatible y después devolverla al banco.",
+    "esperado": "La casilla original se vacía; retirar devuelve la pieza y actualiza el contador."
+  },
+  {
+    "id": "CP-HU-06",
+    "nombre": "Rechazar tipo incompatible",
+    "tipo": "Excepción (FE2)",
+    "pasos": "Intentar colocar una pieza de tipo incompatible.",
+    "esperado": "Se rechaza, la pieza vuelve al banco y se indica qué tipo acepta la casilla."
+  },
+  {
+    "id": "CP-HU-07",
+    "nombre": "Bloquear casillas vacías",
+    "tipo": "Excepción (FE1)",
+    "pasos": "Dejar al menos una casilla vacía e intentar enviar.",
+    "esperado": "Se indican pendientes y se impide calificar el intento."
+  },
+  {
+    "id": "CP-HU-08",
+    "nombre": "No revelar aciertos antes de enviar",
+    "tipo": "Negativo / Seguridad",
+    "pasos": "Colocar un distractor compatible y revisar la interfaz y el contenido público.",
+    "esperado": "No hay valoración inmediata, claves correctas ni marcas de distractor."
+  },
+  {
+    "id": "CP-HU-09",
+    "nombre": "Calificación RN-17",
+    "tipo": "Límite",
+    "pasos": "Enviar 18 colocaciones con 14 aciertos.",
+    "esperado": "floor(14/18 × 100) = 77 %, sin aprobar ni recibir recompensas."
+  },
+  {
+    "id": "CP-HU-10",
+    "nombre": "Umbrales y estrellas",
+    "tipo": "Límite",
+    "pasos": "Enviar 17 aciertos de 18; comprobar además los umbrales 79/80/89/90/99/100 en pruebas unitarias.",
+    "esperado": "94 % y dos estrellas; aprobación desde 80 %, una estrella desde 80, dos desde 90 y tres al 100."
+  },
+  {
+    "id": "CP-HU-11",
+    "nombre": "Conservar mejor nota",
+    "tipo": "Alternativo (FA1)",
+    "pasos": "Aprobar al 100 % y repetir el reto.",
+    "esperado": "Se conserva la mejor calificación registrada (RN-05)."
+  },
+  {
+    "id": "CP-HU-12",
+    "nombre": "No duplicar recompensas al repetir",
+    "tipo": "Alternativo (FA1)",
+    "pasos": "Aprobar y confirmar un reintento; volver a aprobar.",
+    "esperado": "El reintento advierte que no habrá recompensas nuevas; XP y QP no aumentan (RN-07)."
+  },
+  {
+    "id": "CP-HU-13",
+    "nombre": "Ayuda retira dos distractores",
+    "tipo": "Alternativo (FA2)",
+    "pasos": "Usar una poción equipada mientras hay al menos dos distractores en el banco.",
+    "esperado": "Se retiran exactamente dos distractores, se consume una unidad y el intento queda con ayuda."
+  },
+  {
+    "id": "CP-HU-14",
+    "nombre": "Ayuda persistente y máximo dos estrellas",
+    "tipo": "Alternativo (FA2/FA3)",
+    "pasos": "Usar ayuda, recargar y completar correctamente el reto.",
+    "esperado": "Las piezas retiradas no reaparecen; 100 % con ayuda tiene máximo dos estrellas."
+  },
+  {
+    "id": "CP-HU-15",
+    "nombre": "Rechazar segunda ayuda",
+    "tipo": "Negativo (RN-10)",
+    "pasos": "Usar ayuda e intentar usar una segunda.",
+    "esperado": "El control queda deshabilitado y la API rechaza un segundo uso sin consumo adicional."
+  },
+  {
+    "id": "CP-HU-16",
+    "nombre": "Ayuda insuficiente no consume",
+    "tipo": "Límite",
+    "pasos": "Colocar cinco de los seis distractores e intentar usar ayuda.",
+    "esperado": "Con menos de dos distractores libres se informa la causa y no se consume inventario ni se marca uso de ayuda."
+  },
+  {
+    "id": "CP-HU-17",
+    "nombre": "Guardar y continuar",
+    "tipo": "Alternativo (FA3)",
+    "pasos": "Colocar una pieza, esperar guardado, salir al tablón y continuar.",
+    "esperado": "Se recupera el mismo intento y las colocaciones, sin calificar."
+  },
+  {
+    "id": "CP-HU-18",
+    "nombre": "Fase y reto bloqueados",
+    "tipo": "Negativo",
+    "pasos": "Con una cuenta nueva intentar iniciar directamente CU-02.",
+    "esperado": "Se rechaza el inicio con 403 por RN-01/RN-08."
+  },
+  {
+    "id": "CP-HU-19",
+    "nombre": "Aislamiento entre estudiantes",
+    "tipo": "Negativo / Seguridad",
+    "pasos": "Intentar consultar o modificar el intento con otro estudiante.",
+    "esperado": "La API responde 404 y no cambia el intento."
+  },
+  {
+    "id": "CP-HU-20",
+    "nombre": "Recuperar respuesta perdida",
+    "tipo": "Recuperación",
+    "pasos": "Completar, enviar, perder la respuesta después de calificar y reintentar envío.",
+    "esperado": "Se recupera el resultado del mismo intento sin duplicar XP ni QP."
+  }
+]

@@ -1,3 +1,4 @@
+import { ArmadoPiezasEvaluador } from './armado-piezas/armado-piezas.evaluador';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { Mecanica } from '@prisma/client';
 import { DialogoStakeholderEvaluador } from './dialogo-stakeholder/dialogo-stakeholder.evaluador';
@@ -9,7 +10,7 @@ import { EvaluadorMecanica } from './tipos';
 
 /**
  * Elige el evaluador por `reto.mecanica`. Las mecánicas del Sprint 3
- * (ARMADO_PIEZAS, SIMULADOR_ESCENARIOS y EXPEDIENTE_PROYECTO) todavía no
+ * (SIMULADOR_ESCENARIOS y EXPEDIENTE_PROYECTO) todavía no
  * tienen evaluador.
  */
 @Injectable()
@@ -17,6 +18,7 @@ export class MecanicasRegistro {
   private readonly porMecanica: Map<Mecanica, EvaluadorMecanica>;
 
   constructor(
+    historias: ArmadoPiezasEvaluador,
     readonly dialogo: DialogoStakeholderEvaluador,
     tablero: TableroMoscowEvaluador,
     inspeccion: InspeccionSistemaEvaluador,
@@ -24,7 +26,7 @@ export class MecanicasRegistro {
     lineaTiempo: LineaTiempoEvaluador,
   ) {
     this.porMecanica = new Map(
-      [dialogo, tablero, inspeccion, presupuesto, lineaTiempo].map((e) => [e.mecanica, e]),
+      [dialogo, historias, tablero, inspeccion, presupuesto, lineaTiempo].map((e) => [e.mecanica, e]),
     );
   }
 

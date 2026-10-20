@@ -1,5 +1,5 @@
 /**
- * Seed del Sprint 2: 3 fases y 5 retos, uno por mecánica implementada
+ * Seed del Sprint 2: 3 fases y 6 retos, uno por mecánica implementada
  * (CU-08, CU-01, CU-03, CU-04 y CU-06). El contenido de cada reto vive en
  * tablas relacionales (ver prisma/contenido/*.ts), no en JSON.
  *
@@ -15,6 +15,7 @@
 import { Mecanica, Prisma, PrismaClient, TipoObjeto } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { calcularNivel } from '../src/modules/progreso/nivel';
+import { crearHistorias, HISTORIAS } from './contenido/historias-usuario';
 import { DIALOGO } from './contenido/dialogo-stakeholder';
 import { FASES } from './contenido/fases';
 import { INSPECCION } from './contenido/inspeccion';
@@ -37,7 +38,8 @@ interface RetoDefinicion {
 const RETOS: RetoDefinicion[] = [
   { faseOrden: 1, orden: 1, mecanica: 'LINEA_TIEMPO', base: LINEA_TIEMPO, crearContenido: crearLineaTiempo },
   { faseOrden: 2, orden: 1, mecanica: 'DIALOGO_STAKEHOLDER', base: DIALOGO, crearContenido: crearDialogo },
-  { faseOrden: 2, orden: 2, mecanica: 'TABLERO_MOSCOW', base: MOSCOW, crearContenido: crearMoscow },
+  { faseOrden: 2, orden: 2, mecanica: 'ARMADO_PIEZAS', base: HISTORIAS, crearContenido: crearHistorias },
+  { faseOrden: 2, orden: 3, mecanica: 'TABLERO_MOSCOW', base: MOSCOW, crearContenido: crearMoscow },
   { faseOrden: 3, orden: 1, mecanica: 'INSPECCION_SISTEMA', base: INSPECCION, crearContenido: crearInspeccion },
   { faseOrden: 3, orden: 2, mecanica: 'REPARTO_PRESUPUESTO', base: PRESUPUESTO, crearContenido: crearPresupuesto },
 ];
@@ -80,6 +82,8 @@ const DEMO = {
 
 /** Borra el contenido de un reto (en el orden que respetan las claves foráneas). */
 async function borrarContenido(tx: Tx, retoId: number) {
+  await tx.historiaUsuario.deleteMany({ where: { retoId } });
+  await tx.piezaHistoria.deleteMany({ where: { retoId } });
   await tx.opcionDialogo.deleteMany({ where: { nodo: { retoId } } });
   await tx.nodoDialogo.deleteMany({ where: { retoId } });
   await tx.requerimientoOculto.deleteMany({ where: { retoId } });
@@ -283,6 +287,10 @@ async function main() {
       recompensaXp: def.base.recompensaXp,
       recompensaQp: def.base.recompensaQp,
     };
+    const existente = await prisma.reto.findUnique({ where: { faseId_orden: { faseId, orden: def.orden } } });
+    if (existente && existente.mecanica !== def.mecanica) {
+      throw new Error(`La posición ${faseId}/${def.orden} pertenece a ${existente.mecanica}; aplica las migraciones antes de cargar el seed`);
+    }
     const reto = await prisma.reto.upsert({
       where: { faseId_orden: { faseId, orden: def.orden } },
       update: datos,
@@ -292,7 +300,7 @@ async function main() {
     if (intentos > 0) {
       console.log(
         `Reto ${reto.id} (${def.mecanica}): tiene ${intentos} intento(s); el contenido NO se reescribe. ` +
-          'Reinicia la base (docker compose down -v) para aplicar cambios de contenido.',
+          'Se conserva el contenido para no invalidar el historial.',
       );
       continue;
     }

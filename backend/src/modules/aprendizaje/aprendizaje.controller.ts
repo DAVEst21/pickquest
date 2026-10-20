@@ -108,9 +108,9 @@ export class AprendizajeController {
 
   @Put('intentos/:intentoId/borrador')
   @ApiOperation({
-    summary: 'Guardar el avance del intento (RF-01; CU-03, CU-04, CU-06 y CU-08)',
+    summary: 'Guardar el avance del intento (RF-01; CU-02, CU-03, CU-04, CU-06 y CU-08)',
     description:
-      'El cuerpo depende de la mecánica del reto: CU-03 {tarjetas}, CU-04 {marcas}, CU-06 {asignaciones, justificacionId}, CU-08 {posiciones, asociaciones}.',
+      'El cuerpo depende de la mecánica del reto: CU-02 {colocaciones: [{casillaId, piezaId}]}, CU-03 {tarjetas}, CU-04 {marcas}, CU-06 {asignaciones, justificacionId}, CU-08 {posiciones, asociaciones}.',
   })
   @ApiBody({ schema: { type: 'object' } })
   @ApiBadRequestResponse({ description: 'Cuerpo inválido para la mecánica del reto' })

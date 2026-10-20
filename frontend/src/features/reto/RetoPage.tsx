@@ -1,3 +1,5 @@
+import { RetoHistorias } from './historias/RetoHistorias';
+import type { ContenidoHistorias, BorradorHistorias } from '../../types';
 import React, { useCallback, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { PantallaCarga, PantallaError } from '../../components/EstadoPantalla';
@@ -153,6 +155,8 @@ const ResolverReto: React.FC<{ intento: IntentoEnCurso }> = ({ intento }) => {
 
   const ejercicio = (() => {
     switch (reto.mecanica) {
+      case 'ARMADO_PIEZAS':
+        return <RetoHistorias {...comun} contenido={intento.contenido as ContenidoHistorias} borrador={intento.borrador as BorradorHistorias} />;
       case 'LINEA_TIEMPO':
         return (
           <RetoLineaTiempo

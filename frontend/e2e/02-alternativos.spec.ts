@@ -85,7 +85,7 @@ test.describe('Flujos alternativos y de excepción', () => {
     await page.goto('/');
     await page.getByText('Overworld SDLC').waitFor();
     const hud = (await page.locator('header').innerText()).replace(/\s+/g, ' ');
-    expect(hud).toContain('1120 / 1500 XP');
-    expect(hud).toContain('770 QP');
+    expect(hud).toContain('1320 / 1500 XP');
+    expect(hud).toContain('890 QP');
   });
 });

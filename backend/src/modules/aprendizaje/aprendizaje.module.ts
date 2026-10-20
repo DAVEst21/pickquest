@@ -1,3 +1,4 @@
+import { ArmadoPiezasEvaluador } from './mecanicas/armado-piezas/armado-piezas.evaluador';
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
 import { EconomiaModule } from '../economia/economia.module';
@@ -17,6 +18,7 @@ import { TableroMoscowEvaluador } from './mecanicas/tablero-moscow/tablero-mosco
   providers: [
     AprendizajeService,
     MecanicasRegistro,
+    ArmadoPiezasEvaluador,
     DialogoStakeholderEvaluador,
     TableroMoscowEvaluador,
     InspeccionSistemaEvaluador,

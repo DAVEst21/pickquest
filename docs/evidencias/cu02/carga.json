@@ -1,0 +1,60 @@
+{
+  "fecha": "2026-10-20T04:07:59.482Z",
+  "resultados": [
+    {
+      "mecanica": "LINEA_TIEMPO",
+      "estudiantes": 30,
+      "aprobados": 30,
+      "maxMs": 620,
+      "p95Ms": 583,
+      "errores": [],
+      "cumpleTresSegundosAPI": true
+    },
+    {
+      "mecanica": "DIALOGO_STAKEHOLDER",
+      "estudiantes": 30,
+      "aprobados": 30,
+      "maxMs": 622,
+      "p95Ms": 619,
+      "errores": [],
+      "cumpleTresSegundosAPI": true
+    },
+    {
+      "mecanica": "ARMADO_PIEZAS",
+      "estudiantes": 30,
+      "aprobados": 30,
+      "maxMs": 557,
+      "p95Ms": 555,
+      "errores": [],
+      "cumpleTresSegundosAPI": true
+    },
+    {
+      "mecanica": "TABLERO_MOSCOW",
+      "estudiantes": 30,
+      "aprobados": 30,
+      "maxMs": 407,
+      "p95Ms": 398,
+      "errores": [],
+      "cumpleTresSegundosAPI": true
+    },
+    {
+      "mecanica": "INSPECCION_SISTEMA",
+      "estudiantes": 30,
+      "aprobados": 30,
+      "maxMs": 626,
+      "p95Ms": 620,
+      "errores": [],
+      "cumpleTresSegundosAPI": true
+    },
+    {
+      "mecanica": "REPARTO_PRESUPUESTO",
+      "estudiantes": 30,
+      "aprobados": 30,
+      "maxMs": 574,
+      "p95Ms": 569,
+      "errores": [],
+      "cumpleTresSegundosAPI": true
+    }
+  ],
+  "alcance": "HTTP API, seis lotes de 30 envíos simultáneos; no incluye render del navegador."
+}

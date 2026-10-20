@@ -31,6 +31,8 @@ const id = (v: unknown): number | null => (typeof v === 'number' ? v : null);
 /** Pista que devuelve la mecánica → columnas de UsoAyuda. */
 export function pistaAColumnas(pista: PistaDto): ColumnasPista {
   switch (pista.tipo) {
+    case 'DISTRACTORES_RETIRADOS':
+      return { ...VACIAS, tipoPista: 'DISTRACTORES_RETIRADOS' };
     case 'OPCION_DIALOGO':
       return { ...VACIAS, tipoPista: 'OPCION_DIALOGO', opcionId: id(pista.opcionId) };
     case 'COLUMNA_TARJETA':
@@ -56,6 +58,7 @@ export function pistaAColumnas(pista: PistaDto): ColumnasPista {
 }
 
 export interface UsoAyudaConReferencias extends ColumnasPista {
+  distractoresRetirados?: { piezaId: number }[];
   tarjeta?: { columnaCorrecta: ColumnaMoscow } | null;
   atributoEscenario?: { minimoObligatorio: number | null } | null;
 }
@@ -64,6 +67,8 @@ export interface UsoAyudaConReferencias extends ColumnasPista {
 export function columnasAPista(uso: UsoAyudaConReferencias | null): PistaDto | null {
   if (!uso?.tipoPista) return null;
   switch (uso.tipoPista) {
+    case 'DISTRACTORES_RETIRADOS':
+      return { tipo: 'DISTRACTORES_RETIRADOS', piezaIds: (uso.distractoresRetirados ?? []).map(p => p.piezaId) };
     case 'OPCION_DIALOGO':
       return { tipo: 'OPCION_DIALOGO', opcionId: uso.opcionId };
     case 'COLUMNA_TARJETA':

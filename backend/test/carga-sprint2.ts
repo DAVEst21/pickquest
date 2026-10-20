@@ -1,4 +1,4 @@
-/** Verificación reproducible de 30 estudiantes concurrentes en las cinco mecánicas.
+/** Verificación reproducible de 30 estudiantes concurrentes en las seis mecánicas.
  * Ejecutar con la API arriba: npx ts-node --transpile-only test/carga-sprint2.ts
  * Solo crea y elimina sus propios estudiantes; no toca al usuario demo.
  */
@@ -42,6 +42,9 @@ async function main() {
             const bloques = await db.bloquePlan.findMany({ where: { retoId: reto.id } });
             const entregables = await db.entregablePlan.findMany({ where: { retoId: reto.id } });
             cuerpo = { posiciones: bloques.map(b => ({ bloqueId: b.id, inicioSemana: b.inicioReferencia })), asociaciones: entregables.map(e => ({ entregableId: e.id, faseBloqueId: e.faseCorrectaId })) };
+          } else if (reto.mecanica === 'ARMADO_PIEZAS') {
+            const casillas = await db.casillaHistoria.findMany({ where: { historia: { retoId: reto.id } } });
+            cuerpo = { colocaciones: casillas.map(c => ({ casillaId: c.id, piezaId: c.piezaCorrectaId })) };
           } else if (reto.mecanica === 'TABLERO_MOSCOW') {
             const tarjetas = await db.tarjetaRequerimiento.findMany({ where: { retoId: reto.id } });
             cuerpo = { tarjetas: tarjetas.map(t => ({ tarjetaId: t.id, columna: t.columnaCorrecta, tipo: t.tipoCorrecto, ordenMust: t.ordenMustReferencia })) };
@@ -69,7 +72,7 @@ async function main() {
       if (envios.some(e => !e.aprobado)) throw new Error('No se puede continuar el recorrido: hubo envíos fallidos');
     }
   } finally {
-    writeFileSync('/tmp/carga-sprint2.json', JSON.stringify({ fecha: new Date().toISOString(), resultados, alcance: 'HTTP API, cinco lotes de 30 envíos simultáneos; no incluye render del navegador.' }, null, 2));
+    writeFileSync('/tmp/carga-sprint2.json', JSON.stringify({ fecha: new Date().toISOString(), resultados, alcance: 'HTTP API, seis lotes de 30 envíos simultáneos; no incluye render del navegador.' }, null, 2));
     await db.estudiante.deleteMany({ where: { id: { in: alumnos.map(a => a.id) } } });
     await db.$disconnect();
   }

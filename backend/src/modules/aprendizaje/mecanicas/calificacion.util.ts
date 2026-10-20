@@ -1,7 +1,7 @@
 /**
  * Porcentaje entero 0-100 de una fracción exacta `numerador / denominador`:
  * se trunca (Math.floor) y se acota entre 0 y 100. Todas las fórmulas de
- * calificación (RN-16, 18, 19, 21 y 23) se expresan con numeradores enteros
+ * calificación (RN-16, 17, 18, 19, 21 y 23) se expresan con numeradores enteros
  * sobre un denominador común para evitar errores de punto flotante (p. ej.
  * que 6 fallas de 100/6 sumen 99.99999 y se trunquen a 99).
  */

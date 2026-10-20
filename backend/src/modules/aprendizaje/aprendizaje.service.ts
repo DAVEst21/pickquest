@@ -211,7 +211,9 @@ export class AprendizajeService {
       await this.economia.consumirObjetoEquipado(tx, estudianteId, objetoId);
       const pista = await this.mecanicas.obtener(intento.reto.mecanica).aplicarAyuda(tx, intentoId);
       // La pista se guarda de forma relacional para volver a dibujarla al retomar el intento.
-      await tx.usoAyuda.create({ data: { intentoId, objetoId, ...pistaAColumnas(pista) } });
+      await tx.usoAyuda.create({ data: { intentoId, objetoId, ...pistaAColumnas(pista),
+        ...(pista.tipo === 'DISTRACTORES_RETIRADOS' ? { distractoresRetirados: { create: (pista.piezaIds as number[]).map(piezaId => ({ piezaId })) } } : {}),
+      } });
       await tx.intentoReto.update({ where: { id: intentoId }, data: { usoAyuda: true } });
       const borradorActualizado = intento.reto.mecanica === Mecanica.TABLERO_MOSCOW
         ? await this.mecanicas.obtener(intento.reto.mecanica).borrador(tx, intentoId)
@@ -430,6 +432,7 @@ export class AprendizajeService {
     const uso = await db.usoAyuda.findUnique({
       where: { intentoId },
       include: {
+        distractoresRetirados: { select: { piezaId: true } },
         tarjeta: { select: { columnaCorrecta: true } },
         atributoEscenario: { select: { minimoObligatorio: true } },
       },

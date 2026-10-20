@@ -1,3 +1,5 @@
+import type { RetroHistorias } from '../../types';
+import { ETIQUETA_PIEZA } from '../reto/historias/etiquetas';
 import React from 'react';
 import type {
   Retroalimentacion as RetroTipo,
@@ -374,9 +376,22 @@ const Dialogo: React.FC<{ r: RetroDialogo }> = ({ r }) => {
   );
 };
 
+const Historias: React.FC<{ r: RetroHistorias }> = ({ r }) => (
+  <div className="flex flex-col gap-space-md" data-retro="historias">
+    {r.historias.map(h => <Tarjeta key={h.historiaId} titulo={`Historia ${h.orden}`} icono="extension">
+      <p className="mb-space-sm">{h.necesidad}</p>
+      <ul className="space-y-space-sm">{h.casillas.map(c => <li key={c.casillaId} data-casilla-resultado={c.casillaId}>
+        <Marca ok={c.acertada} /> <strong>{ETIQUETA_PIEZA[c.tipo]}:</strong> {c.piezaElegida ?? 'Sin pieza'} — {c.acertada ? 'Correcta' : 'Revisa esta pieza'}
+      </li>)}</ul>
+    </Tarjeta>)}
+  </div>
+);
+
 export const Retroalimentacion: React.FC<{ retro: RetroTipo }> = ({ retro }) => {
   const detalle = (() => {
     switch (retro.mecanica) {
+      case 'ARMADO_PIEZAS':
+        return <Historias r={retro} />;
       case 'LINEA_TIEMPO':
         return <LineaTiempo r={retro} />;
       case 'TABLERO_MOSCOW':
@@ -391,7 +406,7 @@ export const Retroalimentacion: React.FC<{ retro: RetroTipo }> = ({ retro }) => 
   })();
   return (
     <div className="flex flex-col gap-space-md">
-      {!retro.referenciaCompleta && <ReferenciaReservada />}
+      {!retro.referenciaCompleta && retro.mecanica !== 'ARMADO_PIEZAS' && <ReferenciaReservada />}
       {detalle}
     </div>
   );

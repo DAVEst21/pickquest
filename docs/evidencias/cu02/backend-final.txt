@@ -1,0 +1,40 @@
+ Container pickquest-backend-run-4c83481451b9 Creating
+ Container pickquest-backend-run-4c83481451b9 Created
+
+> backend@0.0.1 test
+> jest --runInBand
+
+PASS src/modules/aprendizaje/estado-fases.spec.ts (6.82 s)
+PASS src/modules/aprendizaje/mecanicas/tablero-moscow/tablero-moscow.calificacion.spec.ts
+PASS src/modules/aprendizaje/mecanicas/retroalimentacion.spec.ts
+PASS src/modules/aprendizaje/mecanicas/linea-tiempo/linea-tiempo.calificacion.spec.ts
+PASS src/modules/aprendizaje/mecanicas/reparto-presupuesto/reparto-presupuesto.calificacion.spec.ts
+PASS src/modules/aprendizaje/mecanicas/inspeccion-sistema/inspeccion-sistema.calificacion.spec.ts
+PASS src/modules/aprendizaje/mecanicas/dialogo-stakeholder/dialogo-stakeholder.calificacion.spec.ts
+PASS src/modules/aprendizaje/mecanicas/pista.spec.ts
+PASS src/modules/aprendizaje/calificacion-estrellas.spec.ts
+PASS src/modules/aprendizaje/estado-reto.spec.ts
+PASS src/modules/aprendizaje/mecanicas/armado-piezas/armado-piezas.calificacion.spec.ts
+PASS src/modules/progreso/nivel.spec.ts
+PASS src/modules/progreso/multiplicador.spec.ts
+PASS src/app.controller.spec.ts
+
+Test Suites: 14 passed, 14 total
+Tests:       127 passed, 127 total
+Snapshots:   0 total
+Time:        12.709 s
+Ran all test suites.
+
+> backend@0.0.1 test:e2e
+> jest --config ./test/jest-e2e.json --runInBand
+
+PASS test/sprint2-aprendizaje.e2e-spec.ts (62.345 s)
+PASS test/cu02-historias.e2e-spec.ts (23.365 s)
+PASS test/auth.e2e-spec.ts
+PASS test/app.e2e-spec.ts
+
+Test Suites: 4 passed, 4 total
+Tests:       78 passed, 78 total
+Snapshots:   0 total
+Time:        92.732 s
+Ran all test suites.
