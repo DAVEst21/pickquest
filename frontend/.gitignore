@@ -27,3 +27,7 @@ dist-ssr
 e2e/.resultados
 playwright-report
 test-results
+.vercel
+.env*
+!.env.example
+!.env.*.example
