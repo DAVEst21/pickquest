@@ -198,7 +198,7 @@ pickquest/
 
 ## Más documentación
 
-- [`docs/DESPLIEGUE_VERCEL_NEON.md`](docs/DESPLIEGUE_VERCEL_NEON.md): configuración para publicar desde `develop`, variables y procedimiento de migraciones.
+- [`docs/DESPLIEGUE_VERCEL_NEON.md`](docs/DESPLIEGUE_VERCEL_NEON.md): configuración para publicar desde `main`, flujo con `develop`, variables y procedimiento de migraciones.
 - [`REPORTE_SPRINT2.md`](REPORTE_SPRINT2.md): esquema de la base de datos, endpoints, decisiones, contenido del seed y pasos de prueba manual de cada caso de uso.
 - [`ADENDA_SPRINT2.md`](ADENDA_SPRINT2.md): cambios hechos después del reporte.
 - [`docs/VERIFICACION_SPRINT2.md`](docs/VERIFICACION_SPRINT2.md): correcciones, contratos, trazabilidad y resultados de esta entrega.

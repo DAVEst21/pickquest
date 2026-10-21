@@ -9,8 +9,8 @@ Crear dos proyectos Vercel sobre `DAVEst21/pickquest`:
 
 | Proyecto propuesto | Root Directory | Framework | Production Branch |
 |---|---|---|---|
-| `pickquest-api` | `backend` | NestJS | `develop` |
-| `pickquest-web` | `frontend` | Vite | `develop` |
+| `pickquest-api` | `backend` | NestJS | `main` |
+| `pickquest-web` | `frontend` | Vite | `main` |
 
 Dominios asignados: `https://pickquest-web.vercel.app` y
 `https://pickquest-api.vercel.app`.
@@ -20,9 +20,15 @@ configuran el build. La API se sitúa en `iad1`, cerca del proyecto Neon existen
 en AWS Ohio. El frontend añade el fallback de React Router a `index.html`.
 
 La rama de producción se configura en Vercel; `vercel.json` no cambia ese ajuste.
-Verificar que esté seleccionada `develop` antes de publicar. No conectar las
+Verificar que esté seleccionada `main` antes de publicar. No conectar las
 previews a la base de producción: usar una rama independiente de Neon y sus
 propias variables, o dejar las previews deshabilitadas hasta configurarlas.
+
+Trabajar en ramas `feature/...`, integrar y probar en `develop`, y publicar
+mediante un pull request de `develop` a `main`. Los cambios que se suben a
+`develop` no actualizan producción. Después de publicar, sincronizar `develop`
+con `main` para incorporar el commit de integración. Las ramas de Git y las
+ramas de Neon son independientes: actualizar código no aplica migraciones.
 
 ## Variables
 
@@ -101,7 +107,7 @@ el progreso: no volver a ejecutarla sobre información que se quiera conservar.
 El espacio Vercel es `DAVE` (`dave-97d1`), con plan Hobby. Se crearon y vincularon
 los dos proyectos indicados arriba. Las vistas previas automáticas permanecen
 deshabilitadas hasta configurar sus URLs y variables propias; los cambios de
-`develop` corresponden al entorno Production de ambos proyectos.
+`main` corresponden al entorno Production de ambos proyectos.
 
 En Neon se reutiliza `pickquest-db`, con PostgreSQL 18, la rama `production` y una
 rama aislada `preview` para preparar migraciones. Docker Compose conserva su
