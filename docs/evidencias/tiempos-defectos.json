@@ -1,0 +1,10 @@
+{
+  "cierre": "2026-10-15T03:12:38.475914+00:00",
+  "minutos": [
+    38.0,
+    38.0,
+    38.0,
+    13.4
+  ],
+  "metrica": "Tiempo de reloj transcurrido del ciclo compartido de implementación y verificación; tareas solapadas, no esfuerzo exclusivo. D-001/002/003 desde 20:34:38; D-004 desde 20:59:17 (America/Mexico_City)."
+}

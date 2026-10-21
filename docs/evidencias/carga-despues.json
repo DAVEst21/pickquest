@@ -1,0 +1,51 @@
+{
+  "fecha": "2026-10-15T03:01:19.711Z",
+  "resultados": [
+    {
+      "mecanica": "LINEA_TIEMPO",
+      "estudiantes": 30,
+      "aprobados": 30,
+      "maxMs": 1007,
+      "p95Ms": 989,
+      "errores": [],
+      "cumpleTresSegundosAPI": true
+    },
+    {
+      "mecanica": "DIALOGO_STAKEHOLDER",
+      "estudiantes": 30,
+      "aprobados": 30,
+      "maxMs": 641,
+      "p95Ms": 620,
+      "errores": [],
+      "cumpleTresSegundosAPI": true
+    },
+    {
+      "mecanica": "TABLERO_MOSCOW",
+      "estudiantes": 30,
+      "aprobados": 30,
+      "maxMs": 646,
+      "p95Ms": 639,
+      "errores": [],
+      "cumpleTresSegundosAPI": true
+    },
+    {
+      "mecanica": "INSPECCION_SISTEMA",
+      "estudiantes": 30,
+      "aprobados": 30,
+      "maxMs": 494,
+      "p95Ms": 490,
+      "errores": [],
+      "cumpleTresSegundosAPI": true
+    },
+    {
+      "mecanica": "REPARTO_PRESUPUESTO",
+      "estudiantes": 30,
+      "aprobados": 30,
+      "maxMs": 604,
+      "p95Ms": 603,
+      "errores": [],
+      "cumpleTresSegundosAPI": true
+    }
+  ],
+  "alcance": "HTTP API, cinco lotes de 30 envíos simultáneos; no incluye render del navegador."
+}

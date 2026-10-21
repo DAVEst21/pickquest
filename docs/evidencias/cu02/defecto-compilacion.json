@@ -1,0 +1,7 @@
+{
+  "id": "D-006",
+  "inicio": "2026-10-19T21:51:21-06:00",
+  "fin": "2026-10-19T21:54:05.951565-06:00",
+  "minutos": 2.75,
+  "verificacion": "Compilación de src aislada, cache dentro de dist; arranque NestJS y Swagger HTTP 200"
+}

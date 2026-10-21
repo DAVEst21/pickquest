@@ -1,8 +1,11 @@
-FROM node:20-alpine
+FROM node:22-alpine
 RUN apk add --no-cache openssl
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 COPY . .
+RUN npx prisma generate
 EXPOSE 3000
-CMD ["npm", "run", "start:dev"]
+# Al arrancar: regenera Prisma, aplica migraciones, carga el seed (idempotente) y
+# levanta Nest en modo watch.
+CMD ["sh", "-c", "npx prisma generate && npx prisma migrate deploy && npx prisma db seed && npm run start:dev"]

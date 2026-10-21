@@ -3,13 +3,20 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@tanstack/react-query": "^5.103.2",
     "autoprefixer": "^10.6.1",
     "postcss": "^8.5.28",
@@ -20,12 +27,14 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
-    "@oxlint/binding-win32-x64-msvc": "^1.85.0",
+    "@playwright/test": "1.52.0",
     "@types/node": "^24.13.3",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^4.3.4",
     "oxlint": "^1.81.0",
+    "pg": "^8.23.1",
     "typescript": "~6.0.2",
     "vite": "^6.0.0"
   }

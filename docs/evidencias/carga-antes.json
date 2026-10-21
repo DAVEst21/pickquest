@@ -1,0 +1,81 @@
+{
+  "fecha": "2026-10-15T02:58:09.588Z",
+  "resultados": [
+    {
+      "mecanica": "LINEA_TIEMPO",
+      "estudiantes": 30,
+      "aprobados": 17,
+      "maxMs": 1503,
+      "p95Ms": 1485,
+      "errores": [
+        {
+          "ms": 1306,
+          "aprobado": false,
+          "error": "Error: 409 /intentos/125/enviar: {\"message\":\"Se procesó otra operación al mismo tiempo; vuelve a intentarlo\",\"error\":\"Conflict\",\"statusCode\":409}"
+        },
+        {
+          "ms": 1107,
+          "aprobado": false,
+          "error": "Error: 409 /intentos/128/enviar: {\"message\":\"Se procesó otra operación al mismo tiempo; vuelve a intentarlo\",\"error\":\"Conflict\",\"statusCode\":409}"
+        },
+        {
+          "ms": 1252,
+          "aprobado": false,
+          "error": "Error: 409 /intentos/131/enviar: {\"message\":\"Se procesó otra operación al mismo tiempo; vuelve a intentarlo\",\"error\":\"Conflict\",\"statusCode\":409}"
+        },
+        {
+          "ms": 1253,
+          "aprobado": false,
+          "error": "Error: 409 /intentos/134/enviar: {\"message\":\"Se procesó otra operación al mismo tiempo; vuelve a intentarlo\",\"error\":\"Conflict\",\"statusCode\":409}"
+        },
+        {
+          "ms": 1103,
+          "aprobado": false,
+          "error": "Error: 409 /intentos/135/enviar: {\"message\":\"Se procesó otra operación al mismo tiempo; vuelve a intentarlo\",\"error\":\"Conflict\",\"statusCode\":409}"
+        },
+        {
+          "ms": 1047,
+          "aprobado": false,
+          "error": "Error: 409 /intentos/136/enviar: {\"message\":\"Se procesó otra operación al mismo tiempo; vuelve a intentarlo\",\"error\":\"Conflict\",\"statusCode\":409}"
+        },
+        {
+          "ms": 1050,
+          "aprobado": false,
+          "error": "Error: 409 /intentos/137/enviar: {\"message\":\"Se procesó otra operación al mismo tiempo; vuelve a intentarlo\",\"error\":\"Conflict\",\"statusCode\":409}"
+        },
+        {
+          "ms": 1152,
+          "aprobado": false,
+          "error": "Error: 409 /intentos/143/enviar: {\"message\":\"Se procesó otra operación al mismo tiempo; vuelve a intentarlo\",\"error\":\"Conflict\",\"statusCode\":409}"
+        },
+        {
+          "ms": 1409,
+          "aprobado": false,
+          "error": "Error: 409 /intentos/144/enviar: {\"message\":\"Se procesó otra operación al mismo tiempo; vuelve a intentarlo\",\"error\":\"Conflict\",\"statusCode\":409}"
+        },
+        {
+          "ms": 1408,
+          "aprobado": false,
+          "error": "Error: 409 /intentos/145/enviar: {\"message\":\"Se procesó otra operación al mismo tiempo; vuelve a intentarlo\",\"error\":\"Conflict\",\"statusCode\":409}"
+        },
+        {
+          "ms": 1451,
+          "aprobado": false,
+          "error": "Error: 409 /intentos/146/enviar: {\"message\":\"Se procesó otra operación al mismo tiempo; vuelve a intentarlo\",\"error\":\"Conflict\",\"statusCode\":409}"
+        },
+        {
+          "ms": 1448,
+          "aprobado": false,
+          "error": "Error: 409 /intentos/149/enviar: {\"message\":\"Se procesó otra operación al mismo tiempo; vuelve a intentarlo\",\"error\":\"Conflict\",\"statusCode\":409}"
+        },
+        {
+          "ms": 1485,
+          "aprobado": false,
+          "error": "Error: 409 /intentos/150/enviar: {\"message\":\"Se procesó otra operación al mismo tiempo; vuelve a intentarlo\",\"error\":\"Conflict\",\"statusCode\":409}"
+        }
+      ],
+      "cumpleTresSegundosAPI": false
+    }
+  ],
+  "alcance": "HTTP API, cinco lotes de 30 envíos simultáneos; no incluye render del navegador."
+}

@@ -1,0 +1,21 @@
+{
+  "casos": {
+    "sha256": "3ce7fa9e6c03d8c707f304b285947fbf1e634a6c1fc5e0c4470353da1e6471bf",
+    "formulasIntactas": true,
+    "estilosIntactos": true,
+    "CU01Intacto": true,
+    "leyendaIntacta": true,
+    "casosPass": 24
+  },
+  "defectos": {
+    "sha256": "171b40aba621d79d3d01cfb48d2cc593f7b9855c0a38eb53ad2ed1295665a71e",
+    "formulasIntactas": true,
+    "estilosIntactos": true,
+    "defectos": [
+      "D-001",
+      "D-002",
+      "D-003",
+      "D-004"
+    ]
+  }
+}

@@ -1,7 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { buscarFaseActiva } from '../features/fases/presentacion';
+import { useFases } from '../services/queries';
 
 export const Footer: React.FC = () => {
+  const { data: fases } = useFases();
+  const faseActiva = buscarFaseActiva(fases);
+
   return (
     <footer className="w-full bg-surface-container-lowest py-space-xl border-t border-surface-container-high/40">
       <div className="w-full px-gutter max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-space-md">
@@ -13,7 +18,7 @@ export const Footer: React.FC = () => {
             </span>
           </div>
           <p className="font-body-sm text-body-sm text-on-surface-variant text-center md:text-left">
-            Entrena patrones de arquitectura, pipelines de entrega continua y despliegues épicos sin bugs.
+            Aprende el ciclo de vida del software, elicitación de requerimientos y atributos de calidad.
           </p>
         </div>
 
@@ -25,7 +30,7 @@ export const Footer: React.FC = () => {
             Overworld
           </Link>
           <Link
-            to="/mision/3"
+            to={faseActiva ? `/mision/${faseActiva.id}` : '/'}
             className="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors"
           >
             Misiones

@@ -1,0 +1,7 @@
+# Normaliza los saltos de línea a LF en el repositorio y en la copia de trabajo,
+# independientemente de core.autocrlf (Prettier exige LF).
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.ico binary

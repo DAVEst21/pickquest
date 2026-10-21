@@ -1,0 +1,9 @@
+.git/
+**/node_modules/
+**/dist/
+**/coverage/
+**/.env*
+**/.vercel/
+docs/
+frontend/e2e/
+backend/test/

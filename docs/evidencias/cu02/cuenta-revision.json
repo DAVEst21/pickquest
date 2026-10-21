@@ -1,0 +1,16 @@
+{
+  "fecha": "2026-10-20T04:11:34.007Z",
+  "email": "revision.sprint2@pickquest.dev",
+  "fases": [
+    "completada",
+    "completada",
+    "completada"
+  ],
+  "retos": 6,
+  "xp": 1320,
+  "qp": 890,
+  "navegador": "Chromium 136 (Playwright 1.52)",
+  "login": "Pass",
+  "accesoTablon": "Pass",
+  "confirmacionReintento": "Pass"
+}

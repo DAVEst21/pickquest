@@ -6,9 +6,14 @@ build/
 # Entorno
 .env
 .env.local
+.env.*.local
+.vercel/
 
 # Docker
 *.log
+
+# Respaldos locales de la base de datos (pg_dump antes de tocar migraciones)
+backend/backups/
 
 # Editor / SO
 .vscode/

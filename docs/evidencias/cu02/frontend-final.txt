@@ -1,0 +1,26 @@
+ Container pickquest-frontend-run-97cfe311c59a Creating
+ Container pickquest-frontend-run-97cfe311c59a Created
+
+> frontend@0.0.0 build
+> tsc -b && vite build
+
+vite v6.0.0 building for production...
+transforming...
+✓ 136 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   1.11 kB │ gzip:   0.59 kB
+dist/assets/index-s4JaTMLp.css   38.25 kB │ gzip:   7.18 kB
+dist/assets/index-CPLiX2zh.js   550.40 kB │ gzip: 164.80 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 18.83s
+
+> frontend@0.0.0 lint
+> oxlint
+
+Found 0 warnings and 0 errors.
+Finished in 73ms on 56 files with 116 rules using 2 threads.
