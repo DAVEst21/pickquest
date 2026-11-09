@@ -21,7 +21,7 @@ export const QUERY_KEYS = {
   fases: ['fases'] as const,
   tablon: (faseId: number) => ['tablon', faseId] as const,
   intento: (id: number) => ['intento', id] as const,
-  equipados: ['equipados'] as const,
+  equipados: (retoId?: number) => ['equipados', retoId ?? 0] as const,
   libreta: (retoId: number) => ['libreta', retoId] as const,
 };
 
@@ -62,8 +62,8 @@ export function useIntento(intentoId: number) {
 }
 
 /** Objetos equipados para el cinto de ayudas. */
-export function useEquipados() {
-  return useQuery({ queryKey: QUERY_KEYS.equipados, queryFn: getEquipados });
+export function useEquipados(retoId?: number) {
+  return useQuery({ queryKey: QUERY_KEYS.equipados(retoId), queryFn: () => getEquipados(retoId) });
 }
 
 /** CU-01: requerimientos descubiertos en intentos calificados. */
@@ -91,7 +91,7 @@ export function useUsarAyuda(intentoId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (objetoId: number) => usarAyuda(intentoId, objetoId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.equipados }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipados'] }),
   });
 }
 

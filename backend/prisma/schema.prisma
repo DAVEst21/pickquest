@@ -121,6 +121,8 @@ model Estudiante {
   nivel            Int    @default(1)
   xpTotal          Int    @default(0)
   qpTotal          Int    @default(0)
+  // Momento en que alcanzó su XP actual: desempate de la clasificación (RN-30).
+  xpAlcanzadaEn    DateTime @default(now())
 
   racha       RachaEstudio?
   intentos    IntentoReto[]
@@ -152,6 +154,8 @@ model Objeto {
   costoQP Int
   efecto  String
   rareza  String
+  // null: sirve en cualquier reto; con valor: solo en los retos de esa fase (RN-10, CU-12).
+  tema    TemaFase?
 
   inventarios  InventarioObjeto[]
   ayudasUsadas UsoAyuda[]
@@ -271,6 +275,10 @@ model Reto {
   plan                  PlanProyecto?
   bloques               BloquePlan[]
   entregables           EntregablePlan[]
+  // CU-05
+  escenarioCalidad          EscenarioCalidad?
+  unidadesEscenario         UnidadEscenario[]
+  opcionesParteEscenario    OpcionParteEscenario[]
 
   @@unique([faseId, orden])
   @@map("reto")
@@ -305,6 +313,9 @@ model IntentoReto {
   respuestaPresupuesto   RespuestaPresupuesto?
   posicionesBloque       PosicionBloque[]
   asociacionesEntregable AsociacionEntregable[]
+  respuestaEscenario      RespuestaEscenario?
+  eleccionesParteEscenario EleccionParteEscenario[]
+  simulacionesEscenario   SimulacionEscenario[]
 
   @@index([estudianteId, retoId, estado])
   @@map("intento_reto")
@@ -318,6 +329,7 @@ enum TipoPista {
   PANTALLA // pantallaId
   RESTRICCION // atributoEscenarioId (el mínimo se obtiene del atributo)
   DEPENDENCIA // bloqueId y requiereId
+  RANGO_ESCENARIO // CU-05: el rango aceptable se lee del escenario del reto
 }
 
 // Una ayuda pertenece a un intento concreto (RN-10: máximo 1 por intento).
@@ -776,4 +788,114 @@ model DistractorRetirado {
   pieza PiezaHistoria @relation(fields: [piezaId], references: [id], onDelete: Restrict)
   @@id([usoAyudaId, piezaId])
   @@map("distractor_retirado")
+}
+
+
+// =====================================================================
+// CU-05 Simulador de escenarios de calidad (RF-08, RN-20)
+// =====================================================================
+
+enum ParteEscenario {
+  FUENTE
+  ESTIMULO
+  ARTEFACTO
+  ENTORNO
+  RESPUESTA
+}
+
+// 1:1 con Reto. El rango aceptable (RN-20) y el modelo de la simulación nunca
+// viajan al navegador antes de lo que permiten RN-31 y la ayuda.
+model EscenarioCalidad {
+  retoId            Int      @id
+  necesidadVaga     String   @db.Text
+  contextoApp       String   @db.Text
+  nombreMetrica     String
+  nombreCarga       String // p. ej. "usuarios concurrentes"
+  unidadCorrectaId  Int?     @unique // se asigna después de crear las unidades
+  valorMinSlider    Decimal  @db.Decimal(10, 2)
+  valorMaxSlider    Decimal  @db.Decimal(10, 2)
+  pasoSlider        Decimal  @db.Decimal(10, 2)
+  cargaMinSlider    Int
+  cargaMaxSlider    Int
+  pasoCarga         Int
+  valorMinAceptable Decimal  @db.Decimal(10, 2)
+  valorMaxAceptable Decimal  @db.Decimal(10, 2)
+  cargaMinAceptable Int
+  cargaMaxAceptable Int
+  // Modelo de la aplicación ficticia: valorApp(carga) = simBase + simPendiente × carga
+  simBase           Decimal  @db.Decimal(10, 4)
+  simPendiente      Decimal  @db.Decimal(10, 6)
+
+  reto            Reto             @relation(fields: [retoId], references: [id], onDelete: Cascade)
+  unidadCorrecta  UnidadEscenario? @relation("UnidadCorrecta", fields: [unidadCorrectaId], references: [id], onDelete: Restrict)
+
+  @@map("escenario_calidad")
+}
+
+model UnidadEscenario {
+  id     Int    @id @default(autoincrement())
+  retoId Int
+  nombre String
+
+  reto                Reto                @relation(fields: [retoId], references: [id], onDelete: Cascade)
+  escenarioComoCorrecta EscenarioCalidad? @relation("UnidadCorrecta")
+  respuestas          RespuestaEscenario[]
+
+  @@map("unidad_escenario")
+}
+
+model OpcionParteEscenario {
+  id       Int            @id @default(autoincrement())
+  retoId   Int
+  parte    ParteEscenario
+  orden    Int
+  texto    String
+  correcta Boolean // exactamente una correcta por parte
+
+  reto        Reto                     @relation(fields: [retoId], references: [id], onDelete: Cascade)
+  elecciones  EleccionParteEscenario[]
+
+  @@unique([retoId, parte, orden])
+  @@map("opcion_parte_escenario")
+}
+
+// 1:1 con IntentoReto: la medida de respuesta que va calibrando el estudiante.
+model RespuestaEscenario {
+  intentoId Int      @id
+  valor     Decimal? @db.Decimal(10, 2)
+  unidadId  Int?
+  carga     Int?
+
+  intento IntentoReto      @relation(fields: [intentoId], references: [id], onDelete: Cascade)
+  unidad  UnidadEscenario? @relation(fields: [unidadId], references: [id], onDelete: Restrict)
+
+  @@map("respuesta_escenario")
+}
+
+model EleccionParteEscenario {
+  intentoId Int
+  parte     ParteEscenario
+  opcionId  Int
+
+  intento IntentoReto          @relation(fields: [intentoId], references: [id], onDelete: Cascade)
+  opcion  OpcionParteEscenario @relation(fields: [opcionId], references: [id], onDelete: Restrict)
+
+  @@id([intentoId, parte])
+  @@map("eleccion_parte_escenario")
+}
+
+model SimulacionEscenario {
+  id        Int      @id @default(autoincrement())
+  intentoId Int
+  numero    Int
+  valor     Decimal  @db.Decimal(10, 2)
+  carga     Int
+  valorApp  Decimal  @db.Decimal(10, 2)
+  cumple    Boolean
+  creadoEn  DateTime @default(now())
+
+  intento IntentoReto @relation(fields: [intentoId], references: [id], onDelete: Cascade)
+
+  @@unique([intentoId, numero])
+  @@map("simulacion_escenario")
 }

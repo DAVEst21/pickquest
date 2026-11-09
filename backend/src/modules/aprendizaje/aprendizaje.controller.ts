@@ -154,6 +154,23 @@ export class AprendizajeController {
     return this.aprendizaje.registrarTurno(estudiante.id, intentoId, dto.opcionId);
   }
 
+  @Post('intentos/:intentoId/escenario/simular')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'CU-05: simular el escenario de calidad con la medida guardada (RF-08, RN-20)',
+    description:
+      'Máximo 5 simulaciones por intento. Devuelve el valor de la app ficticia bajo esa carga, si el escenario se cumple y las simulaciones restantes.',
+  })
+  @ApiBadRequestResponse({ description: 'FE1: partes del escenario vacías (campo "faltantes")' })
+  @ApiNotFoundResponse({ description: 'El intento no existe o no pertenece al estudiante' })
+  @ApiConflictResponse({ description: 'FE2: ya hizo 5 simulaciones, o el intento ya está calificado' })
+  simularEscenario(
+    @EstudianteActual() estudiante: EstudianteAutenticado,
+    @Param('intentoId', ParseIntPipe) intentoId: number,
+  ) {
+    return this.aprendizaje.simularEscenario(estudiante.id, intentoId);
+  }
+
   @Post('intentos/:intentoId/ayuda')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({

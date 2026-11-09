@@ -1,5 +1,6 @@
 import { RetoHistorias } from './historias/RetoHistorias';
-import type { ContenidoHistorias, BorradorHistorias } from '../../types';
+import { RetoEscenario } from './escenario/RetoEscenario';
+import type { ContenidoHistorias, BorradorHistorias, ContenidoEscenario, BorradorEscenario, PistaRango } from '../../types';
 import React, { useCallback, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { PantallaCarga, PantallaError } from '../../components/EstadoPantalla';
@@ -78,7 +79,7 @@ const ResolverReto: React.FC<{ intento: IntentoEnCurso }> = ({ intento }) => {
   const navigate = useNavigate();
   const { reto, fase, intentoId } = intento;
   const autoguardado = useAutoguardado(intentoId);
-  const equipados = useEquipados();
+  const equipados = useEquipados(reto.id);
   const usarAyuda = useUsarAyuda(intentoId);
   const enviarIntento = useEnviarIntento();
 
@@ -150,11 +151,23 @@ const ResolverReto: React.FC<{ intento: IntentoEnCurso }> = ({ intento }) => {
     deshabilitado: operando,
     onCambio: autoguardado.guardar,
     onEstado: alCambiarEstado,
+    vaciar: autoguardado.vaciar,
   };
   const m = MECANICA[reto.mecanica];
 
   const ejercicio = (() => {
     switch (reto.mecanica) {
+      case 'SIMULADOR_ESCENARIOS':
+        return (
+          <RetoEscenario
+            {...comun}
+            pista={pista?.tipo === 'RANGO_ESCENARIO' ? (pista as PistaRango) : null}
+            intentoId={intentoId}
+            contenido={intento.contenido as ContenidoEscenario}
+            borrador={intento.borrador as BorradorEscenario}
+            onError={(m) => mostrarToast(m, 'error')}
+          />
+        );
       case 'ARMADO_PIEZAS':
         return <RetoHistorias {...comun} contenido={intento.contenido as ContenidoHistorias} borrador={intento.borrador as BorradorHistorias} />;
       case 'LINEA_TIEMPO':

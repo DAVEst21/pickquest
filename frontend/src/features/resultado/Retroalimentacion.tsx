@@ -1,4 +1,4 @@
-import type { RetroHistorias } from '../../types';
+import type { RetroEscenario, RetroHistorias } from '../../types';
 import { ETIQUETA_PIEZA } from '../reto/historias/etiquetas';
 import React from 'react';
 import type {
@@ -47,7 +47,7 @@ const ReferenciaReservada: React.FC = () => (
   >
     <span className="material-symbols-outlined text-primary">lock</span>
     <p className="font-body-md text-body-md text-on-surface">
-      Aquí ves en qué te equivocaste, pero no la solución. <strong>La respuesta de referencia completa se muestra cuando apruebas el reto.</strong>
+      Aquí ves en qué te equivocaste, pero no la solución. <strong>La solución se mostrará al aprobar o después de 3 intentos.</strong>
     </p>
   </aside>
 );
@@ -376,6 +376,39 @@ const Dialogo: React.FC<{ r: RetroDialogo }> = ({ r }) => {
   );
 };
 
+const Escenario: React.FC<{ r: RetroEscenario }> = ({ r }) => (
+  <div className="flex flex-col gap-space-md" data-retro="escenario">
+    <Tarjeta titulo="Partes del escenario" icono="rule">
+      <p className="font-body-sm text-body-sm text-on-surface-variant mb-space-sm">Necesidad original: «{r.necesidadVaga}»</p>
+      <ul className="space-y-space-sm">
+        {r.partes.map((p) => (
+          <li key={p.parte} data-parte-resultado={p.parte}>
+            <Marca ok={p.acertada} /> <strong className="capitalize">{p.nombre}:</strong> {p.elegida ?? 'Sin elegir'}
+            {r.referenciaCompleta && !p.acertada && p.correcta && (
+              <span className="block ml-7 text-tertiary font-body-sm text-body-sm">Correcta: {p.correcta}</span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </Tarjeta>
+    <Tarjeta titulo="Medida de respuesta" icono="straighten">
+      <p className="font-body-md text-body-md text-on-surface" data-medida>
+        <Marca ok={r.medida.dentroDelRango} /> {r.nombreMetrica}: {r.medida.valor ?? '—'} {r.medida.unidad ?? ''} con {r.medida.carga ?? '—'} {r.nombreCarga}.{' '}
+        {r.medida.dentroDelRango ? 'Está dentro del rango aceptable.' : 'Está fuera del rango aceptable.'}
+      </p>
+      <p className="font-body-sm text-body-sm text-on-surface-variant mt-space-xs">
+        Usaste {r.simulacionesUsadas} de {r.limiteSimulaciones} simulaciones.
+      </p>
+      {r.rangoAceptable && (
+        <p className="font-body-md text-body-md text-tertiary mt-space-sm" data-rango-referencia>
+          Rango aceptable: entre {r.rangoAceptable.valorMin} y {r.rangoAceptable.valorMax} {r.rangoAceptable.unidad}, con{' '}
+          {r.rangoAceptable.cargaMin} a {r.rangoAceptable.cargaMax} {r.nombreCarga}.
+        </p>
+      )}
+    </Tarjeta>
+  </div>
+);
+
 const Historias: React.FC<{ r: RetroHistorias }> = ({ r }) => (
   <div className="flex flex-col gap-space-md" data-retro="historias">
     {r.historias.map(h => <Tarjeta key={h.historiaId} titulo={`Historia ${h.orden}`} icono="extension">
@@ -383,6 +416,14 @@ const Historias: React.FC<{ r: RetroHistorias }> = ({ r }) => (
       <ul className="space-y-space-sm">{h.casillas.map(c => <li key={c.casillaId} data-casilla-resultado={c.casillaId}>
         <Marca ok={c.acertada} /> <strong>{ETIQUETA_PIEZA[c.tipo]}:</strong> {c.piezaElegida ?? 'Sin pieza'} — {c.acertada ? 'Correcta' : 'Revisa esta pieza'}
       </li>)}</ul>
+      {r.referenciaCompleta && (
+        <div className="mt-space-md pt-space-sm border-t border-surface-container-high/40" data-retro="historia-referencia">
+          <h4 className="font-title-md text-title-md text-tertiary font-bold mb-space-xs">Historia de referencia</h4>
+          <ul className="space-y-1 font-body-md text-body-md text-on-surface">
+            {h.casillas.map(c => <li key={c.casillaId}><strong>{ETIQUETA_PIEZA[c.tipo]}:</strong> {c.piezaCorrecta}</li>)}
+          </ul>
+        </div>
+      )}
     </Tarjeta>)}
   </div>
 );
@@ -392,6 +433,8 @@ export const Retroalimentacion: React.FC<{ retro: RetroTipo }> = ({ retro }) => 
     switch (retro.mecanica) {
       case 'ARMADO_PIEZAS':
         return <Historias r={retro} />;
+      case 'SIMULADOR_ESCENARIOS':
+        return <Escenario r={retro} />;
       case 'LINEA_TIEMPO':
         return <LineaTiempo r={retro} />;
       case 'TABLERO_MOSCOW':
@@ -406,7 +449,7 @@ export const Retroalimentacion: React.FC<{ retro: RetroTipo }> = ({ retro }) => 
   })();
   return (
     <div className="flex flex-col gap-space-md">
-      {!retro.referenciaCompleta && retro.mecanica !== 'ARMADO_PIEZAS' && <ReferenciaReservada />}
+      {!retro.referenciaCompleta && <ReferenciaReservada />}
       {detalle}
     </div>
   );

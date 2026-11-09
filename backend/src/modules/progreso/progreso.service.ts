@@ -44,7 +44,12 @@ export class ProgresoService {
     const qp = aplicarMultiplicador(qpBase, multiplicador);
     const estudiante = await db.estudiante.update({
       where: { id: estudianteId },
-      data: { xpTotal: { increment: xp }, qpTotal: { increment: qp } },
+      data: {
+        xpTotal: { increment: xp },
+        qpTotal: { increment: qp },
+        // RN-30: desempate de la clasificación por quien alcanzó primero esa XP.
+        ...(xp > 0 ? { xpAlcanzadaEn: new Date() } : {}),
+      },
       select: { xpTotal: true, nivel: true },
     });
     const { nivel } = calcularNivel(estudiante.xpTotal);

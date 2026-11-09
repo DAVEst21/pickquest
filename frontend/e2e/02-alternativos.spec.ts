@@ -59,7 +59,7 @@ test.describe('Flujos alternativos y de excepción', () => {
     // Retroalimentación de un intento NO aprobado: qué está mal, pero no la solución
     await expect(page.getByText('Tu reparto y las restricciones')).toBeVisible();
     await expect(page.getByText(/Cumpliste 2 de 3 restricciones obligatorias/)).toBeVisible();
-    await expect(page.getByText('La respuesta de referencia completa se muestra cuando apruebas el reto')).toBeVisible();
+    await expect(page.getByText('La solución se mostrará al aprobar o después de 3 intentos')).toBeVisible();
     await expect(page.getByText('Tu reparto frente al de referencia')).toHaveCount(0);
     await expect(page.getByText('La justificación correcta era')).toHaveCount(0);
     await expect(page.getByText('Medidor de referencia')).toHaveCount(0);

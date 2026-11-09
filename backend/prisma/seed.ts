@@ -12,15 +12,17 @@
  * El contenido de los retos de opción múltiple del Sprint 1 está archivado
  * en prisma/contenido-archivado/ (no se usa aquí).
  */
-import { Mecanica, Prisma, PrismaClient, TipoObjeto } from '@prisma/client';
+import { Mecanica, Prisma, PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { calcularNivel } from '../src/modules/progreso/nivel';
 import { crearHistorias, HISTORIAS } from './contenido/historias-usuario';
 import { DIALOGO } from './contenido/dialogo-stakeholder';
+import { ESCENARIO_CALIDAD } from './contenido/escenario-calidad';
 import { FASES } from './contenido/fases';
 import { INSPECCION } from './contenido/inspeccion';
 import { LINEA_TIEMPO } from './contenido/linea-tiempo';
 import { MOSCOW } from './contenido/tablero-moscow';
+import { OBJETOS } from './contenido/objetos';
 import { PRESUPUESTO } from './contenido/presupuesto';
 import { RetoBase } from './contenido/tipos';
 
@@ -41,31 +43,8 @@ const RETOS: RetoDefinicion[] = [
   { faseOrden: 2, orden: 2, mecanica: 'ARMADO_PIEZAS', base: HISTORIAS, crearContenido: crearHistorias },
   { faseOrden: 2, orden: 3, mecanica: 'TABLERO_MOSCOW', base: MOSCOW, crearContenido: crearMoscow },
   { faseOrden: 3, orden: 1, mecanica: 'INSPECCION_SISTEMA', base: INSPECCION, crearContenido: crearInspeccion },
-  { faseOrden: 3, orden: 2, mecanica: 'REPARTO_PRESUPUESTO', base: PRESUPUESTO, crearContenido: crearPresupuesto },
-];
-
-const OBJETOS_SEED = [
-  {
-    nombre: 'Poción de Sabiduría',
-    tipo: 'POCION' as TipoObjeto,
-    costoQP: 50,
-    efecto: 'Revela una pista contextual sobre el reto.',
-    rareza: 'Común',
-  },
-  {
-    nombre: 'Pergamino de Claridad',
-    tipo: 'PERGAMINO' as TipoObjeto,
-    costoQP: 100,
-    efecto: 'Descarta una opción de respuesta incorrecta.',
-    rareza: 'Rara',
-  },
-  {
-    nombre: 'Reliquia del Arquitecto',
-    tipo: 'RELIQUIA' as TipoObjeto,
-    costoQP: 300,
-    efecto: 'Otorga un 50% extra de XP en el reto actual.',
-    rareza: 'Épica',
-  },
+  { faseOrden: 3, orden: 2, mecanica: 'SIMULADOR_ESCENARIOS', base: ESCENARIO_CALIDAD, crearContenido: crearEscenario },
+  { faseOrden: 3, orden: 3, mecanica: 'REPARTO_PRESUPUESTO', base: PRESUPUESTO, crearContenido: crearPresupuesto },
 ];
 
 const DEMO = {
@@ -98,6 +77,9 @@ async function borrarContenido(tx: Tx, retoId: number) {
   await tx.entregablePlan.deleteMany({ where: { retoId } });
   await tx.bloquePlan.deleteMany({ where: { retoId } }); // cascada: dependencias
   await tx.planProyecto.deleteMany({ where: { retoId } });
+  await tx.opcionParteEscenario.deleteMany({ where: { retoId } });
+  await tx.escenarioCalidad.deleteMany({ where: { retoId } });
+  await tx.unidadEscenario.deleteMany({ where: { retoId } });
 }
 
 /** CU-08 */
@@ -211,6 +193,46 @@ async function crearInspeccion(tx: Tx, retoId: number) {
   }
 }
 
+/** CU-05 */
+async function crearEscenario(tx: Tx, retoId: number) {
+  const c = ESCENARIO_CALIDAD;
+  const idPorUnidad = new Map<string, number>();
+  for (const nombre of c.unidades) {
+    const { id } = await tx.unidadEscenario.create({ data: { retoId, nombre } });
+    idPorUnidad.set(nombre, id);
+  }
+  await tx.escenarioCalidad.create({
+    data: {
+      retoId,
+      necesidadVaga: c.necesidadVaga,
+      contextoApp: c.contextoApp,
+      nombreMetrica: c.nombreMetrica,
+      nombreCarga: c.nombreCarga,
+      unidadCorrectaId: idPorUnidad.get(c.unidadCorrecta)!,
+      valorMinSlider: new Prisma.Decimal(c.valorMinSlider),
+      valorMaxSlider: new Prisma.Decimal(c.valorMaxSlider),
+      pasoSlider: new Prisma.Decimal(c.pasoSlider),
+      cargaMinSlider: c.cargaMinSlider,
+      cargaMaxSlider: c.cargaMaxSlider,
+      pasoCarga: c.pasoCarga,
+      valorMinAceptable: new Prisma.Decimal(c.valorMinAceptable),
+      valorMaxAceptable: new Prisma.Decimal(c.valorMaxAceptable),
+      cargaMinAceptable: c.cargaMinAceptable,
+      cargaMaxAceptable: c.cargaMaxAceptable,
+      simBase: new Prisma.Decimal(c.simBase),
+      simPendiente: new Prisma.Decimal(c.simPendiente),
+    },
+  });
+  for (const [parte, opciones] of Object.entries(c.partes)) {
+    let orden = 1;
+    for (const o of opciones) {
+      await tx.opcionParteEscenario.create({
+        data: { retoId, parte: parte as never, orden: orden++, texto: o.texto, correcta: o.correcta ?? false },
+      });
+    }
+  }
+}
+
 /** CU-06 */
 async function crearPresupuesto(tx: Tx, retoId: number) {
   await tx.escenarioPresupuesto.create({ data: { retoId, presupuesto: PRESUPUESTO.presupuesto } });
@@ -263,7 +285,7 @@ async function main() {
   }
 
   const objetosPorNombre = new Map<string, number>();
-  for (const obj of OBJETOS_SEED) {
+  for (const obj of OBJETOS) {
     const registro = await prisma.objeto.upsert({
       where: { nombre: obj.nombre },
       update: {
@@ -271,6 +293,7 @@ async function main() {
         costoQP: obj.costoQP,
         efecto: obj.efecto,
         rareza: obj.rareza,
+        tema: obj.tema,
       },
       create: obj,
     });

@@ -92,6 +92,8 @@ export class ArmadoPiezasEvaluador implements EvaluadorMecanica {
       where: { intentoId },
       include: { pieza: true },
     });
+    const piezas = await db.piezaHistoria.findMany({ where: { retoId } });
+    const textoPieza = new Map(piezas.map((p) => [p.id, p.texto]));
     return {
       porcentaje: calificarHistorias(
         historias.flatMap((h) => h.casillas),
@@ -110,6 +112,8 @@ export class ArmadoPiezasEvaluador implements EvaluadorMecanica {
               tipo: c.tipo,
               piezaElegida: elegida?.pieza.texto ?? null,
               acertada: elegida?.piezaId === c.piezaCorrectaId,
+              // Referencia (RN-31): se recorta si el estudiante todavía no puede verla.
+              piezaCorrecta: textoPieza.get(c.piezaCorrectaId) ?? null,
             };
           }),
         })),

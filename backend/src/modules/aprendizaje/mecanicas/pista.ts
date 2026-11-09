@@ -33,6 +33,8 @@ export function pistaAColumnas(pista: PistaDto): ColumnasPista {
   switch (pista.tipo) {
     case 'DISTRACTORES_RETIRADOS':
       return { ...VACIAS, tipoPista: 'DISTRACTORES_RETIRADOS' };
+    case 'RANGO_ESCENARIO':
+      return { ...VACIAS, tipoPista: 'RANGO_ESCENARIO' };
     case 'OPCION_DIALOGO':
       return { ...VACIAS, tipoPista: 'OPCION_DIALOGO', opcionId: id(pista.opcionId) };
     case 'COLUMNA_TARJETA':
@@ -67,6 +69,9 @@ export interface UsoAyudaConReferencias extends ColumnasPista {
 export function columnasAPista(uso: UsoAyudaConReferencias | null): PistaDto | null {
   if (!uso?.tipoPista) return null;
   switch (uso.tipoPista) {
+    case 'RANGO_ESCENARIO':
+      // El servicio completa el rango leyéndolo del escenario del reto.
+      return { tipo: 'RANGO_ESCENARIO' };
     case 'DISTRACTORES_RETIRADOS':
       return { tipo: 'DISTRACTORES_RETIRADOS', piezaIds: (uso.distractoresRetirados ?? []).map(p => p.piezaId) };
     case 'OPCION_DIALOGO':

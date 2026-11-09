@@ -11,6 +11,7 @@ import type {
   Libreta,
   ObjetoEquipado,
   PerfilEstudiante,
+  ResultadoSimulacion,
   Sesion,
   TecnicaElicitacion,
 } from '../types';
@@ -70,8 +71,9 @@ export function enviarIntento(intentoId: number): Promise<IntentoCalificado> {
   return http(`/intentos/${intentoId}/enviar`, { method: 'POST' });
 }
 
-export function getEquipados(): Promise<ObjetoEquipado[]> {
-  return http('/inventario/equipados');
+/** Con retoId, solo los objetos aplicables a ese reto (RN-10). */
+export function getEquipados(retoId?: number): Promise<ObjetoEquipado[]> {
+  return http(retoId ? `/inventario/equipados?retoId=${retoId}` : '/inventario/equipados');
 }
 
 export function getLibreta(retoId: number): Promise<Libreta[]> {
@@ -86,4 +88,9 @@ export function elegirTecnica<T>(intentoId: number, tecnica: TecnicaElicitacion)
 /** CU-01: registra un turno; devuelve el estado del diálogo con el turno recién jugado. */
 export function registrarTurno<T>(intentoId: number, opcionId: number): Promise<T> {
   return http(`/intentos/${intentoId}/dialogo/turnos`, { method: 'POST', body: { opcionId } });
+}
+
+/** CU-05: ejecuta una simulación del escenario con lo guardado (máximo 5 por intento). */
+export function simularEscenario(intentoId: number): Promise<ResultadoSimulacion> {
+  return http(`/intentos/${intentoId}/escenario/simular`, { method: 'POST' });
 }

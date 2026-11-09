@@ -10,6 +10,7 @@ import { InspeccionSistemaEvaluador } from './mecanicas/inspeccion-sistema/inspe
 import { LineaTiempoEvaluador } from './mecanicas/linea-tiempo/linea-tiempo.evaluador';
 import { MecanicasRegistro } from './mecanicas/mecanicas.registro';
 import { RepartoPresupuestoEvaluador } from './mecanicas/reparto-presupuesto/reparto-presupuesto.evaluador';
+import { SimuladorEscenariosEvaluador } from './mecanicas/simulador-escenarios/simulador-escenarios.evaluador';
 import { TableroMoscowEvaluador } from './mecanicas/tablero-moscow/tablero-moscow.evaluador';
 
 @Module({
@@ -24,6 +25,7 @@ import { TableroMoscowEvaluador } from './mecanicas/tablero-moscow/tablero-mosco
     InspeccionSistemaEvaluador,
     RepartoPresupuestoEvaluador,
     LineaTiempoEvaluador,
+    SimuladorEscenariosEvaluador,
   ],
 })
 export class AprendizajeModule {}

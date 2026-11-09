@@ -165,6 +165,8 @@ export interface ObjetoEquipado {
   efecto: string;
   rareza: string;
   cantidad: number;
+  /** null: sirve en cualquier reto; con valor, solo en los retos de esa fase. */
+  tema: TemaFase | null;
 }
 
 export interface Libreta {
@@ -313,10 +315,65 @@ export interface BorradorHistorias { colocaciones: { casillaId: number; piezaId:
 export interface PistaDistractores { tipo: 'DISTRACTORES_RETIRADOS'; piezaIds: number[] }
 export interface RetroHistorias {
   mecanica: 'ARMADO_PIEZAS'; referenciaCompleta: boolean;
-  historias: { historiaId: number; orden: number; necesidad: string; casillas: { casillaId: number; tipo: TipoPiezaHistoria; piezaElegida: string | null; acertada: boolean }[] }[];
+  historias: { historiaId: number; orden: number; necesidad: string; casillas: { casillaId: number; tipo: TipoPiezaHistoria; piezaElegida: string | null; acertada: boolean; /** RN-31 */ piezaCorrecta?: string | null }[] }[];
 }
 
-export type Pista = PistaDistractores | PistaDependencia | PistaColumna | PistaPantalla | PistaRestriccion | PistaOpcionDialogo;
+// CU-05 Simulador de escenarios de calidad
+export type ParteEscenario = 'FUENTE' | 'ESTIMULO' | 'ARTEFACTO' | 'ENTORNO' | 'RESPUESTA';
+export interface ContenidoEscenario {
+  necesidadVaga: string;
+  contextoApp: string;
+  nombreMetrica: string;
+  nombreCarga: string;
+  unidades: { id: number; nombre: string }[];
+  deslizadores: { valorMin: number; valorMax: number; paso: number; cargaMin: number; cargaMax: number; pasoCarga: number };
+  limiteSimulaciones: number;
+  partes: { parte: ParteEscenario; nombre: string; opciones: { id: number; orden: number; texto: string }[] }[];
+}
+export interface SimulacionGuardada {
+  numero: number;
+  valor: number;
+  carga: number;
+  valorApp: number;
+  cumple: boolean;
+}
+export interface BorradorEscenario {
+  elecciones: { parte: ParteEscenario; opcionId: number }[];
+  valor: number | null;
+  unidadId: number | null;
+  carga: number | null;
+  simulaciones: SimulacionGuardada[];
+  simulacionesRestantes: number;
+}
+/** POST /intentos/:id/escenario/simular */
+export interface ResultadoSimulacion extends SimulacionGuardada {
+  restantes: number;
+  /** Respuesta de la app a distintas cargas, para la gráfica frente al umbral. */
+  curva: { carga: number; valorApp: number }[];
+}
+export interface PistaRango {
+  tipo: 'RANGO_ESCENARIO';
+  valorMin: number;
+  valorMax: number;
+  unidad: string | null;
+  cargaMin: number;
+  cargaMax: number;
+}
+export interface RetroEscenario {
+  mecanica: 'SIMULADOR_ESCENARIOS';
+  referenciaCompleta: boolean;
+  necesidadVaga: string;
+  nombreMetrica: string;
+  nombreCarga: string;
+  partes: { parte: ParteEscenario; nombre: string; elegida: string | null; acertada: boolean; /** RN-31 */ correcta?: string | null }[];
+  medida: { valor: number | null; unidad: string | null; carga: number | null; unidadAcertada: boolean; dentroDelRango: boolean };
+  simulacionesUsadas: number;
+  limiteSimulaciones: number;
+  /** RN-31 */
+  rangoAceptable?: { valorMin: number; valorMax: number; cargaMin: number; cargaMax: number; unidad: string | null };
+}
+
+export type Pista = PistaDistractores | PistaDependencia | PistaColumna | PistaPantalla | PistaRestriccion | PistaOpcionDialogo | PistaRango;
 
 /** POST /intentos/:id/ayuda */
 export interface AyudaAplicada {
@@ -450,6 +507,7 @@ export interface RetroDialogo {
 }
 
 export type Retroalimentacion =
+  | RetroEscenario
   | RetroHistorias
   | RetroLineaTiempo
   | RetroMoscow

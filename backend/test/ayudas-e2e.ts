@@ -188,6 +188,28 @@ export async function resolver(
       }
       return;
     }
+    case 'SIMULADOR_ESCENARIOS': {
+      const escenario = await prisma.escenarioCalidad.findUniqueOrThrow({ where: { retoId } });
+      const opciones = await prisma.opcionParteEscenario.findMany({ where: { retoId } });
+      const unidades = await prisma.unidadEscenario.findMany({ where: { retoId } });
+      const partes = ['FUENTE', 'ESTIMULO', 'ARTEFACTO', 'ENTORNO', 'RESPUESTA'] as const;
+      await guardar({
+        elecciones: partes.map((parte) => ({
+          parte,
+          opcionId: opciones.find((o) => o.parte === parte && o.correcta === (modo === 'perfecto'))!.id,
+        })),
+        valor:
+          modo === 'perfecto'
+            ? (Number(escenario.valorMinAceptable) + Number(escenario.valorMaxAceptable)) / 2
+            : Number(escenario.valorMaxSlider),
+        unidadId: (modo === 'perfecto'
+          ? unidades.find((u) => u.id === escenario.unidadCorrectaId)!
+          : unidades.find((u) => u.id !== escenario.unidadCorrectaId)!
+        ).id,
+        carga: modo === 'perfecto' ? (escenario.cargaMinAceptable + escenario.cargaMaxAceptable) / 2 : escenario.cargaMaxSlider,
+      });
+      return;
+    }
     default:
       throw new Error(`Mecánica sin resolver en la prueba: ${intento.reto.mecanica}`);
   }
