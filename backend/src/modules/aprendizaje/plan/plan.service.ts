@@ -355,8 +355,17 @@ export class PlanService {
           })) > 0
         );
       default:
-        // DUELO: se completa con el módulo de duelos (CU-13).
-        return false;
+        // DUELO: hay un duelo terminado de ese tema, en el que participó, después de aceptar el plan.
+        return (
+          (await db.duelo.count({
+            where: {
+              estado: 'TERMINADO',
+              tema: actividad.tema,
+              terminadoEn: { gt: desde },
+              OR: [{ retadorId: estudianteId }, { retadoId: estudianteId }],
+            },
+          })) > 0
+        );
     }
   }
 }

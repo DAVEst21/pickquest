@@ -6,6 +6,10 @@ import { BibliotecaPage } from './features/estudio/BibliotecaPage';
 import { MaterialPage } from './features/estudio/MaterialPage';
 import { RepasoPage } from './features/estudio/RepasoPage';
 import { RetoDiarioPage } from './features/diario/RetoDiarioPage';
+import { ClasificacionPage } from './features/clasificacion/ClasificacionPage';
+import { DueloPage } from './features/duelos/DueloPage';
+import { DuelosPage } from './features/duelos/DuelosPage';
+import { PerfilPage } from './features/perfil/PerfilPage';
 import { DiagnosticoPage } from './features/plan/DiagnosticoPage';
 import { PlanPage } from './features/plan/PlanPage';
 import { PropuestaPage } from './features/plan/PropuestaPage';
@@ -38,6 +42,11 @@ export const router = createBrowserRouter([
       { path: '/plan/propuesta/:planId', element: <PropuestaPage /> },
       // Reto diario contrarreloj (CU-11)
       { path: '/reto-diario', element: <RetoDiarioPage /> },
+      // Duelos (CU-13), clasificación (RF-20) y perfil (RF-19)
+      { path: '/duelos', element: <DuelosPage /> },
+      { path: '/duelos/:dueloId', element: <DueloPage /> },
+      { path: '/clasificacion', element: <ClasificacionPage /> },
+      { path: '/perfil', element: <PerfilPage /> },
       // Tienda de objetos (CU-12)
       { path: '/tienda', element: <TiendaPage /> },
     ],

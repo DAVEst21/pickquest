@@ -4,7 +4,7 @@ import { ApiError } from './errores';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 interface OpcionesPeticion {
-  method?: 'GET' | 'POST' | 'PUT';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH';
   body?: unknown;
   /** Permite que la petición termine aunque se cierre la pestaña (guardado al salir). */
   keepalive?: boolean;

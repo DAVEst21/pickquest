@@ -8,7 +8,14 @@ import type {
   Intento,
   IntentoCalificado,
   IntentoEnCurso,
+  AvisoDuelo,
   Autoevaluacion,
+  Clasificacion,
+  Duelo,
+  ListaDuelos,
+  PerfilCompleto,
+  Rival,
+  RespuestaDuelo,
   EstadoRetoDiario,
   HoyRetoDiario,
   PreguntaCronometrada,
@@ -230,4 +237,62 @@ export function responderPreguntaDiaria(
 /** CU-11 FA2. */
 export function abandonarRetoDiario(retoId: number): Promise<EstadoRetoDiario> {
   return http(`/reto-diario/${retoId}/abandonar`, { method: 'POST' });
+}
+
+// ---------- CU-13 Duelos ----------
+
+export function getRivales(): Promise<Rival[]> {
+  return http('/duelos/rivales');
+}
+
+export function getDuelos(): Promise<ListaDuelos> {
+  return http('/duelos');
+}
+
+/** Duelos pendientes en los que soy el retado: el aviso al iniciar sesión. */
+export function getAvisosDuelos(): Promise<AvisoDuelo[]> {
+  return http('/duelos/avisos');
+}
+
+/** El rival se identifica por su nombre de aventurero (nunca se exponen correos ni ids). */
+export function crearDuelo(rival: string, tema: string): Promise<Duelo> {
+  return http('/duelos', { method: 'POST', body: { rival, tema } });
+}
+
+export function getDuelo(dueloId: number): Promise<Duelo> {
+  return http(`/duelos/${dueloId}`);
+}
+
+export function aceptarDuelo(dueloId: number): Promise<Duelo> {
+  return http(`/duelos/${dueloId}/aceptar`, { method: 'POST' });
+}
+
+export function rechazarDuelo(dueloId: number): Promise<Duelo> {
+  return http(`/duelos/${dueloId}/rechazar`, { method: 'POST' });
+}
+
+export function entregarPreguntaDuelo(dueloId: number, numero: number): Promise<PreguntaCronometrada> {
+  return http(`/duelos/${dueloId}/preguntas/${numero}/entregar`, { method: 'POST' });
+}
+
+export function responderPreguntaDuelo(
+  dueloId: number,
+  numero: number,
+  opcionId: number | null,
+): Promise<RespuestaDuelo> {
+  return http(`/duelos/${dueloId}/preguntas/${numero}/respuesta`, { method: 'POST', body: { opcionId } });
+}
+
+// ---------- RF-20 Clasificación y RF-19 Perfil ----------
+
+export function getClasificacion(): Promise<Clasificacion> {
+  return http('/clasificacion');
+}
+
+export function getPerfilCompleto(): Promise<PerfilCompleto> {
+  return http('/perfil');
+}
+
+export function actualizarPerfil(cambios: { nombreAventurero?: string; avatar?: string }): Promise<PerfilCompleto> {
+  return http('/perfil', { method: 'PATCH', body: cambios });
 }

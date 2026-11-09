@@ -4,6 +4,9 @@ import { useAuthStore } from '../store/authStore';
 import { usePlayerStore } from '../store/playerStore';
 import {
   abandonarRetoDiario,
+  aceptarDuelo,
+  actualizarPerfil,
+  crearDuelo,
   aceptarPlan,
   autoevaluarTarjeta,
   comprarObjeto,
@@ -12,7 +15,14 @@ import {
   equiparObjeto,
   getEquipados,
   getFases,
+  getAvisosDuelos,
+  getClasificacion,
   getDiagnostico,
+  getDuelo,
+  getDuelos,
+  getPerfilCompleto,
+  getRivales,
+  rechazarDuelo,
   getIntento,
   getRetoDiarioHoy,
   iniciarRetoDiario,
@@ -46,6 +56,12 @@ export const QUERY_KEYS = {
   libreta: (retoId: number) => ['libreta', retoId] as const,
   tienda: ['tienda'] as const,
   retoDiarioHoy: ['reto-diario', 'hoy'] as const,
+  duelos: ['duelos'] as const,
+  avisosDuelos: ['duelos', 'avisos'] as const,
+  rivales: ['duelos', 'rivales'] as const,
+  duelo: (id: number) => ['duelos', 'detalle', id] as const,
+  clasificacion: ['clasificacion'] as const,
+  perfilCompleto: ['perfil-completo'] as const,
   planActivo: ['plan', 'activo'] as const,
   plan: (id: number) => ['plan', id] as const,
   diagnostico: (id: number) => ['plan', 'diagnostico', id] as const,
@@ -347,4 +363,79 @@ export function useIniciarRetoDiario() {
 export function useAbandonarRetoDiario() {
   const refrescar = useRefrescarRetoDiario();
   return useMutation({ mutationFn: (retoId: number) => abandonarRetoDiario(retoId), onSuccess: refrescar });
+}
+
+// ---------- CU-13 Duelos ----------
+
+export function useRivales() {
+  return useQuery({ queryKey: QUERY_KEYS.rivales, queryFn: getRivales });
+}
+
+export function useDuelos() {
+  return useQuery({ queryKey: QUERY_KEYS.duelos, queryFn: getDuelos });
+}
+
+/** Avisos de duelos pendientes: se consultan al iniciar sesión y cada minuto (indicador del encabezado). */
+export function useAvisosDuelos() {
+  return useQuery({ queryKey: QUERY_KEYS.avisosDuelos, queryFn: getAvisosDuelos, refetchInterval: 60_000 });
+}
+
+export function useDuelo(dueloId: number | undefined) {
+  return useQuery({
+    queryKey: QUERY_KEYS.duelo(dueloId ?? 0),
+    queryFn: () => getDuelo(dueloId!),
+    enabled: esIdValido(dueloId),
+    retry: false,
+  });
+}
+
+/** Los cambios de un duelo refrescan sus listas, los avisos y el perfil (XP). */
+export function useRefrescarDuelos() {
+  const queryClient = useQueryClient();
+  return () => {
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.duelos });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.perfil });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.perfilCompleto });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.clasificacion });
+  };
+}
+
+export function useCrearDuelo() {
+  const refrescar = useRefrescarDuelos();
+  return useMutation({
+    mutationFn: ({ rival, tema }: { rival: string; tema: string }) => crearDuelo(rival, tema),
+    onSuccess: refrescar,
+  });
+}
+
+export function useAceptarDuelo() {
+  const refrescar = useRefrescarDuelos();
+  return useMutation({ mutationFn: (dueloId: number) => aceptarDuelo(dueloId), onSuccess: refrescar });
+}
+
+export function useRechazarDuelo() {
+  const refrescar = useRefrescarDuelos();
+  return useMutation({ mutationFn: (dueloId: number) => rechazarDuelo(dueloId), onSuccess: refrescar });
+}
+
+// ---------- RF-20 Clasificación y RF-19 Perfil ----------
+
+export function useClasificacion() {
+  return useQuery({ queryKey: QUERY_KEYS.clasificacion, queryFn: getClasificacion });
+}
+
+export function usePerfilCompleto() {
+  return useQuery({ queryKey: QUERY_KEYS.perfilCompleto, queryFn: getPerfilCompleto });
+}
+
+export function useActualizarPerfil() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: actualizarPerfil,
+    onSuccess: (perfil) => {
+      queryClient.setQueryData(QUERY_KEYS.perfilCompleto, perfil);
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.perfil });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.clasificacion });
+    },
+  });
 }

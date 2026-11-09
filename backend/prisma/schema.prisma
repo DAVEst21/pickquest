@@ -124,19 +124,24 @@ model Estudiante {
   // Momento en que alcanzó su XP actual: desempate de la clasificación (RN-30).
   xpAlcanzadaEn    DateTime @default(now())
 
-  racha            RachaEstudio?
-  intentos         IntentoReto[]
-  inventario       InventarioObjeto[]
-  compras          CompraObjeto[]
-  progresoTarjetas ProgresoTarjeta[]
-  consultasTema    ConsultaTema[]
-  sesionesRepaso   SesionRepaso[]
-  dominios         DominioTema[]
-  diagnosticos     Diagnostico[]
-  planes           PlanEstudio[]
-  retosDiarios     RetoDiario[]
-  logros           LogroEstudiante[]
-  habilidades      HabilidadSDLC[]
+  racha             RachaEstudio?
+  intentos          IntentoReto[]
+  inventario        InventarioObjeto[]
+  compras           CompraObjeto[]
+  progresoTarjetas  ProgresoTarjeta[]
+  consultasTema     ConsultaTema[]
+  sesionesRepaso    SesionRepaso[]
+  dominios          DominioTema[]
+  diagnosticos      Diagnostico[]
+  planes            PlanEstudio[]
+  retosDiarios      RetoDiario[]
+  duelosComoRetador Duelo[]            @relation("DueloRetador")
+  duelosComoRetado  Duelo[]            @relation("DueloRetado")
+  duelosGanados     Duelo[]            @relation("DueloGanador")
+  respuestasDuelo   RespuestaDuelo[]
+  resultadosDuelo   ResultadoDuelo[]
+  logros            LogroEstudiante[]
+  habilidades       HabilidadSDLC[]
 
   @@map("estudiante")
 }
@@ -1205,6 +1210,7 @@ model PreguntaBanco {
   opciones    OpcionPregunta[]
   diagnostico PreguntaDiagnostico[]
   retoDiario  PreguntaRetoDiario[]
+  duelos      PreguntaDuelo[]
 
   @@unique([tema, enunciado])
   @@index([tema, activa])
@@ -1222,6 +1228,7 @@ model OpcionPregunta {
   pregunta              PreguntaBanco          @relation(fields: [preguntaId], references: [id], onDelete: Cascade)
   respuestasDiagnostico RespuestaDiagnostico[]
   respuestasRetoDiario  PreguntaRetoDiario[]
+  respuestasDuelo       RespuestaDuelo[]
 
   @@unique([preguntaId, orden])
   @@map("opcion_pregunta")
@@ -1371,4 +1378,91 @@ model PreguntaRetoDiario {
 
   @@id([retoDiarioId, numero])
   @@map("pregunta_reto_diario")
+}
+
+// ===================================================================
+// CU-13 Duelos (RF-16, RN-14, RN-15, RNF-SE-04, RNF-SE-05)
+// ===================================================================
+
+enum EstadoDuelo {
+  PENDIENTE
+  ACEPTADO
+  TERMINADO
+  RECHAZADO
+  EXPIRADO
+}
+
+model Duelo {
+  id          Int         @id @default(autoincrement())
+  retadorId   Int
+  retadoId    Int
+  tema        TemaFase
+  estado      EstadoDuelo @default(PENDIENTE)
+  creadoEn    DateTime    @default(now())
+  // creadoEn + 48 h (RN-15).
+  expiraEn    DateTime
+  // null con empate exacto o sin terminar.
+  ganadorId   Int?
+  empate      Boolean     @default(false)
+  terminadoEn DateTime?
+
+  retador    Estudiante       @relation("DueloRetador", fields: [retadorId], references: [id], onDelete: Cascade)
+  retado     Estudiante       @relation("DueloRetado", fields: [retadoId], references: [id], onDelete: Cascade)
+  ganador    Estudiante?      @relation("DueloGanador", fields: [ganadorId], references: [id], onDelete: SetNull)
+  preguntas  PreguntaDuelo[]
+  respuestas RespuestaDuelo[]
+  resultados ResultadoDuelo[]
+
+  @@index([retadorId, estado])
+  @@index([retadoId, estado])
+  @@index([estado, expiraEn])
+  @@map("duelo")
+}
+
+// 5 preguntas del tema, la misma ronda para ambos estudiantes.
+model PreguntaDuelo {
+  dueloId    Int
+  numero     Int
+  preguntaId Int
+
+  duelo    Duelo         @relation(fields: [dueloId], references: [id], onDelete: Cascade)
+  pregunta PreguntaBanco @relation(fields: [preguntaId], references: [id], onDelete: Restrict)
+
+  @@id([dueloId, numero])
+  @@map("pregunta_duelo")
+}
+
+model RespuestaDuelo {
+  dueloId      Int
+  estudianteId Int
+  numero       Int
+  // Momento en que el servidor habilitó la pregunta (RNF-SE-05).
+  entregadaEn  DateTime
+  respondidaEn DateTime?
+  opcionId     Int?
+  correcta     Boolean   @default(false)
+  // Tiempo usado: los segundos hasta responder, o 20 si se agotó.
+  segundos     Decimal   @default(20) @db.Decimal(5, 2)
+
+  duelo      Duelo           @relation(fields: [dueloId], references: [id], onDelete: Cascade)
+  estudiante Estudiante      @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+  opcion     OpcionPregunta? @relation(fields: [opcionId], references: [id], onDelete: Restrict)
+
+  @@id([dueloId, estudianteId, numero])
+  @@map("respuesta_duelo")
+}
+
+// Se crea cuando el estudiante termina su ronda; el rival no lo ve hasta que el duelo termina.
+model ResultadoDuelo {
+  dueloId         Int
+  estudianteId    Int
+  porcentaje      Int
+  segundosTotales Decimal @db.Decimal(6, 2)
+  xpOtorgada      Int     @default(0)
+
+  duelo      Duelo      @relation(fields: [dueloId], references: [id], onDelete: Cascade)
+  estudiante Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+
+  @@id([dueloId, estudianteId])
+  @@map("resultado_duelo")
 }

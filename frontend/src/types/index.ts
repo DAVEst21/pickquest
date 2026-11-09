@@ -843,3 +843,116 @@ export interface RespuestaRetoDiario extends RetroPregunta {
   terminado: boolean;
   estado: EstadoRetoDiario;
 }
+
+// ---------- CU-13 Duelos ----------
+
+export interface Rival {
+  nombreAventurero: string;
+  nivel: number;
+  temasEnComun: { tema: TemaFase; nombre: string }[];
+  duelos: { ganados: number; perdidos: number; empatados: number };
+}
+
+export interface ResultadoParticipante {
+  porcentaje: number;
+  segundosTotales: number;
+  xpOtorgada: number;
+}
+
+export interface Duelo {
+  dueloId: number;
+  tema: TemaFase;
+  temaNombre: string;
+  estado: 'PENDIENTE' | 'ACEPTADO' | 'TERMINADO' | 'RECHAZADO' | 'EXPIRADO';
+  rol: 'RETADOR' | 'RETADO';
+  rival: { nombreAventurero: string; nivel: number };
+  creadoEn: string;
+  expiraEn: string;
+  miRonda: { total: number; resueltas: number; siguiente: number | null; terminada: boolean; segundosRestantes: number | null };
+  miResultado: ResultadoParticipante | null;
+  accion: 'ACEPTAR_O_RECHAZAR' | 'JUGAR_RONDA' | 'ESPERAR_RIVAL' | 'VER_RESULTADO' | null;
+  resultado: {
+    yo: ResultadoParticipante;
+    rival: ResultadoParticipante;
+    ganador: 'YO' | 'RIVAL' | 'EMPATE';
+    revision: {
+      numero: number;
+      enunciado: string;
+      opcionElegidaId: number | null;
+      opcionCorrectaId: number;
+      correcta: boolean;
+      explicacion: string | null;
+    }[];
+  } | null;
+}
+
+export interface ListaDuelos {
+  pendientes: Duelo[];
+  porJugar: Duelo[];
+  enEspera: Duelo[];
+  historial: Duelo[];
+  limitePendientes: number;
+  activos: number;
+}
+
+export interface AvisoDuelo {
+  dueloId: number;
+  retador: { nombreAventurero: string; nivel: number };
+  tema: TemaFase;
+  temaNombre: string;
+  expiraEn: string;
+}
+
+export interface RespuestaDuelo {
+  numero: number;
+  registrada: boolean;
+  rondaTerminada: boolean;
+  duelo: Duelo;
+}
+
+// ---------- RF-20 Clasificación y RF-19 Perfil ----------
+
+export interface FilaClasificacion {
+  posicion: number;
+  nombreAventurero: string;
+  nivel: number;
+  xpTotal: number;
+  estrellas: number;
+  esYo: boolean;
+}
+
+export interface Clasificacion {
+  calculadaEn: string;
+  totalEstudiantes: number;
+  filas: FilaClasificacion[];
+  miPosicion: number;
+}
+
+export interface EstrellasFase {
+  faseId: number;
+  orden: number;
+  nombre: string;
+  tema: TemaFase;
+  retosAprobados: number;
+  totalRetos: number;
+  estrellas: number;
+  estrellasMaximas: number;
+  calificacionEstrellasFase: number | null;
+}
+
+export interface PerfilCompleto {
+  nombreAventurero: string;
+  email: string;
+  avatar: string | null;
+  nivel: number;
+  xpTotal: number;
+  xpSiguienteNivel: number;
+  xpNivelActual: number;
+  qpTotal: number;
+  racha: RachaDiaria;
+  estrellasTotales: number;
+  estrellasPorFase: EstrellasFase[];
+  inventario: ObjetoInventario[];
+  maxEquipados: number;
+  planActivo: PlanEstudio | null;
+}

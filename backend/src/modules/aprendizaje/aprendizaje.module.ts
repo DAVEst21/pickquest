@@ -38,5 +38,6 @@ import { TableroMoscowEvaluador } from './mecanicas/tablero-moscow/tablero-mosco
     SimuladorEscenariosEvaluador,
     ExpedienteProyectoEvaluador,
   ],
+  exports: [PlanService],
 })
 export class AprendizajeModule {}

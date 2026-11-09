@@ -14,6 +14,7 @@
  */
 import { Mecanica, Prisma, PrismaClient, TemaFase } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { diaADate, diaAnterior, diaCalendarioMx } from '../src/common/fechas/dia-calendario';
 import { calcularNivel } from '../src/modules/progreso/nivel';
 import { crearHistorias, HISTORIAS } from './contenido/historias-usuario';
 import { DIALOGO } from './contenido/dialogo-stakeholder';
@@ -57,6 +58,13 @@ const DEMO = {
   nombreAventurero: 'aventurero_demo',
   avatar:
     'https://lh3.googleusercontent.com/aida-public/AB6AXuAkK1BCQ8uGfm-oL05s5RyoOMILULmuhtykUluqRc6SeaYtNxAeZ6CjcKfWiev__MjOaHVUvHYGN6QnGKkuJwCaIA0_4Zihc1pI32IKqSSiN8PajarzaqNy-qacQnYF_ge64QGn508tpjeK3XYAYlMf3tSI053ZuLimtZf9VySuiyaGCZfRw38emwEPMwTRPSH2FtcrGSz93xx1vi4NYNRKYZA0qPEsFmy7oNgFY-G6xbXwSsNt9SLt',
+};
+
+// Segundo estudiante demo, con progreso distinto al del primero, para probar duelos y clasificación.
+const RIVAL = {
+  email: 'rival@pickquest.dev',
+  password: 'pickquest123',
+  nombreAventurero: 'rival_demo',
 };
 
 // ---------------------------------------------------------------------
@@ -354,6 +362,64 @@ async function cargarMaterialDeEstudio(faseId: number, tema: TemaFase) {
   }
 }
 
+/**
+ * Segundo estudiante demo (rival_demo): ya completó la fase 1 y el primer reto de la fase 2, con una
+ * racha activa y una poción equipada. Así comparte con el primer demo el tema de la fase 1 para los duelos
+ * y aparece en la clasificación con otro nivel y otra XP. Idempotente: solo se crea la primera vez.
+ */
+async function cargarEstudianteRival() {
+  const existente = await prisma.estudiante.findUnique({ where: { email: RIVAL.email } });
+  if (existente) return;
+
+  const retos = await prisma.reto.findMany({
+    where: { OR: [{ fase: { orden: 1 } }, { fase: { orden: 2 }, orden: 1 }] },
+    orderBy: [{ fase: { orden: 'asc' } }, { orden: 'asc' }],
+  });
+  const hoy = new Date();
+  const hace = (dias: number) => new Date(hoy.getTime() - dias * 24 * 3600 * 1000);
+  const xpTotal = retos.reduce((suma, r) => suma + r.recompensaXp, 0);
+  const qpTotal = retos.reduce((suma, r) => suma + r.recompensaQp, 0);
+  const ayer = diaAnterior(diaCalendarioMx());
+
+  const rival = await prisma.estudiante.create({
+    data: {
+      email: RIVAL.email,
+      passwordHash: await bcrypt.hash(RIVAL.password, 12),
+      nombreAventurero: RIVAL.nombreAventurero,
+      avatar: '',
+      nivel: calcularNivel(xpTotal).nivel,
+      xpTotal,
+      qpTotal,
+      xpAlcanzadaEn: hace(1),
+      racha: {
+        create: { diasActuales: 3, diasRecord: 5, multiplicadorQP: 1.3, ultimaActividad: diaADate(ayer) },
+      },
+    },
+  });
+  for (const [i, reto] of retos.entries()) {
+    await prisma.intentoReto.create({
+      data: {
+        estudianteId: rival.id,
+        retoId: reto.id,
+        estado: 'CALIFICADO',
+        porcentaje: i % 2 === 0 ? 100 : 90,
+        calificacionEstrellas: i % 2 === 0 ? 3 : 2,
+        aprobado: true,
+        xpGanado: reto.recompensaXp,
+        qpGanado: reto.recompensaQp,
+        creadoEn: hace(3 - Math.min(i, 2)),
+        calificadoEn: hace(3 - Math.min(i, 2)),
+      },
+    });
+  }
+  const pocion = await prisma.objeto.findUnique({ where: { nombre: 'Poción de Sabiduría' } });
+  if (pocion) {
+    await prisma.inventarioObjeto.create({
+      data: { estudianteId: rival.id, objetoId: pocion.id, cantidad: 2, equipado: true },
+    });
+  }
+}
+
 async function main() {
   const fasePorOrden = new Map<number, number>();
   for (const fase of FASES) {
@@ -461,6 +527,8 @@ async function main() {
     });
   }
 
+  await cargarEstudianteRival();
+
   const [fases, retos, objetos, estudiantes, intentos] = await Promise.all([
     prisma.fase.count(),
     prisma.reto.count(),
@@ -470,7 +538,7 @@ async function main() {
   ]);
   console.log(
     `Seed listo: ${fases} fases, ${retos} retos, ${objetos} objetos, ${estudiantes} estudiantes, ${intentos} intentos. ` +
-      `Usuario demo: ${DEMO.email} / ${DEMO.password}`,
+      `Usuarios demo: ${DEMO.email} y ${RIVAL.email} (contraseña ${DEMO.password})`,
   );
 }
 

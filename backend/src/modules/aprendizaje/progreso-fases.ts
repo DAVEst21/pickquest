@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Prisma, TemaFase } from '@prisma/client';
 import {
   calcularEstadosFases,
   EstadoFase,
@@ -62,4 +62,48 @@ export async function cargarProgresoFases(db: Db, estudianteId: number): Promise
     resumen,
   );
   return { fases, estados, resumen };
+}
+
+/**
+ * Temas desbloqueados (RN-01) de varios estudiantes con una sola consulta de intentos. Lo usan los duelos
+ * (RN-15: solo se puede retar sobre un tema que ambos tengan desbloqueado) para no recorrer estudiante
+ * por estudiante.
+ */
+export async function temasDesbloqueados(db: Db, estudianteIds: number[]): Promise<Map<number, TemaFase[]>> {
+  const resultado = new Map<number, TemaFase[]>();
+  if (estudianteIds.length === 0) return resultado;
+  const fases = await db.fase.findMany({
+    select: SELECCION_FASE,
+    orderBy: { orden: 'asc' },
+  });
+  const grupos = await db.intentoReto.groupBy({
+    by: ['estudianteId', 'retoId', 'aprobado'],
+    where: { estudianteId: { in: estudianteIds }, estado: 'CALIFICADO' },
+    _count: { _all: true },
+    _max: { porcentaje: true, calificacionEstrellas: true },
+    _sum: { qpGanado: true },
+  });
+  for (const id of estudianteIds) {
+    const resumen = resumirIntentos(
+      grupos
+        .filter((g) => g.estudianteId === id)
+        .map((g) => ({
+          retoId: g.retoId,
+          aprobado: g.aprobado,
+          intentos: g._count._all,
+          maxPorcentaje: g._max.porcentaje,
+          maxEstrellas: g._max.calificacionEstrellas,
+          sumaQpGanado: g._sum.qpGanado ?? 0,
+        })),
+    );
+    const estados = calcularEstadosFases(
+      fases.map((f) => ({ id: f.id, orden: f.orden, retoIds: f.retos.map((r) => r.id) })),
+      resumen,
+    );
+    resultado.set(
+      id,
+      fases.filter((f) => estados.get(f.id) !== 'bloqueada').map((f) => f.tema),
+    );
+  }
+  return resultado;
 }

@@ -231,7 +231,7 @@ const ResolverReto: React.FC<{ intento: IntentoEnCurso }> = ({ intento }) => {
           <div className="bg-surface-container-low rounded-xl p-space-xl text-center border border-surface-container-high/40">
             <span className="material-symbols-outlined text-headline-lg text-on-surface-variant">hourglass_empty</span>
             <p className="font-title-md text-title-md text-on-surface mt-space-sm">
-              Este reto estará disponible próximamente
+              Este tipo de reto no se puede mostrar en esta versión de la aplicación
             </p>
           </div>
         );
