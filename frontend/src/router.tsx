@@ -5,6 +5,7 @@ import { RegistroPage } from './features/auth/RegistroPage';
 import { BibliotecaPage } from './features/estudio/BibliotecaPage';
 import { MaterialPage } from './features/estudio/MaterialPage';
 import { RepasoPage } from './features/estudio/RepasoPage';
+import { RetoDiarioPage } from './features/diario/RetoDiarioPage';
 import { DiagnosticoPage } from './features/plan/DiagnosticoPage';
 import { PlanPage } from './features/plan/PlanPage';
 import { PropuestaPage } from './features/plan/PropuestaPage';
@@ -35,6 +36,8 @@ export const router = createBrowserRouter([
       { path: '/plan', element: <PlanPage /> },
       { path: '/plan/diagnostico/:diagnosticoId', element: <DiagnosticoPage /> },
       { path: '/plan/propuesta/:planId', element: <PropuestaPage /> },
+      // Reto diario contrarreloj (CU-11)
+      { path: '/reto-diario', element: <RetoDiarioPage /> },
       // Tienda de objetos (CU-12)
       { path: '/tienda', element: <TiendaPage /> },
     ],

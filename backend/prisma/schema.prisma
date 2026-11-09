@@ -134,6 +134,7 @@ model Estudiante {
   dominios         DominioTema[]
   diagnosticos     Diagnostico[]
   planes           PlanEstudio[]
+  retosDiarios     RetoDiario[]
   logros           LogroEstudiante[]
   habilidades      HabilidadSDLC[]
 
@@ -1203,6 +1204,7 @@ model PreguntaBanco {
 
   opciones    OpcionPregunta[]
   diagnostico PreguntaDiagnostico[]
+  retoDiario  PreguntaRetoDiario[]
 
   @@unique([tema, enunciado])
   @@index([tema, activa])
@@ -1219,6 +1221,7 @@ model OpcionPregunta {
 
   pregunta              PreguntaBanco          @relation(fields: [preguntaId], references: [id], onDelete: Cascade)
   respuestasDiagnostico RespuestaDiagnostico[]
+  respuestasRetoDiario  PreguntaRetoDiario[]
 
   @@unique([preguntaId, orden])
   @@map("opcion_pregunta")
@@ -1326,4 +1329,46 @@ model ActividadPlan {
 
   @@index([planId, orden])
   @@map("actividad_plan")
+}
+
+// ===================================================================
+// CU-11 Reto diario contrarreloj (RF-14, RN-12, RN-13, RN-29, RNF-SE-05)
+// ===================================================================
+
+model RetoDiario {
+  id            Int       @id @default(autoincrement())
+  estudianteId  Int
+  // Día calendario MX (RN-12): el @@unique impide un segundo reto el mismo día.
+  dia           DateTime  @db.Date
+  // Multiplicador de QP vigente al iniciar.
+  multiplicador Decimal   @db.Decimal(3, 2)
+  aciertos      Int?
+  xpOtorgada    Int       @default(0)
+  qpOtorgado    Int       @default(0)
+  creadoEn      DateTime  @default(now())
+  terminadoEn   DateTime?
+
+  estudiante Estudiante           @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+  preguntas  PreguntaRetoDiario[]
+
+  @@unique([estudianteId, dia])
+  @@map("reto_diario")
+}
+
+model PreguntaRetoDiario {
+  retoDiarioId Int
+  // 1..10
+  numero       Int
+  preguntaId   Int
+  // Momento en que el servidor habilitó la pregunta (RNF-SE-05).
+  entregadaEn  DateTime?
+  opcionId     Int?
+  correcta     Boolean?
+
+  retoDiario RetoDiario      @relation(fields: [retoDiarioId], references: [id], onDelete: Cascade)
+  pregunta   PreguntaBanco   @relation(fields: [preguntaId], references: [id], onDelete: Restrict)
+  opcion     OpcionPregunta? @relation(fields: [opcionId], references: [id], onDelete: Restrict)
+
+  @@id([retoDiarioId, numero])
+  @@map("pregunta_reto_diario")
 }

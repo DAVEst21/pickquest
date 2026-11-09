@@ -3,6 +3,7 @@ import type { Autoevaluacion, Sesion } from '../types';
 import { useAuthStore } from '../store/authStore';
 import { usePlayerStore } from '../store/playerStore';
 import {
+  abandonarRetoDiario,
   aceptarPlan,
   autoevaluarTarjeta,
   comprarObjeto,
@@ -13,6 +14,8 @@ import {
   getFases,
   getDiagnostico,
   getIntento,
+  getRetoDiarioHoy,
+  iniciarRetoDiario,
   getPlan,
   getPlanActivo,
   iniciarDiagnostico,
@@ -42,6 +45,7 @@ export const QUERY_KEYS = {
   equipados: (retoId?: number) => ['equipados', retoId ?? 0] as const,
   libreta: (retoId: number) => ['libreta', retoId] as const,
   tienda: ['tienda'] as const,
+  retoDiarioHoy: ['reto-diario', 'hoy'] as const,
   planActivo: ['plan', 'activo'] as const,
   plan: (id: number) => ['plan', id] as const,
   diagnostico: (id: number) => ['plan', 'diagnostico', id] as const,
@@ -319,4 +323,28 @@ export function useAceptarPlan(planId: number) {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.planActivo });
     },
   });
+}
+
+/** CU-11: racha, reglas y estado del reto de hoy; también alimenta el indicador del encabezado. */
+export function useRetoDiarioHoy() {
+  return useQuery({ queryKey: QUERY_KEYS.retoDiarioHoy, queryFn: getRetoDiarioHoy });
+}
+
+/** Tras iniciar, abandonar o terminar el reto se vuelven a pedir el estado del día y el perfil (XP, QP, racha). */
+export function useRefrescarRetoDiario() {
+  const queryClient = useQueryClient();
+  return () => {
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.retoDiarioHoy });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.perfil });
+  };
+}
+
+export function useIniciarRetoDiario() {
+  const refrescar = useRefrescarRetoDiario();
+  return useMutation({ mutationFn: iniciarRetoDiario, onSuccess: refrescar });
+}
+
+export function useAbandonarRetoDiario() {
+  const refrescar = useRefrescarRetoDiario();
+  return useMutation({ mutationFn: (retoId: number) => abandonarRetoDiario(retoId), onSuccess: refrescar });
 }

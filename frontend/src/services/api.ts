@@ -9,6 +9,10 @@ import type {
   IntentoCalificado,
   IntentoEnCurso,
   Autoevaluacion,
+  EstadoRetoDiario,
+  HoyRetoDiario,
+  PreguntaCronometrada,
+  RespuestaRetoDiario,
   DiagnosticoIniciado,
   DiagnosticoTerminado,
   PlanEstudio,
@@ -197,4 +201,33 @@ export function getPlan(planId: number): Promise<PlanEstudio> {
 /** CU-10 FA1: las actividades conservadas, en el orden elegido. */
 export function aceptarPlan(planId: number, actividadIds: number[]): Promise<PlanEstudio> {
   return http(`/plan/${planId}/aceptar`, { method: 'POST', body: { actividadIds } });
+}
+
+/** CU-11: racha, multiplicador, reglas y estado del reto de hoy. */
+export function getRetoDiarioHoy(): Promise<HoyRetoDiario> {
+  return http('/reto-diario/hoy');
+}
+
+/** CU-11: inicia (o retoma) el reto del día. FE1: 409 con el resultado si ya lo hizo. */
+export function iniciarRetoDiario(): Promise<EstadoRetoDiario> {
+  return http('/reto-diario', { method: 'POST' });
+}
+
+/** CU-11: el servidor habilita la pregunta y arranca su reloj. */
+export function entregarPreguntaDiaria(retoId: number, numero: number): Promise<PreguntaCronometrada> {
+  return http(`/reto-diario/${retoId}/preguntas/${numero}/entregar`, { method: 'POST' });
+}
+
+/** CU-11: `opcionId = null` significa que se agotó el tiempo (FA1). */
+export function responderPreguntaDiaria(
+  retoId: number,
+  numero: number,
+  opcionId: number | null,
+): Promise<RespuestaRetoDiario> {
+  return http(`/reto-diario/${retoId}/preguntas/${numero}/respuesta`, { method: 'POST', body: { opcionId } });
+}
+
+/** CU-11 FA2. */
+export function abandonarRetoDiario(retoId: number): Promise<EstadoRetoDiario> {
+  return http(`/reto-diario/${retoId}/abandonar`, { method: 'POST' });
 }

@@ -1,4 +1,5 @@
 import { INestApplication } from '@nestjs/common';
+import { diaADate, diaCalendarioMx } from '../src/common/fechas/dia-calendario';
 import { PrismaService } from '../src/common/prisma/prisma.service';
 import { calcularNivel } from '../src/modules/progreso/nivel';
 import {
@@ -159,9 +160,10 @@ describe('Sprint 2: aprendizaje por mecánicas (e2e)', () => {
 
     it('RN-02 y RN-13: la recompensa de QP anunciada ya incluye el multiplicador y coincide con la otorgada', async () => {
       const e = await estudiante();
+      // Sprint 3 (RN-13): una racha sin actividad reciente se reinicia, así que se deja vigente (logró el reto de hoy).
       await prisma.rachaEstudio.update({
         where: { estudianteId: e.id },
-        data: { multiplicadorQP: 1.5 },
+        data: { diasActuales: 5, diasRecord: 5, multiplicadorQP: 1.5, ultimaActividad: diaADate(diaCalendarioMx()) },
       });
       const faseId = reto(1, 1).faseId;
       const anunciado = (await get(e, `/fases/${faseId}`).expect(200)).body.retos.find(

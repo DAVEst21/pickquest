@@ -770,3 +770,76 @@ export interface DiagnosticoTerminado {
   revision: RevisionPregunta[];
   plan: PlanEstudio;
 }
+
+// ---------- Preguntas cronometradas (CU-11 reto diario y CU-13 duelos) ----------
+
+/** Pregunta habilitada por el servidor: nunca incluye la opción correcta. */
+export interface PreguntaCronometrada {
+  numero: number;
+  total: number;
+  enunciado: string;
+  opciones: { opcionId: number; texto: string }[];
+  limiteSegundos: number;
+  segundosRestantes: number;
+}
+
+/** Retroalimentación después de responder (la opción correcta se revela solo entonces). */
+export interface RetroPregunta {
+  correcta: boolean;
+  tiempoAgotado: boolean;
+  opcionCorrectaId: number;
+  explicacion: string | null;
+}
+
+// ---------- CU-11 Reto diario ----------
+
+export interface RachaDiaria {
+  diasActuales: number;
+  diasRecord: number;
+  multiplicadorQP: number;
+}
+
+export interface ResultadoRetoDiario {
+  aciertos: number;
+  total: number;
+  porcentaje: number;
+  xpOtorgada: number;
+  qpOtorgado: number;
+  multiplicadorAplicado: number;
+  logroRacha: boolean;
+  racha: RachaDiaria;
+}
+
+export interface EstadoRetoDiario {
+  retoDiarioId: number;
+  dia: string;
+  multiplicador: number;
+  total: number;
+  resueltas: number;
+  siguiente: number | null;
+  segundosRestantes: number | null;
+  terminado: boolean;
+  preguntas: { numero: number; entregada: boolean; correcta: boolean | null }[];
+  resultado: ResultadoRetoDiario | null;
+}
+
+export interface HoyRetoDiario {
+  dia: string;
+  racha: RachaDiaria;
+  reglas: {
+    preguntas: number;
+    segundosPorPregunta: number;
+    porcentajeRacha: number;
+    xpPorAcierto: number;
+    qpPorAcierto: number;
+  };
+  estado: 'DISPONIBLE' | 'EN_CURSO' | 'TERMINADO';
+  reto: EstadoRetoDiario | null;
+  segundosHastaSiguiente: number | null;
+}
+
+export interface RespuestaRetoDiario extends RetroPregunta {
+  numero: number;
+  terminado: boolean;
+  estado: EstadoRetoDiario;
+}
