@@ -9,6 +9,10 @@ import type {
   IntentoCalificado,
   IntentoEnCurso,
   Libreta,
+  CompraRealizada,
+  ObjetoDetalle,
+  ObjetoInventario,
+  Tienda,
   ObjetoEquipado,
   PerfilEstudiante,
   ResultadoSimulacion,
@@ -93,4 +97,34 @@ export function registrarTurno<T>(intentoId: number, opcionId: number): Promise<
 /** CU-05: ejecuta una simulación del escenario con lo guardado (máximo 5 por intento). */
 export function simularEscenario(intentoId: number): Promise<ResultadoSimulacion> {
   return http(`/intentos/${intentoId}/escenario/simular`, { method: 'POST' });
+}
+
+/** CU-12: catálogo de la tienda con saldo y unidades del estudiante. */
+export function getTienda(): Promise<Tienda> {
+  return http('/tienda');
+}
+
+export function getObjetoTienda(objetoId: number): Promise<ObjetoDetalle> {
+  return http(`/tienda/objetos/${objetoId}`);
+}
+
+/** CU-12: compra atómica (descuenta QP y suma unidades). */
+export function comprarObjeto(objetoId: number, cantidad: number): Promise<CompraRealizada> {
+  return http('/tienda/compras', { method: 'POST', body: { objetoId, cantidad } });
+}
+
+export function getInventario(): Promise<ObjetoInventario[]> {
+  return http('/inventario');
+}
+
+/** CU-12 FA2: con el cinto lleno el backend responde 409 con los equipados. */
+export function equiparObjeto(objetoId: number, reemplazaObjetoId?: number): Promise<ObjetoInventario[]> {
+  return http(`/inventario/${objetoId}/equipar`, {
+    method: 'POST',
+    body: reemplazaObjetoId ? { reemplazaObjetoId } : {},
+  });
+}
+
+export function desequiparObjeto(objetoId: number): Promise<ObjetoInventario[]> {
+  return http(`/inventario/${objetoId}/desequipar`, { method: 'POST' });
 }

@@ -127,6 +127,7 @@ model Estudiante {
   racha       RachaEstudio?
   intentos    IntentoReto[]
   inventario  InventarioObjeto[]
+  compras     CompraObjeto[]
   logros      LogroEstudiante[]
   habilidades HabilidadSDLC[]
 
@@ -159,6 +160,7 @@ model Objeto {
 
   inventarios  InventarioObjeto[]
   ayudasUsadas UsoAyuda[]
+  compras      CompraObjeto[]
 
   @@map("objeto")
 }
@@ -1009,4 +1011,25 @@ model VinculoEvidencia {
 
   @@id([intentoId, fragmentoId])
   @@map("vinculo_evidencia")
+}
+
+
+// =====================================================================
+// CU-12 Tienda (RF-15, RN-10, RN-11, RN-28)
+// =====================================================================
+
+// Cada compra descuenta los QP y suma las unidades en la misma transacción (RN-11).
+model CompraObjeto {
+  id           Int      @id @default(autoincrement())
+  estudianteId Int
+  objetoId     Int
+  cantidad     Int
+  qpPagados    Int
+  creadoEn     DateTime @default(now())
+
+  estudiante Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+  objeto     Objeto     @relation(fields: [objetoId], references: [id], onDelete: Restrict)
+
+  @@index([estudianteId, creadoEn])
+  @@map("compra_objeto")
 }

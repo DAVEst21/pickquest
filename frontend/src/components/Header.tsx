@@ -82,12 +82,16 @@ export const Header: React.FC = () => {
             >
               Leaderboard
             </span>
-            <span
-              className="hidden 2xl:inline-block px-space-md py-space-sm rounded-lg font-title-md text-title-md text-on-surface-variant/50 cursor-not-allowed"
-              title="Próximamente"
+            <Link
+              to="/tienda"
+              className={`px-space-md py-space-sm rounded-lg font-title-md text-title-md transition-all ${
+                location.pathname.startsWith('/tienda')
+                  ? 'bg-surface-container-high text-primary font-title-md rounded-lg shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]'
+                  : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
+              }`}
             >
-              Tienda del Gremio
-            </span>
+              Tienda
+            </Link>
           </nav>
         </div>
 

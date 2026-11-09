@@ -6,6 +6,7 @@ import { MisionPage } from './features/mision/MisionPage';
 import { OverworldPage } from './features/overworld/OverworldPage';
 import { ResultadoPage } from './features/resultado/ResultadoPage';
 import { RetoPage } from './features/reto/RetoPage';
+import { TiendaPage } from './features/tienda/TiendaPage';
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -20,6 +21,8 @@ export const router = createBrowserRouter([
       // Un intento en curso (se inicia o retoma desde el tablón)
       { path: '/intento/:intentoId', element: <RetoPage /> },
       { path: '/resultado/:intentoId', element: <ResultadoPage /> },
+      // Tienda de objetos (CU-12)
+      { path: '/tienda', element: <TiendaPage /> },
     ],
   },
   { path: '*', element: <Navigate to="/" replace /> },

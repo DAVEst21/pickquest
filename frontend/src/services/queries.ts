@@ -3,10 +3,16 @@ import type { Sesion } from '../types';
 import { useAuthStore } from '../store/authStore';
 import { usePlayerStore } from '../store/playerStore';
 import {
+  comprarObjeto,
+  desequiparObjeto,
   enviarIntento,
+  equiparObjeto,
   getEquipados,
   getFases,
   getIntento,
+  getInventario,
+  getObjetoTienda,
+  getTienda,
   getLibreta,
   getPerfil,
   getTablon,
@@ -23,6 +29,9 @@ export const QUERY_KEYS = {
   intento: (id: number) => ['intento', id] as const,
   equipados: (retoId?: number) => ['equipados', retoId ?? 0] as const,
   libreta: (retoId: number) => ['libreta', retoId] as const,
+  tienda: ['tienda'] as const,
+  inventario: ['inventario'] as const,
+  objetoTienda: (id: number) => ['tienda', 'objeto', id] as const,
 };
 
 const esIdValido = (id: number | undefined): id is number =>
@@ -132,4 +141,54 @@ export function useLogin() {
 export function useRegistro() {
   const abrirSesion = useAbrirSesion();
   return useMutation({ mutationFn: registrar, onSuccess: abrirSesion });
+}
+
+/** CU-12: catálogo, saldo y unidades. */
+export function useTienda() {
+  return useQuery({ queryKey: QUERY_KEYS.tienda, queryFn: getTienda });
+}
+
+export function useObjetoTienda(objetoId: number | undefined) {
+  return useQuery({
+    queryKey: QUERY_KEYS.objetoTienda(objetoId ?? 0),
+    queryFn: () => getObjetoTienda(objetoId!),
+    enabled: esIdValido(objetoId),
+  });
+}
+
+export function useInventario() {
+  return useQuery({ queryKey: QUERY_KEYS.inventario, queryFn: getInventario });
+}
+
+/** Tras comprar o equipar se vuelven a pedir saldo, tienda, inventario y cinto del servidor. */
+function useRefrescarEconomia() {
+  const queryClient = useQueryClient();
+  return () => {
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.tienda });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.inventario });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.perfil });
+    queryClient.invalidateQueries({ queryKey: ['equipados'] });
+  };
+}
+
+export function useComprarObjeto() {
+  const refrescar = useRefrescarEconomia();
+  return useMutation({
+    mutationFn: ({ objetoId, cantidad }: { objetoId: number; cantidad: number }) => comprarObjeto(objetoId, cantidad),
+    onSuccess: refrescar,
+  });
+}
+
+export function useEquiparObjeto() {
+  const refrescar = useRefrescarEconomia();
+  return useMutation({
+    mutationFn: ({ objetoId, reemplazaObjetoId }: { objetoId: number; reemplazaObjetoId?: number }) =>
+      equiparObjeto(objetoId, reemplazaObjetoId),
+    onSuccess: refrescar,
+  });
+}
+
+export function useDesequiparObjeto() {
+  const refrescar = useRefrescarEconomia();
+  return useMutation({ mutationFn: (objetoId: number) => desequiparObjeto(objetoId), onSuccess: refrescar });
 }

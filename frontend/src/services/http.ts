@@ -42,7 +42,11 @@ export async function http<T>(ruta: string, opciones: OpcionesPeticion = {}): Pr
     if (respuesta.status === 401 && token) {
       useAuthStore.getState().cerrarSesion();
     }
-    throw new ApiError(respuesta.status, extraerMensaje(datos, respuesta.status));
+    throw new ApiError(
+      respuesta.status,
+      extraerMensaje(datos, respuesta.status),
+      datos && typeof datos === 'object' ? (datos as Record<string, unknown>) : {},
+    );
   }
   return datos as T;
 }

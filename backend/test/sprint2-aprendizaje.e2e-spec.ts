@@ -19,19 +19,50 @@ import {
   retosEnOrden,
 } from './ayudas-e2e';
 
-// Requiere la base migrada y con el seed cargado (3 fases, 6 retos).
+// Requiere la base migrada y con el seed cargado (3 fases, 8 retos).
 // Los estudiantes de prueba se borran al terminar (cascada a sus intentos).
 describe('Sprint 2: aprendizaje por mecánicas (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   const creados: number[] = [];
   let retos: Awaited<ReturnType<typeof retosEnOrden>>;
+  /**
+   * Posiciones del Sprint 2 → mecánica. En el Sprint 3 se agregaron CU-07 (inicio de la fase 1)
+   * y CU-05 (entre CU-04 y CU-06), así que se buscan por mecánica y no por posición.
+   */
+  const MECANICA_SPRINT2: Record<string, string> = {
+    '1-1': 'LINEA_TIEMPO',
+    '2-1': 'DIALOGO_STAKEHOLDER',
+    '2-2': 'ARMADO_PIEZAS',
+    '2-3': 'TABLERO_MOSCOW',
+    '3-1': 'INSPECCION_SISTEMA',
+    '3-2': 'REPARTO_PRESUPUESTO',
+  };
   const reto = (faseOrden: number, orden: number) =>
-    retos.find((r) => r.fase.orden === faseOrden && r.orden === orden)!;
+    retos.find((r) => r.mecanica === MECANICA_SPRINT2[`${faseOrden}-${orden}`])!;
 
-  const estudiante = async (pociones = 3) => {
+  /**
+   * `previos`: deja aprobados, sin recompensa, los retos del Sprint 3 que anteceden a los del Sprint 2
+   * (CU-07 y CU-05), para que estas pruebas sigan midiendo exactamente lo mismo que antes.
+   */
+  const estudiante = async (pociones = 3, previos = true) => {
     const e = await nuevoEstudiante(app, prisma, pociones);
     creados.push(e.id);
+    if (previos) {
+      for (const r of retos.filter((x) => ['EXPEDIENTE_PROYECTO', 'SIMULADOR_ESCENARIOS'].includes(x.mecanica))) {
+        await prisma.intentoReto.create({
+          data: {
+            estudianteId: e.id,
+            retoId: r.id,
+            estado: 'CALIFICADO',
+            porcentaje: 100,
+            calificacionEstrellas: 2,
+            aprobado: true,
+            calificadoEn: new Date(),
+          },
+        });
+      }
+    }
     return e;
   };
   const get = (e: EstudiantePrueba, ruta: string) => http(app).get(ruta).set(auth(e));
@@ -79,7 +110,7 @@ describe('Sprint 2: aprendizaje por mecánicas (e2e)', () => {
     });
 
     it('un estudiante nuevo ve 3 fases con descripción y solo la primera desbloqueada (RN-01)', async () => {
-      const e = await estudiante();
+      const e = await estudiante(3, false);
       const res = await get(e, '/fases').expect(200);
       expect(res.body.map((f: { orden: number }) => f.orden)).toEqual([1, 2, 3]);
       expect(res.body.map((f: { estado: string }) => f.estado)).toEqual([
@@ -99,21 +130,23 @@ describe('Sprint 2: aprendizaje por mecánicas (e2e)', () => {
     });
 
     it('el tablón lista todos los retos de la fase con objetivo, mecánica, recompensas y estado', async () => {
-      const e = await estudiante();
+      const e = await estudiante(3, false);
       const fase1 = retos.find((r) => r.fase.orden === 1)!.faseId;
       const fase2 = retos.find((r) => r.fase.orden === 2)!.faseId;
 
       const t1 = (await get(e, `/fases/${fase1}`).expect(200)).body;
-      expect(t1.retos).toHaveLength(1);
-      expect(t1.retos[0]).toMatchObject({
-        orden: 1,
+      // Sprint 3: CU-07 abre la fase 1 y CU-08 queda bloqueado hasta aprobarlo (RN-08).
+      expect(t1.retos.map((r: { mecanica: string }) => r.mecanica)).toEqual(['EXPEDIENTE_PROYECTO', 'LINEA_TIEMPO']);
+      expect(t1.retos[0].estado).toBe('DISPONIBLE');
+      expect(t1.retos[1]).toMatchObject({
+        orden: 2,
         mecanica: 'LINEA_TIEMPO',
         recompensaXp: 150,
         recompensaQp: 100,
-        estado: 'DISPONIBLE',
+        estado: 'BLOQUEADO',
       });
-      expect(t1.retos[0].titulo).toEqual(expect.any(String));
-      expect(t1.retos[0].objetivo.length).toBeGreaterThan(20);
+      expect(t1.retos[1].titulo).toEqual(expect.any(String));
+      expect(t1.retos[1].objetivo.length).toBeGreaterThan(20);
 
       const t2 = (await get(e, `/fases/${fase2}`).expect(200)).body;
       expect(t2.retos.map((r: { mecanica: string }) => r.mecanica)).toEqual([
@@ -131,7 +164,9 @@ describe('Sprint 2: aprendizaje por mecánicas (e2e)', () => {
         data: { multiplicadorQP: 1.5 },
       });
       const faseId = reto(1, 1).faseId;
-      const anunciado = (await get(e, `/fases/${faseId}`).expect(200)).body.retos[0];
+      const anunciado = (await get(e, `/fases/${faseId}`).expect(200)).body.retos.find(
+        (r: { mecanica: string }) => r.mecanica === 'LINEA_TIEMPO',
+      );
       expect(anunciado.recompensaQp).toBe(150); // 100 × 1.5
       expect(anunciado.recompensaXp).toBe(150); // la XP no se multiplica
 
@@ -311,7 +346,8 @@ describe('Sprint 2: aprendizaje por mecánicas (e2e)', () => {
       (await get(e, '/fases').expect(200)).body.map((f: { estado: string }) => f.estado);
 
     it('fase 1 (CU-08): al aprobar su único reto queda completada y se desbloquea la fase 2 (RN-01, RN-09)', async () => {
-      expect(await estados()).toEqual(['desbloqueada', 'bloqueada', 'bloqueada']);
+      // CU-07 ya está aprobado (sin recompensa) desde el beforeAll: la fase 1 va en progreso.
+      expect(await estados()).toEqual(['en_progreso', 'bloqueada', 'bloqueada']);
       await recorrer(1, 1);
       expect(await estados()).toEqual(['completada', 'desbloqueada', 'bloqueada']);
     });
@@ -325,7 +361,8 @@ describe('Sprint 2: aprendizaje por mecánicas (e2e)', () => {
       await recorrer(2, 2);
       expect(await estados()).toEqual(['completada', 'en_progreso', 'bloqueada']);
       await recorrer(2, 3);
-      expect(await estados()).toEqual(['completada', 'completada', 'desbloqueada']);
+      // La fase 3 queda abierta; va «en progreso» porque CU-05 ya está aprobado desde el beforeAll.
+      expect(await estados()).toEqual(['completada', 'completada', 'en_progreso']);
     });
 
     it('fase 3, retos 1 (CU-04) y 2 (CU-06)', async () => {
@@ -417,10 +454,17 @@ describe('Sprint 2: aprendizaje por mecánicas (e2e)', () => {
     });
 
     it('los intentos EN_CURSO no cuentan para el progreso de la fase', async () => {
+      const e = await estudiante(3, false);
+      await iniciarIntento(app, e, retos.find((r) => r.mecanica === 'EXPEDIENTE_PROYECTO')!.id);
+      const fase0 = (await get(e, '/fases').expect(200)).body[0];
+      expect(fase0).toMatchObject({ estado: 'desbloqueada', intentosRealizados: 0, mejorPorcentaje: null });
+    });
+
+    it('los intentos EN_CURSO de CU-08 tampoco cuentan para el progreso de la fase', async () => {
       const e = await estudiante();
       await iniciarIntento(app, e, reto(1, 1).id);
       const fase = (await get(e, '/fases').expect(200)).body[0];
-      expect(fase).toMatchObject({ estado: 'desbloqueada', intentosRealizados: 0, mejorPorcentaje: null });
+      expect(fase).toMatchObject({ estado: 'en_progreso', intentosRealizados: 0, mejorPorcentaje: null });
     });
 
     it('enviar dos veces a la vez cobra la recompensa una sola vez', async () => {

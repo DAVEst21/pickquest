@@ -610,3 +610,52 @@ export interface Credenciales {
 export interface DatosRegistro extends Credenciales {
   nombreAventurero: string;
 }
+
+export interface ObjetoTienda {
+  objetoId: number;
+  nombre: string;
+  tipo: 'POCION' | 'PERGAMINO' | 'RELIQUIA';
+  costoQP: number;
+  efecto: string;
+  rareza: string;
+  tema: TemaFase | null;
+  dondeSeUsa: string;
+  unidades: number;
+  equipado: boolean;
+}
+
+/** GET /tienda (CU-12). */
+export interface Tienda {
+  saldoQP: number;
+  maxUnidadesPorObjeto: number;
+  maxEquipados: number;
+  equipados: number;
+  catalogo: ObjetoTienda[];
+}
+
+export interface ObjetoDetalle extends ObjetoTienda {
+  retos: { retoId: number; titulo: string; fase: string }[];
+}
+
+export interface CompraRealizada {
+  compraId: number;
+  objetoId: number;
+  nombre: string;
+  cantidad: number;
+  qpPagados: number;
+  saldoQP: number;
+  unidades: number;
+  equipado: boolean;
+}
+
+export interface ObjetoInventario {
+  objetoId: number;
+  nombre: string;
+  tipo: string;
+  efecto: string;
+  rareza: string;
+  tema: TemaFase | null;
+  dondeSeUsa: string;
+  cantidad: number;
+  equipado: boolean;
+}
