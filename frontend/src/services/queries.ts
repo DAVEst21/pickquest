@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { Sesion } from '../types';
+import type { Autoevaluacion, Sesion } from '../types';
 import { useAuthStore } from '../store/authStore';
 import { usePlayerStore } from '../store/playerStore';
 import {
+  autoevaluarTarjeta,
   comprarObjeto,
   desequiparObjeto,
   enviarIntento,
@@ -10,6 +11,11 @@ import {
   getEquipados,
   getFases,
   getIntento,
+  getMaterialTema,
+  getSesionRepaso,
+  getTemasEstudio,
+  iniciarRepaso,
+  registrarConsultaTema,
   getInventario,
   getObjetoTienda,
   getTienda,
@@ -30,6 +36,9 @@ export const QUERY_KEYS = {
   equipados: (retoId?: number) => ['equipados', retoId ?? 0] as const,
   libreta: (retoId: number) => ['libreta', retoId] as const,
   tienda: ['tienda'] as const,
+  temasEstudio: ['estudio', 'temas'] as const,
+  materialTema: (faseId: number) => ['estudio', 'material', faseId] as const,
+  sesionRepaso: (id: number) => ['estudio', 'sesion', id] as const,
   inventario: ['inventario'] as const,
   objetoTienda: (id: number) => ['tienda', 'objeto', id] as const,
 };
@@ -191,4 +200,60 @@ export function useEquiparObjeto() {
 export function useDesequiparObjeto() {
   const refrescar = useRefrescarEconomia();
   return useMutation({ mutationFn: (objetoId: number) => desequiparObjeto(objetoId), onSuccess: refrescar });
+}
+
+/** CU-09: biblioteca de estudio. */
+export function useTemasEstudio() {
+  return useQuery({ queryKey: QUERY_KEYS.temasEstudio, queryFn: getTemasEstudio });
+}
+
+/** CU-09: material del tema; 403 si la fase está bloqueada (FE1). */
+export function useMaterialTema(faseId: number | undefined) {
+  return useQuery({
+    queryKey: QUERY_KEYS.materialTema(faseId ?? 0),
+    queryFn: () => getMaterialTema(faseId!),
+    enabled: esIdValido(faseId),
+    retry: false,
+  });
+}
+
+export function useSesionRepaso(sesionId: number | undefined) {
+  return useQuery({
+    queryKey: QUERY_KEYS.sesionRepaso(sesionId ?? 0),
+    queryFn: () => getSesionRepaso(sesionId!),
+    enabled: esIdValido(sesionId),
+    staleTime: Infinity,
+    retry: false,
+  });
+}
+
+export function useRegistrarConsulta() {
+  return useMutation({ mutationFn: (faseId: number) => registrarConsultaTema(faseId) });
+}
+
+export function useIniciarRepaso() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (faseId: number) => iniciarRepaso(faseId),
+    onSuccess: (sesion) => {
+      queryClient.setQueryData(QUERY_KEYS.sesionRepaso(sesion.sesionId), sesion);
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.temasEstudio });
+    },
+  });
+}
+
+/** Autoevalúa una tarjeta; al terminar la sesión se refrescan el perfil (XP) y la biblioteca. */
+export function useAutoevaluarTarjeta(sesionId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ tarjetaId, autoevaluacion }: { tarjetaId: number; autoevaluacion: Autoevaluacion }) =>
+      autoevaluarTarjeta(sesionId, tarjetaId, autoevaluacion),
+    onSuccess: (sesion) => {
+      queryClient.setQueryData(QUERY_KEYS.sesionRepaso(sesion.sesionId), sesion);
+      if (sesion.terminada) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.perfil });
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.temasEstudio });
+      }
+    },
+  });
 }

@@ -5,6 +5,8 @@ import { EconomiaModule } from '../economia/economia.module';
 import { ProgresoModule } from '../progreso/progreso.module';
 import { AprendizajeController } from './aprendizaje.controller';
 import { AprendizajeService } from './aprendizaje.service';
+import { EstudioController } from './estudio/estudio.controller';
+import { EstudioService } from './estudio/estudio.service';
 import { DialogoStakeholderEvaluador } from './mecanicas/dialogo-stakeholder/dialogo-stakeholder.evaluador';
 import { ExpedienteProyectoEvaluador } from './mecanicas/expediente-proyecto/expediente-proyecto.evaluador';
 import { InspeccionSistemaEvaluador } from './mecanicas/inspeccion-sistema/inspeccion-sistema.evaluador';
@@ -16,9 +18,10 @@ import { TableroMoscowEvaluador } from './mecanicas/tablero-moscow/tablero-mosco
 
 @Module({
   imports: [AuthModule, ProgresoModule, EconomiaModule],
-  controllers: [AprendizajeController],
+  controllers: [AprendizajeController, EstudioController],
   providers: [
     AprendizajeService,
+    EstudioService,
     MecanicasRegistro,
     ArmadoPiezasEvaluador,
     DialogoStakeholderEvaluador,

@@ -128,6 +128,10 @@ model Estudiante {
   intentos    IntentoReto[]
   inventario  InventarioObjeto[]
   compras     CompraObjeto[]
+  progresoTarjetas ProgresoTarjeta[]
+  consultasTema    ConsultaTema[]
+  sesionesRepaso   SesionRepaso[]
+  dominios         DominioTema[]
   logros      LogroEstudiante[]
   habilidades HabilidadSDLC[]
 
@@ -226,6 +230,14 @@ model Fase {
 
   retos          Reto[]
   contenidoApoyo ContenidoApoyo?
+
+  // CU-09: material de estudio y tarjetas del tema de la fase.
+  material  MaterialTema?
+  ejemplos  EjemploTema[]
+  glosario  TerminoGlosario[]
+  tarjetas  Tarjeta[]
+  consultas ConsultaTema[]
+  sesiones  SesionRepaso[]
 
   @@map("fase")
 }
@@ -1032,4 +1044,144 @@ model CompraObjeto {
 
   @@index([estudianteId, creadoEn])
   @@map("compra_objeto")
+}
+
+// ===================================================================
+// CU-09 Repaso con tarjetas (RF-12, RN-24, RN-25, RN-26)
+// ===================================================================
+
+enum Autoevaluacion {
+  LO_SABIA
+  DUDE
+  NO_LO_SABIA
+}
+
+// 1:1 con Fase: cada fase trata un tema.
+model MaterialTema {
+  faseId      Int    @id
+  explicacion String @db.Text
+
+  fase Fase @relation(fields: [faseId], references: [id], onDelete: Cascade)
+
+  @@map("material_tema")
+}
+
+model EjemploTema {
+  id     Int    @id @default(autoincrement())
+  faseId Int
+  orden  Int
+  titulo String
+  texto  String @db.Text
+
+  fase Fase @relation(fields: [faseId], references: [id], onDelete: Cascade)
+
+  @@unique([faseId, orden])
+  @@map("ejemplo_tema")
+}
+
+model TerminoGlosario {
+  id         Int    @id @default(autoincrement())
+  faseId     Int
+  termino    String
+  definicion String @db.Text
+
+  fase Fase @relation(fields: [faseId], references: [id], onDelete: Cascade)
+
+  @@unique([faseId, termino])
+  @@map("termino_glosario")
+}
+
+model Tarjeta {
+  id      Int    @id @default(autoincrement())
+  faseId  Int
+  orden   Int
+  frente  String @db.Text
+  reverso String @db.Text
+
+  fase     Fase              @relation(fields: [faseId], references: [id], onDelete: Cascade)
+  progreso ProgresoTarjeta[]
+  sesiones TarjetaSesion[]
+
+  @@unique([faseId, orden])
+  @@map("tarjeta")
+}
+
+// Programación de la próxima aparición de cada tarjeta por estudiante (RN-24).
+model ProgresoTarjeta {
+  estudianteId   Int
+  tarjetaId      Int
+  // Día calendario de México en que toca repasarla otra vez.
+  proximoRepaso  DateTime       @db.Date
+  ultimaAutoeval Autoevaluacion
+
+  estudiante Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+  // Restrict: las respuestas del estudiante no se pierden si se intenta borrar contenido.
+  tarjeta    Tarjeta    @relation(fields: [tarjetaId], references: [id], onDelete: Restrict)
+
+  @@id([estudianteId, tarjetaId])
+  @@map("progreso_tarjeta")
+}
+
+// FA1: el estudiante abrió el material y salió sin repasar.
+model ConsultaTema {
+  id           Int      @id @default(autoincrement())
+  estudianteId Int
+  faseId       Int
+  creadoEn     DateTime @default(now())
+
+  estudiante Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+  fase       Fase       @relation(fields: [faseId], references: [id], onDelete: Cascade)
+
+  @@index([estudianteId, faseId])
+  @@map("consulta_tema")
+}
+
+model SesionRepaso {
+  id           Int       @id @default(autoincrement())
+  estudianteId Int
+  faseId       Int
+  iniciadaEn   DateTime  @default(now())
+  terminadaEn  DateTime?
+  // Día calendario MX en que terminó: apoya RN-25 (una vez al día por tema).
+  diaTerminada DateTime? @db.Date
+  xpOtorgada   Int       @default(0)
+
+  estudiante Estudiante      @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+  fase       Fase            @relation(fields: [faseId], references: [id], onDelete: Cascade)
+  tarjetas   TarjetaSesion[]
+
+  @@index([estudianteId, faseId, terminadaEn])
+  @@map("sesion_repaso")
+}
+
+model TarjetaSesion {
+  sesionId       Int
+  tarjetaId      Int
+  // Orden en la cola de la sesión; «no lo sabía» la manda al final (RN-24).
+  posicion       Int
+  // Primera autoevaluación de esta sesión (alimenta el resumen: sabidas, dudadas, no sabidas).
+  primeraAutoevaluacion Autoevaluacion?
+  // Última autoevaluación de esta sesión.
+  autoevaluacion Autoevaluacion?
+  // true al marcar «lo sabía» o «dudé».
+  completada     Boolean         @default(false)
+
+  sesion  SesionRepaso @relation(fields: [sesionId], references: [id], onDelete: Cascade)
+  tarjeta Tarjeta      @relation(fields: [tarjetaId], references: [id], onDelete: Restrict)
+
+  @@id([sesionId, tarjetaId])
+  @@map("tarjeta_sesion")
+}
+
+// Dominio del estudiante en un tema, 0-100 (RN-26). Lo recalcula `calcularDominio`.
+model DominioTema {
+  estudianteId  Int
+  tema          TemaFase
+  porcentaje    Int
+  actualizadoEn DateTime @updatedAt
+
+  estudiante Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+
+  @@id([estudianteId, tema])
+  @@map("dominio_tema")
 }

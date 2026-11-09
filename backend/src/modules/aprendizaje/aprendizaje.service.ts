@@ -23,38 +23,19 @@ import {
 } from './dto/intento.dto';
 import {
   calcularEstadoReto,
-  calcularEstadosFases,
   calcularProgresoFase,
   EstadoFase,
   ResumenReto,
-  resumirIntentos,
   retoActual,
   retoDesbloqueado,
 } from './estado-fases';
 import { calificarPorPorcentaje } from './calificacion-estrellas';
+import { cargarProgresoFases, FaseSeleccionada, ProgresoEstudiante } from './progreso-fases';
 import { MecanicasRegistro } from './mecanicas/mecanicas.registro';
 import { columnasAPista, pistaAColumnas } from './mecanicas/pista';
 import { puedeVerReferencia } from './mecanicas/referencia';
 import { redactarRetroalimentacion } from './mecanicas/retroalimentacion';
 import { Db, EvaluadorMecanica, PistaDto } from './mecanicas/tipos';
-
-const SELECCION_FASE = {
-  id: true,
-  nombre: true,
-  tema: true,
-  dificultad: true,
-  orden: true,
-  descripcion: true,
-  retos: { select: { id: true, orden: true, mecanica: true }, orderBy: { orden: 'asc' } },
-} satisfies Prisma.FaseSelect;
-
-type FaseSeleccionada = Prisma.FaseGetPayload<{ select: typeof SELECCION_FASE }>;
-
-interface ProgresoEstudiante {
-  fases: FaseSeleccionada[];
-  estados: Map<number, EstadoFase>;
-  resumen: Map<number, ResumenReto>;
-}
 
 type IntentoConReto = IntentoReto & { reto: Reto };
 
@@ -380,38 +361,8 @@ export class AprendizajeService {
   }
 
   /** Solo cuentan los intentos CALIFICADO (progreso, mejor calificación, aprobación). */
-  private async cargarProgreso(estudianteId: number, db: Db): Promise<ProgresoEstudiante> {
-    const fases = await db.fase.findMany({
-      select: SELECCION_FASE,
-      orderBy: { orden: 'asc' },
-    });
-    const grupos = await db.intentoReto.groupBy({
-      by: ['retoId', 'aprobado'],
-      where: { estudianteId, estado: 'CALIFICADO' },
-      _count: { _all: true },
-      _max: { porcentaje: true, calificacionEstrellas: true },
-      _sum: { qpGanado: true },
-    });
-
-    const resumen = resumirIntentos(
-      grupos.map((g) => ({
-        retoId: g.retoId,
-        aprobado: g.aprobado,
-        intentos: g._count._all,
-        maxPorcentaje: g._max.porcentaje,
-        maxEstrellas: g._max.calificacionEstrellas,
-        sumaQpGanado: g._sum.qpGanado ?? 0,
-      })),
-    );
-    const estados = calcularEstadosFases(
-      fases.map((f) => ({
-        id: f.id,
-        orden: f.orden,
-        retoIds: f.retos.map((r) => r.id),
-      })),
-      resumen,
-    );
-    return { fases, estados, resumen };
+  private cargarProgreso(estudianteId: number, db: Db): Promise<ProgresoEstudiante> {
+    return cargarProgresoFases(db, estudianteId);
   }
 
   // ===================================================================

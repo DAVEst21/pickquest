@@ -659,3 +659,51 @@ export interface ObjetoInventario {
   cantidad: number;
   equipado: boolean;
 }
+
+// ---------- CU-09 Repaso con tarjetas ----------
+
+export type Autoevaluacion = 'LO_SABIA' | 'DUDE' | 'NO_LO_SABIA';
+
+export interface TemaEstudio {
+  faseId: number;
+  orden: number;
+  nombre: string;
+  tema: TemaFase;
+  estado: string;
+  bloqueado: boolean;
+  totalTarjetas: number;
+  tarjetasParaHoy: number;
+  sesionPendiente: boolean;
+  dominio: number | null;
+}
+
+export interface MaterialTema {
+  faseId: number;
+  nombre: string;
+  tema: TemaFase;
+  explicacion: string;
+  ejemplos: { orden: number; titulo: string; texto: string }[];
+  glosario: { termino: string; definicion: string }[];
+  totalTarjetas: number;
+  sesionPendiente: boolean;
+}
+
+export interface TarjetaRepaso {
+  tarjetaId: number;
+  posicion: number;
+  frente: string;
+  reverso: string;
+}
+
+export interface SesionRepaso {
+  sesionId: number;
+  faseId: number;
+  nombre: string;
+  retomada: boolean;
+  terminada: boolean;
+  total: number;
+  completadas: number;
+  pendientes: number;
+  tarjetaActual: TarjetaRepaso | null;
+  resumen: { sabidas: number; dudadas: number; noSabidas: number; xpOtorgada: number; dominio: number } | null;
+}

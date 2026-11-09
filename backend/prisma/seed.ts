@@ -12,7 +12,7 @@
  * El contenido de los retos de opción múltiple del Sprint 1 está archivado
  * en prisma/contenido-archivado/ (no se usa aquí).
  */
-import { Mecanica, Prisma, PrismaClient } from '@prisma/client';
+import { Mecanica, Prisma, PrismaClient, TemaFase } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { calcularNivel } from '../src/modules/progreso/nivel';
 import { crearHistorias, HISTORIAS } from './contenido/historias-usuario';
@@ -20,6 +20,7 @@ import { DIALOGO } from './contenido/dialogo-stakeholder';
 import { ESCENARIO_CALIDAD } from './contenido/escenario-calidad';
 import { EXPEDIENTE } from './contenido/expediente';
 import { FASES } from './contenido/fases';
+import { MATERIAL_POR_TEMA } from './contenido/estudio';
 import { INSPECCION } from './contenido/inspeccion';
 import { LINEA_TIEMPO } from './contenido/linea-tiempo';
 import { MOSCOW } from './contenido/tablero-moscow';
@@ -303,6 +304,37 @@ async function crearPresupuesto(tx: Tx, retoId: number) {
 
 // ---------------------------------------------------------------------
 
+/** CU-09: material de estudio y tarjetas del tema. Idempotente: actualiza en su lugar, nunca borra. */
+async function cargarMaterialDeEstudio(faseId: number, tema: TemaFase) {
+  const material = MATERIAL_POR_TEMA[tema];
+  await prisma.materialTema.upsert({
+    where: { faseId },
+    update: { explicacion: material.explicacion },
+    create: { faseId, explicacion: material.explicacion },
+  });
+  for (const [i, e] of material.ejemplos.entries()) {
+    await prisma.ejemploTema.upsert({
+      where: { faseId_orden: { faseId, orden: i + 1 } },
+      update: { titulo: e.titulo, texto: e.texto },
+      create: { faseId, orden: i + 1, titulo: e.titulo, texto: e.texto },
+    });
+  }
+  for (const g of material.glosario) {
+    await prisma.terminoGlosario.upsert({
+      where: { faseId_termino: { faseId, termino: g.termino } },
+      update: { definicion: g.definicion },
+      create: { faseId, ...g },
+    });
+  }
+  for (const [i, t] of material.tarjetas.entries()) {
+    await prisma.tarjeta.upsert({
+      where: { faseId_orden: { faseId, orden: i + 1 } },
+      update: { frente: t.frente, reverso: t.reverso },
+      create: { faseId, orden: i + 1, ...t },
+    });
+  }
+}
+
 async function main() {
   const fasePorOrden = new Map<number, number>();
   for (const fase of FASES) {
@@ -318,6 +350,7 @@ async function main() {
       update: apoyo,
       create: { faseId: id, ...apoyo },
     });
+    await cargarMaterialDeEstudio(id, fase.tema);
   }
 
   const objetosPorNombre = new Map<string, number>();

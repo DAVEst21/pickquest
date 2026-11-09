@@ -8,7 +8,11 @@ import type {
   Intento,
   IntentoCalificado,
   IntentoEnCurso,
+  Autoevaluacion,
   Libreta,
+  MaterialTema,
+  SesionRepaso,
+  TemaEstudio,
   CompraRealizada,
   ObjetoDetalle,
   ObjetoInventario,
@@ -127,4 +131,37 @@ export function equiparObjeto(objetoId: number, reemplazaObjetoId?: number): Pro
 
 export function desequiparObjeto(objetoId: number): Promise<ObjetoInventario[]> {
   return http(`/inventario/${objetoId}/desequipar`, { method: 'POST' });
+}
+
+/** CU-09: biblioteca de estudio (un tema por fase). */
+export function getTemasEstudio(): Promise<TemaEstudio[]> {
+  return http('/estudio/temas');
+}
+
+/** CU-09 FE1: 403 si la fase del tema está bloqueada. */
+export function getMaterialTema(faseId: number): Promise<MaterialTema> {
+  return http(`/estudio/temas/${faseId}`);
+}
+
+/** CU-09 FA1: el estudiante cerró el material sin repasar. */
+export function registrarConsultaTema(faseId: number): Promise<{ consultaId: number }> {
+  return http(`/estudio/temas/${faseId}/consultas`, { method: 'POST' });
+}
+
+/** CU-09: inicia el repaso o retoma la sesión pendiente (FA2). */
+export function iniciarRepaso(faseId: number): Promise<SesionRepaso> {
+  return http(`/estudio/temas/${faseId}/sesiones`, { method: 'POST' });
+}
+
+export function getSesionRepaso(sesionId: number): Promise<SesionRepaso> {
+  return http(`/estudio/sesiones/${sesionId}`);
+}
+
+/** CU-09 RN-24: autoevaluación de la tarjeta; el servidor programa su próxima aparición. */
+export function autoevaluarTarjeta(
+  sesionId: number,
+  tarjetaId: number,
+  autoevaluacion: Autoevaluacion,
+): Promise<SesionRepaso> {
+  return http(`/estudio/sesiones/${sesionId}/tarjetas/${tarjetaId}`, { method: 'POST', body: { autoevaluacion } });
 }
