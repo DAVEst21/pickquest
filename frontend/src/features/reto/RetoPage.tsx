@@ -1,6 +1,7 @@
 import { RetoHistorias } from './historias/RetoHistorias';
 import { RetoEscenario } from './escenario/RetoEscenario';
-import type { ContenidoHistorias, BorradorHistorias, ContenidoEscenario, BorradorEscenario, PistaRango } from '../../types';
+import { RetoExpediente } from './expediente/RetoExpediente';
+import type { ContenidoHistorias, BorradorHistorias, ContenidoEscenario, BorradorEscenario, PistaRango, ContenidoExpediente, BorradorExpediente, PistaDocumento } from '../../types';
 import React, { useCallback, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { PantallaCarga, PantallaError } from '../../components/EstadoPantalla';
@@ -157,6 +158,15 @@ const ResolverReto: React.FC<{ intento: IntentoEnCurso }> = ({ intento }) => {
 
   const ejercicio = (() => {
     switch (reto.mecanica) {
+      case 'EXPEDIENTE_PROYECTO':
+        return (
+          <RetoExpediente
+            {...comun}
+            pista={pista?.tipo === 'DOCUMENTO' ? (pista as PistaDocumento) : null}
+            contenido={intento.contenido as ContenidoExpediente}
+            borrador={intento.borrador as BorradorExpediente}
+          />
+        );
       case 'SIMULADOR_ESCENARIOS':
         return (
           <RetoEscenario

@@ -373,7 +373,64 @@ export interface RetroEscenario {
   rangoAceptable?: { valorMin: number; valorMax: number; cargaMin: number; cargaMax: number; unidad: string | null };
 }
 
-export type Pista = PistaDistractores | PistaDependencia | PistaColumna | PistaPantalla | PistaRestriccion | PistaOpcionDialogo | PistaRango;
+// CU-07 Expediente del proyecto
+export type ModeloCicloVida = 'CASCADA' | 'MODELO_V' | 'INCREMENTAL' | 'ESPIRAL' | 'PROTOTIPOS' | 'AGIL';
+export interface ContenidoExpediente {
+  nombreProyecto: string;
+  minimoVinculos: number;
+  modelos: ModeloCicloVida[];
+  caracteristicas: { id: number; nombre: string }[];
+  documentos: {
+    id: number;
+    orden: number;
+    tipo: 'MINUTA' | 'CORREO' | 'FICHA_TECNICA' | 'PRESUPUESTO';
+    titulo: string;
+    fragmentos: { id: number; orden: number; texto: string }[];
+  }[];
+}
+export interface BorradorExpediente {
+  evidencias: { fragmentoId: number; caracteristicaId: number | null }[];
+  modelo: ModeloCicloVida | null;
+  vinculos: number[];
+}
+export interface PistaDocumento {
+  tipo: 'DOCUMENTO';
+  documentoId: number | null;
+}
+export interface RetroExpediente {
+  mecanica: 'EXPEDIENTE_PROYECTO';
+  referenciaCompleta: boolean;
+  nombreProyecto: string;
+  modeloElegido: ModeloCicloVida | null;
+  modeloAcertado: boolean;
+  evidencias: {
+    fragmentoId: number;
+    texto: string;
+    documento: string;
+    caracteristicaElegida: string | null;
+    relevante: boolean;
+    /** RN-31 */
+    caracteristicaCorrecta?: string | null;
+    /** RN-31 */
+    caracteristicaAcertada?: boolean;
+  }[];
+  vinculos: number;
+  /** RN-31 */
+  modeloCorrecto?: ModeloCicloVida;
+  /** RN-31 */
+  explicacion?: string;
+  /** RN-31 */
+  fragmentosRelevantes?: {
+    fragmentoId: number;
+    texto: string;
+    documento: string;
+    caracteristica: string | null;
+    respaldaModelo: boolean;
+    seleccionada: boolean;
+  }[];
+}
+
+export type Pista = PistaDistractores | PistaDependencia | PistaColumna | PistaPantalla | PistaRestriccion | PistaOpcionDialogo | PistaRango | PistaDocumento;
 
 /** POST /intentos/:id/ayuda */
 export interface AyudaAplicada {
@@ -507,6 +564,7 @@ export interface RetroDialogo {
 }
 
 export type Retroalimentacion =
+  | RetroExpediente
   | RetroEscenario
   | RetroHistorias
   | RetroLineaTiempo

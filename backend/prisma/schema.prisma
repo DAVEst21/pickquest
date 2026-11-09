@@ -279,6 +279,10 @@ model Reto {
   escenarioCalidad          EscenarioCalidad?
   unidadesEscenario         UnidadEscenario[]
   opcionesParteEscenario    OpcionParteEscenario[]
+  // CU-07
+  expediente                Expediente?
+  documentosExpediente      DocumentoExpediente[]
+  caracteristicasProyecto   CaracteristicaProyecto[]
 
   @@unique([faseId, orden])
   @@map("reto")
@@ -316,6 +320,8 @@ model IntentoReto {
   respuestaEscenario      RespuestaEscenario?
   eleccionesParteEscenario EleccionParteEscenario[]
   simulacionesEscenario   SimulacionEscenario[]
+  evidenciasSeleccionadas EvidenciaSeleccionada[]
+  eleccionModelo          EleccionModelo?
 
   @@index([estudianteId, retoId, estado])
   @@map("intento_reto")
@@ -330,6 +336,7 @@ enum TipoPista {
   RESTRICCION // atributoEscenarioId (el mínimo se obtiene del atributo)
   DEPENDENCIA // bloqueId y requiereId
   RANGO_ESCENARIO // CU-05: el rango aceptable se lee del escenario del reto
+  DOCUMENTO // CU-07: documentoId (documento del expediente que se resalta)
 }
 
 // Una ayuda pertenece a un intento concreto (RN-10: máximo 1 por intento).
@@ -349,6 +356,7 @@ model UsoAyuda {
   atributoEscenarioId Int?
   bloqueId            Int?
   requiereId          Int?
+  documentoId         Int?
 
   intento           IntentoReto           @relation(fields: [intentoId], references: [id], onDelete: Cascade)
   objeto            Objeto                @relation(fields: [objetoId], references: [id], onDelete: Restrict)
@@ -358,6 +366,7 @@ model UsoAyuda {
   atributoEscenario AtributoEscenario?    @relation(fields: [atributoEscenarioId], references: [id], onDelete: Restrict)
   bloque            BloquePlan?           @relation("PistaBloque", fields: [bloqueId], references: [id], onDelete: Restrict)
   requiere          BloquePlan?           @relation("PistaRequiere", fields: [requiereId], references: [id], onDelete: Restrict)
+  documento         DocumentoExpediente?  @relation(fields: [documentoId], references: [id], onDelete: Restrict)
 
   distractoresRetirados DistractorRetirado[]
 
@@ -898,4 +907,106 @@ model SimulacionEscenario {
 
   @@unique([intentoId, numero])
   @@map("simulacion_escenario")
+}
+
+
+// =====================================================================
+// CU-07 Expediente del proyecto (RF-10, RN-22)
+// =====================================================================
+
+enum TipoDocumentoExpediente {
+  MINUTA
+  CORREO
+  FICHA_TECNICA
+  PRESUPUESTO
+}
+
+// 1:1 con Reto. El modelo correcto y su explicación son la referencia (RN-31).
+model Expediente {
+  retoId         Int             @id
+  nombreProyecto String
+  modeloCorrecto ModeloCicloVida
+  explicacion    String          @db.Text
+
+  reto Reto @relation(fields: [retoId], references: [id], onDelete: Cascade)
+
+  @@map("expediente")
+}
+
+model DocumentoExpediente {
+  id     Int                     @id @default(autoincrement())
+  retoId Int
+  orden  Int
+  tipo   TipoDocumentoExpediente
+  titulo String
+
+  reto        Reto                 @relation(fields: [retoId], references: [id], onDelete: Cascade)
+  fragmentos  FragmentoDocumento[]
+  ayudas      UsoAyuda[]
+
+  @@unique([retoId, orden])
+  @@map("documento_expediente")
+}
+
+// p. ej. "Requisitos cambiantes", "Riesgo técnico bajo", "Plazo fijo"
+model CaracteristicaProyecto {
+  id     Int    @id @default(autoincrement())
+  retoId Int
+  nombre String
+
+  reto                Reto                    @relation(fields: [retoId], references: [id], onDelete: Cascade)
+  fragmentosCorrectos FragmentoDocumento[]
+  evidencias          EvidenciaSeleccionada[]
+
+  @@map("caracteristica_proyecto")
+}
+
+model FragmentoDocumento {
+  id                       Int     @id @default(autoincrement())
+  documentoId              Int
+  orden                    Int
+  texto                    String  @db.Text
+  caracteristicaCorrectaId Int? // null = fragmento irrelevante
+  respaldaModelo           Boolean @default(false) // relevante para justificar el modelo correcto
+
+  documento             DocumentoExpediente     @relation(fields: [documentoId], references: [id], onDelete: Cascade)
+  caracteristicaCorrecta CaracteristicaProyecto? @relation(fields: [caracteristicaCorrectaId], references: [id], onDelete: Restrict)
+  evidencias            EvidenciaSeleccionada[]
+
+  @@unique([documentoId, orden])
+  @@map("fragmento_documento")
+}
+
+model EvidenciaSeleccionada {
+  intentoId        Int
+  fragmentoId      Int
+  caracteristicaId Int?
+
+  intento        IntentoReto             @relation(fields: [intentoId], references: [id], onDelete: Cascade)
+  fragmento      FragmentoDocumento      @relation(fields: [fragmentoId], references: [id], onDelete: Restrict)
+  caracteristica CaracteristicaProyecto? @relation(fields: [caracteristicaId], references: [id], onDelete: Restrict)
+  // Respaldo del modelo: la evidencia vinculada debe estar seleccionada (clave compuesta).
+  vinculo        VinculoEvidencia?
+
+  @@id([intentoId, fragmentoId])
+  @@map("evidencia_seleccionada")
+}
+
+model EleccionModelo {
+  intentoId Int             @id
+  modelo    ModeloCicloVida
+
+  intento IntentoReto @relation(fields: [intentoId], references: [id], onDelete: Cascade)
+
+  @@map("eleccion_modelo")
+}
+
+model VinculoEvidencia {
+  intentoId   Int
+  fragmentoId Int
+
+  evidencia EvidenciaSeleccionada @relation(fields: [intentoId, fragmentoId], references: [intentoId, fragmentoId], onDelete: Cascade)
+
+  @@id([intentoId, fragmentoId])
+  @@map("vinculo_evidencia")
 }

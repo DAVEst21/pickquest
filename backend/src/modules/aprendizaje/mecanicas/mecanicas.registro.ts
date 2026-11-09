@@ -2,6 +2,7 @@ import { ArmadoPiezasEvaluador } from './armado-piezas/armado-piezas.evaluador';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { Mecanica } from '@prisma/client';
 import { DialogoStakeholderEvaluador } from './dialogo-stakeholder/dialogo-stakeholder.evaluador';
+import { ExpedienteProyectoEvaluador } from './expediente-proyecto/expediente-proyecto.evaluador';
 import { InspeccionSistemaEvaluador } from './inspeccion-sistema/inspeccion-sistema.evaluador';
 import { LineaTiempoEvaluador } from './linea-tiempo/linea-tiempo.evaluador';
 import { RepartoPresupuestoEvaluador } from './reparto-presupuesto/reparto-presupuesto.evaluador';
@@ -24,9 +25,10 @@ export class MecanicasRegistro {
     presupuesto: RepartoPresupuestoEvaluador,
     lineaTiempo: LineaTiempoEvaluador,
     readonly escenarios: SimuladorEscenariosEvaluador,
+    expediente: ExpedienteProyectoEvaluador,
   ) {
     this.porMecanica = new Map(
-      [dialogo, historias, tablero, inspeccion, escenarios, presupuesto, lineaTiempo].map((e) => [e.mecanica, e]),
+      [dialogo, historias, tablero, inspeccion, escenarios, presupuesto, lineaTiempo, expediente].map((e) => [e.mecanica, e]),
     );
   }
 

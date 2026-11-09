@@ -1,4 +1,5 @@
-import type { RetroEscenario, RetroHistorias } from '../../types';
+import type { RetroEscenario, RetroExpediente, RetroHistorias } from '../../types';
+import { NOMBRE_MODELO } from '../reto/expediente/RetoExpediente';
 import { ETIQUETA_PIEZA } from '../reto/historias/etiquetas';
 import React from 'react';
 import type {
@@ -376,6 +377,66 @@ const Dialogo: React.FC<{ r: RetroDialogo }> = ({ r }) => {
   );
 };
 
+const Expediente: React.FC<{ r: RetroExpediente }> = ({ r }) => (
+  <div className="flex flex-col gap-space-md" data-retro="expediente">
+    <Tarjeta titulo="Modelo de ciclo de vida" icono="account_tree">
+      <p className="font-body-md text-body-md text-on-surface" data-modelo>
+        <Marca ok={r.modeloAcertado} /> Elegiste <strong>{r.modeloElegido ? NOMBRE_MODELO[r.modeloElegido] : 'ninguno'}</strong>.{' '}
+        {r.modeloAcertado ? 'Es el modelo que respaldan las evidencias.' : 'No es el modelo que respaldan las evidencias.'}
+      </p>
+      {r.modeloCorrecto && (
+        <div className="mt-space-sm" data-modelo-referencia>
+          <p className="font-body-md text-body-md text-tertiary">
+            Modelo de referencia: <strong>{NOMBRE_MODELO[r.modeloCorrecto]}</strong>
+          </p>
+          {r.explicacion && <p className="font-body-sm text-body-sm text-on-surface mt-1">{r.explicacion}</p>}
+        </div>
+      )}
+    </Tarjeta>
+    <Tarjeta titulo={`Tus evidencias (${r.evidencias.length})`} icono="fact_check">
+      {r.evidencias.length === 0 ? (
+        <Vacio>No agregaste evidencias.</Vacio>
+      ) : (
+        <ul className="space-y-space-sm">
+          {r.evidencias.map((e) => (
+            <li key={e.fragmentoId} data-evidencia-resultado={e.fragmentoId} className="bg-surface-container-high rounded-lg p-space-sm">
+              <p className="font-body-md text-body-md text-on-surface">
+                <Marca ok={e.relevante && e.caracteristicaAcertada !== false} /> {e.texto}
+              </p>
+              <p className="font-body-sm text-body-sm text-on-surface-variant">
+                {e.documento} · Indicaste: {e.caracteristicaElegida ?? 'sin característica'}
+              </p>
+              {!e.relevante && (
+                <p className="font-body-sm text-body-sm text-error">Esta evidencia no era relevante: cada una de más resta puntos.</p>
+              )}
+              {e.relevante && e.caracteristicaCorrecta && e.caracteristicaAcertada === false && (
+                <p className="font-body-sm text-body-sm text-tertiary">Revelaba: {e.caracteristicaCorrecta}</p>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </Tarjeta>
+    {r.fragmentosRelevantes && (
+      <Tarjeta titulo="Evidencias relevantes del expediente" icono="menu_book">
+        <ul className="space-y-space-sm" data-fragmentos-referencia>
+          {r.fragmentosRelevantes.map((f) => (
+            <li key={f.fragmentoId} className="bg-surface-container-high rounded-lg p-space-sm">
+              <p className="font-body-md text-body-md text-on-surface">
+                <Marca ok={f.seleccionada} /> {f.texto}
+              </p>
+              <p className="font-body-sm text-body-sm text-on-surface-variant">
+                {f.documento} · Revela: <strong className="text-tertiary">{f.caracteristica}</strong>
+                {f.respaldaModelo ? ' · Respalda el modelo' : ''}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </Tarjeta>
+    )}
+  </div>
+);
+
 const Escenario: React.FC<{ r: RetroEscenario }> = ({ r }) => (
   <div className="flex flex-col gap-space-md" data-retro="escenario">
     <Tarjeta titulo="Partes del escenario" icono="rule">
@@ -435,6 +496,8 @@ export const Retroalimentacion: React.FC<{ retro: RetroTipo }> = ({ retro }) => 
         return <Historias r={retro} />;
       case 'SIMULADOR_ESCENARIOS':
         return <Escenario r={retro} />;
+      case 'EXPEDIENTE_PROYECTO':
+        return <Expediente r={retro} />;
       case 'LINEA_TIEMPO':
         return <LineaTiempo r={retro} />;
       case 'TABLERO_MOSCOW':

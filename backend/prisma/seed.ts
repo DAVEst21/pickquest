@@ -18,6 +18,7 @@ import { calcularNivel } from '../src/modules/progreso/nivel';
 import { crearHistorias, HISTORIAS } from './contenido/historias-usuario';
 import { DIALOGO } from './contenido/dialogo-stakeholder';
 import { ESCENARIO_CALIDAD } from './contenido/escenario-calidad';
+import { EXPEDIENTE } from './contenido/expediente';
 import { FASES } from './contenido/fases';
 import { INSPECCION } from './contenido/inspeccion';
 import { LINEA_TIEMPO } from './contenido/linea-tiempo';
@@ -38,7 +39,8 @@ interface RetoDefinicion {
 }
 
 const RETOS: RetoDefinicion[] = [
-  { faseOrden: 1, orden: 1, mecanica: 'LINEA_TIEMPO', base: LINEA_TIEMPO, crearContenido: crearLineaTiempo },
+  { faseOrden: 1, orden: 1, mecanica: 'EXPEDIENTE_PROYECTO', base: EXPEDIENTE, crearContenido: crearExpediente },
+  { faseOrden: 1, orden: 2, mecanica: 'LINEA_TIEMPO', base: LINEA_TIEMPO, crearContenido: crearLineaTiempo },
   { faseOrden: 2, orden: 1, mecanica: 'DIALOGO_STAKEHOLDER', base: DIALOGO, crearContenido: crearDialogo },
   { faseOrden: 2, orden: 2, mecanica: 'ARMADO_PIEZAS', base: HISTORIAS, crearContenido: crearHistorias },
   { faseOrden: 2, orden: 3, mecanica: 'TABLERO_MOSCOW', base: MOSCOW, crearContenido: crearMoscow },
@@ -80,6 +82,9 @@ async function borrarContenido(tx: Tx, retoId: number) {
   await tx.opcionParteEscenario.deleteMany({ where: { retoId } });
   await tx.escenarioCalidad.deleteMany({ where: { retoId } });
   await tx.unidadEscenario.deleteMany({ where: { retoId } });
+  await tx.documentoExpediente.deleteMany({ where: { retoId } }); // cascada: fragmentos
+  await tx.caracteristicaProyecto.deleteMany({ where: { retoId } });
+  await tx.expediente.deleteMany({ where: { retoId } });
 }
 
 /** CU-08 */
@@ -187,6 +192,37 @@ async function crearInspeccion(tx: Tx, retoId: number) {
           contenido: e.contenido ?? null,
           variante: e.variante ?? null,
           falla: e.falla ? { create: e.falla } : undefined,
+        },
+      });
+    }
+  }
+}
+
+/** CU-07 */
+async function crearExpediente(tx: Tx, retoId: number) {
+  const c = EXPEDIENTE;
+  await tx.expediente.create({
+    data: { retoId, nombreProyecto: c.nombreProyecto, modeloCorrecto: c.modeloCorrecto, explicacion: c.explicacion },
+  });
+  const idPorCaracteristica = new Map<string, number>();
+  for (const nombre of c.caracteristicas) {
+    const { id } = await tx.caracteristicaProyecto.create({ data: { retoId, nombre } });
+    idPorCaracteristica.set(nombre, id);
+  }
+  let ordenDoc = 1;
+  for (const d of c.documentos) {
+    const documento = await tx.documentoExpediente.create({
+      data: { retoId, orden: ordenDoc++, tipo: d.tipo, titulo: d.titulo },
+    });
+    let orden = 1;
+    for (const f of d.fragmentos) {
+      await tx.fragmentoDocumento.create({
+        data: {
+          documentoId: documento.id,
+          orden: orden++,
+          texto: f.texto,
+          caracteristicaCorrectaId: f.caracteristica ? idPorCaracteristica.get(f.caracteristica)! : null,
+          respaldaModelo: f.respalda ?? false,
         },
       });
     }

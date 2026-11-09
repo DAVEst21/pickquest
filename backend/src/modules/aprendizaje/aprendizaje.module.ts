@@ -6,6 +6,7 @@ import { ProgresoModule } from '../progreso/progreso.module';
 import { AprendizajeController } from './aprendizaje.controller';
 import { AprendizajeService } from './aprendizaje.service';
 import { DialogoStakeholderEvaluador } from './mecanicas/dialogo-stakeholder/dialogo-stakeholder.evaluador';
+import { ExpedienteProyectoEvaluador } from './mecanicas/expediente-proyecto/expediente-proyecto.evaluador';
 import { InspeccionSistemaEvaluador } from './mecanicas/inspeccion-sistema/inspeccion-sistema.evaluador';
 import { LineaTiempoEvaluador } from './mecanicas/linea-tiempo/linea-tiempo.evaluador';
 import { MecanicasRegistro } from './mecanicas/mecanicas.registro';
@@ -26,6 +27,7 @@ import { TableroMoscowEvaluador } from './mecanicas/tablero-moscow/tablero-mosco
     RepartoPresupuestoEvaluador,
     LineaTiempoEvaluador,
     SimuladorEscenariosEvaluador,
+    ExpedienteProyectoEvaluador,
   ],
 })
 export class AprendizajeModule {}

@@ -34,6 +34,22 @@ function sinReferencia(retro: RetroalimentacionDto): RetroalimentacionDto {
           })),
         })),
       };
+    case 'EXPEDIENTE_PROYECTO':
+      return {
+        mecanica: retro.mecanica,
+        nombreProyecto: r.nombreProyecto,
+        modeloElegido: r.modeloElegido,
+        modeloAcertado: r.modeloAcertado,
+        // se señalan las evidencias irrelevantes; no la característica correcta de cada una
+        evidencias: lista(r.evidencias).map((e) => ({
+          fragmentoId: e.fragmentoId,
+          texto: e.texto,
+          documento: e.documento,
+          caracteristicaElegida: e.caracteristicaElegida,
+          relevante: e.relevante,
+        })),
+        vinculos: r.vinculos,
+      };
     case 'SIMULADOR_ESCENARIOS':
       return {
         mecanica: retro.mecanica,

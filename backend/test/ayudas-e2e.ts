@@ -210,6 +210,30 @@ export async function resolver(
       });
       return;
     }
+    case 'EXPEDIENTE_PROYECTO': {
+      const expediente = await prisma.expediente.findUniqueOrThrow({ where: { retoId } });
+      const fragmentos = await prisma.fragmentoDocumento.findMany({
+        where: { documento: { retoId } },
+        orderBy: [{ documento: { orden: 'asc' } }, { orden: 'asc' }],
+      });
+      if (modo === 'perfecto') {
+        const relevantes = fragmentos.filter((f) => f.caracteristicaCorrectaId !== null);
+        await guardar({
+          evidencias: relevantes.map((f) => ({ fragmentoId: f.id, caracteristicaId: f.caracteristicaCorrectaId })),
+          modelo: expediente.modeloCorrecto,
+          vinculos: relevantes.filter((f) => f.respaldaModelo).slice(0, 3).map((f) => f.id),
+        });
+      } else {
+        const irrelevantes = fragmentos.filter((f) => f.caracteristicaCorrectaId === null).slice(0, 3);
+        const caracteristica = await prisma.caracteristicaProyecto.findFirstOrThrow({ where: { retoId } });
+        await guardar({
+          evidencias: irrelevantes.map((f) => ({ fragmentoId: f.id, caracteristicaId: caracteristica.id })),
+          modelo: expediente.modeloCorrecto === 'CASCADA' ? 'ESPIRAL' : 'CASCADA',
+          vinculos: irrelevantes.slice(0, 2).map((f) => f.id),
+        });
+      }
+      return;
+    }
     default:
       throw new Error(`Mecánica sin resolver en la prueba: ${intento.reto.mecanica}`);
   }
