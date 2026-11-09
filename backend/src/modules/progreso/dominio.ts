@@ -28,10 +28,12 @@ export function promedioMejoresCalificaciones(mejores: number[]): number | null 
 
 /** Porcentaje del último diagnóstico terminado del tema; null si el estudiante no ha hecho uno. */
 async function ultimoDiagnosticoDelTema(db: Db, estudianteId: number, tema: TemaFase): Promise<number | null> {
-  void db;
-  void estudianteId;
-  void tema;
-  return null;
+  const ultimo = await db.resultadoDiagnosticoTema.findFirst({
+    where: { tema, diagnostico: { estudianteId, terminadoEn: { not: null } } },
+    orderBy: [{ diagnostico: { terminadoEn: 'desc' } }, { diagnosticoId: 'desc' }],
+    select: { porcentaje: true },
+  });
+  return ultimo?.porcentaje ?? null;
 }
 
 /** Promedio de la mejor calificación de cada reto del tema que tiene al menos un intento calificado. */

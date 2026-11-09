@@ -707,3 +707,66 @@ export interface SesionRepaso {
   tarjetaActual: TarjetaRepaso | null;
   resumen: { sabidas: number; dudadas: number; noSabidas: number; xpOtorgada: number; dominio: number } | null;
 }
+
+// ---------- CU-10 Diagnóstico y plan de estudio ----------
+
+export interface PreguntaDiagnostico {
+  preguntaId: number;
+  orden: number;
+  enunciado: string;
+  opciones: { opcionId: number; texto: string }[];
+}
+
+export interface DiagnosticoIniciado {
+  diagnosticoId: number;
+  preguntas: PreguntaDiagnostico[];
+}
+
+export interface ResultadoTema {
+  tema: TemaFase;
+  nombre: string;
+  aciertos: number;
+  preguntas: number;
+  porcentaje: number;
+  dominio: number;
+  debil: boolean;
+}
+
+export interface RevisionPregunta {
+  preguntaId: number;
+  enunciado: string;
+  opcionElegidaId: number;
+  opcionCorrectaId: number;
+  correcta: boolean;
+  explicacion: string | null;
+}
+
+export interface ActividadPlan {
+  actividadId: number;
+  orden: number;
+  tipo: 'RETO' | 'REPASO' | 'DUELO';
+  tema: TemaFase;
+  temaNombre: string;
+  faseId: number;
+  retoId: number | null;
+  retoTitulo: string | null;
+  motivo: string;
+  hecha: boolean;
+}
+
+export interface PlanEstudio {
+  planId: number;
+  estado: 'PROPUESTO' | 'ACTIVO' | 'REEMPLAZADO';
+  esPlanMejora: boolean;
+  creadoEn: string;
+  aceptadoEn: string | null;
+  actividades: ActividadPlan[];
+  avance: { hechas: number; total: number; porcentaje: number };
+}
+
+export interface DiagnosticoTerminado {
+  diagnosticoId: number;
+  resultados: ResultadoTema[];
+  revision: RevisionPregunta[];
+  plan: PlanEstudio;
+}

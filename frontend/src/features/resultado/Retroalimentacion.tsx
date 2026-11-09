@@ -1,5 +1,5 @@
 import type { RetroEscenario, RetroExpediente, RetroHistorias } from '../../types';
-import { NOMBRE_MODELO } from '../reto/expediente/RetoExpediente';
+import { NOMBRE_MODELO } from '../reto/expediente/modelos';
 import { ETIQUETA_PIEZA } from '../reto/historias/etiquetas';
 import React from 'react';
 import type {

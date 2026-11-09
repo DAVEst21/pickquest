@@ -20,6 +20,7 @@ import { DIALOGO } from './contenido/dialogo-stakeholder';
 import { ESCENARIO_CALIDAD } from './contenido/escenario-calidad';
 import { EXPEDIENTE } from './contenido/expediente';
 import { FASES } from './contenido/fases';
+import { BANCO_PREGUNTAS } from './contenido/banco-preguntas';
 import { MATERIAL_POR_TEMA } from './contenido/estudio';
 import { INSPECCION } from './contenido/inspeccion';
 import { LINEA_TIEMPO } from './contenido/linea-tiempo';
@@ -304,6 +305,24 @@ async function crearPresupuesto(tx: Tx, retoId: number) {
 
 // ---------------------------------------------------------------------
 
+/** Banco de preguntas (CU-10, CU-11, CU-13). Idempotente: actualiza en su lugar, nunca borra respuestas. */
+async function cargarBancoDePreguntas() {
+  for (const p of BANCO_PREGUNTAS) {
+    const pregunta = await prisma.preguntaBanco.upsert({
+      where: { tema_enunciado: { tema: p.tema, enunciado: p.enunciado } },
+      update: { explicacion: p.explicacion, activa: true },
+      create: { tema: p.tema, enunciado: p.enunciado, explicacion: p.explicacion },
+    });
+    for (const [i, texto] of p.opciones.entries()) {
+      await prisma.opcionPregunta.upsert({
+        where: { preguntaId_orden: { preguntaId: pregunta.id, orden: i + 1 } },
+        update: { texto, correcta: i === p.correcta },
+        create: { preguntaId: pregunta.id, orden: i + 1, texto, correcta: i === p.correcta },
+      });
+    }
+  }
+}
+
 /** CU-09: material de estudio y tarjetas del tema. Idempotente: actualiza en su lugar, nunca borra. */
 async function cargarMaterialDeEstudio(faseId: number, tema: TemaFase) {
   const material = MATERIAL_POR_TEMA[tema];
@@ -352,6 +371,8 @@ async function main() {
     });
     await cargarMaterialDeEstudio(id, fase.tema);
   }
+
+  await cargarBancoDePreguntas();
 
   const objetosPorNombre = new Map<string, number>();
   for (const obj of OBJETOS) {

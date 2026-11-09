@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { BorradorExpediente, ContenidoExpediente, ModeloCicloVida, PistaDocumento } from '../../../types';
 import type { PropsMecanica } from '../tipos';
+import { NOMBRE_MODELO } from './modelos';
 
 /**
  * CU-07 Elegir el ciclo de vida investigando el expediente de un proyecto (RF-10, RN-22).
@@ -9,14 +10,6 @@ import type { PropsMecanica } from '../tipos';
  * lleva la característica del proyecto que revela; el modelo se elige al final y
  * se respalda con al menos dos evidencias. La referencia nunca está en el cliente.
  */
-export const NOMBRE_MODELO: Record<ModeloCicloVida, string> = {
-  CASCADA: 'Cascada',
-  MODELO_V: 'Modelo en V',
-  INCREMENTAL: 'Incremental',
-  ESPIRAL: 'Espiral',
-  PROTOTIPOS: 'Prototipos',
-  AGIL: 'Ágil',
-};
 const ICONO_DOCUMENTO: Record<string, string> = {
   MINUTA: 'groups',
   CORREO: 'mail',

@@ -5,6 +5,9 @@ import { RegistroPage } from './features/auth/RegistroPage';
 import { BibliotecaPage } from './features/estudio/BibliotecaPage';
 import { MaterialPage } from './features/estudio/MaterialPage';
 import { RepasoPage } from './features/estudio/RepasoPage';
+import { DiagnosticoPage } from './features/plan/DiagnosticoPage';
+import { PlanPage } from './features/plan/PlanPage';
+import { PropuestaPage } from './features/plan/PropuestaPage';
 import { MisionPage } from './features/mision/MisionPage';
 import { OverworldPage } from './features/overworld/OverworldPage';
 import { ResultadoPage } from './features/resultado/ResultadoPage';
@@ -28,6 +31,10 @@ export const router = createBrowserRouter([
       { path: '/estudio', element: <BibliotecaPage /> },
       { path: '/estudio/repaso/:sesionId', element: <RepasoPage /> },
       { path: '/estudio/:faseId', element: <MaterialPage /> },
+      // Diagnóstico y plan de estudio (CU-10)
+      { path: '/plan', element: <PlanPage /> },
+      { path: '/plan/diagnostico/:diagnosticoId', element: <DiagnosticoPage /> },
+      { path: '/plan/propuesta/:planId', element: <PropuestaPage /> },
       // Tienda de objetos (CU-12)
       { path: '/tienda', element: <TiendaPage /> },
     ],

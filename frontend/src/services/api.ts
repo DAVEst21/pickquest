@@ -9,6 +9,9 @@ import type {
   IntentoCalificado,
   IntentoEnCurso,
   Autoevaluacion,
+  DiagnosticoIniciado,
+  DiagnosticoTerminado,
+  PlanEstudio,
   Libreta,
   MaterialTema,
   SesionRepaso,
@@ -164,4 +167,34 @@ export function autoevaluarTarjeta(
   autoevaluacion: Autoevaluacion,
 ): Promise<SesionRepaso> {
   return http(`/estudio/sesiones/${sesionId}/tarjetas/${tarjetaId}`, { method: 'POST', body: { autoevaluacion } });
+}
+
+/** CU-10: crea un diagnóstico de 9 preguntas (sin la opción correcta). */
+export function iniciarDiagnostico(): Promise<DiagnosticoIniciado> {
+  return http('/plan/diagnosticos', { method: 'POST' });
+}
+
+export function getDiagnostico(diagnosticoId: number): Promise<DiagnosticoIniciado> {
+  return http(`/plan/diagnosticos/${diagnosticoId}`);
+}
+
+/** CU-10 FE1: 400 con `pendientes` si falta alguna respuesta. */
+export function responderDiagnostico(
+  diagnosticoId: number,
+  respuestas: { preguntaId: number; opcionId: number }[],
+): Promise<DiagnosticoTerminado> {
+  return http(`/plan/diagnosticos/${diagnosticoId}/respuestas`, { method: 'POST', body: { respuestas } });
+}
+
+export function getPlanActivo(): Promise<{ plan: PlanEstudio | null }> {
+  return http('/plan/activo');
+}
+
+export function getPlan(planId: number): Promise<PlanEstudio> {
+  return http(`/plan/${planId}`);
+}
+
+/** CU-10 FA1: las actividades conservadas, en el orden elegido. */
+export function aceptarPlan(planId: number, actividadIds: number[]): Promise<PlanEstudio> {
+  return http(`/plan/${planId}/aceptar`, { method: 'POST', body: { actividadIds } });
 }

@@ -3,6 +3,7 @@ import type { Autoevaluacion, Sesion } from '../types';
 import { useAuthStore } from '../store/authStore';
 import { usePlayerStore } from '../store/playerStore';
 import {
+  aceptarPlan,
   autoevaluarTarjeta,
   comprarObjeto,
   desequiparObjeto,
@@ -10,7 +11,12 @@ import {
   equiparObjeto,
   getEquipados,
   getFases,
+  getDiagnostico,
   getIntento,
+  getPlan,
+  getPlanActivo,
+  iniciarDiagnostico,
+  responderDiagnostico,
   getMaterialTema,
   getSesionRepaso,
   getTemasEstudio,
@@ -36,6 +42,9 @@ export const QUERY_KEYS = {
   equipados: (retoId?: number) => ['equipados', retoId ?? 0] as const,
   libreta: (retoId: number) => ['libreta', retoId] as const,
   tienda: ['tienda'] as const,
+  planActivo: ['plan', 'activo'] as const,
+  plan: (id: number) => ['plan', id] as const,
+  diagnostico: (id: number) => ['plan', 'diagnostico', id] as const,
   temasEstudio: ['estudio', 'temas'] as const,
   materialTema: (faseId: number) => ['estudio', 'material', faseId] as const,
   sesionRepaso: (id: number) => ['estudio', 'sesion', id] as const,
@@ -254,6 +263,60 @@ export function useAutoevaluarTarjeta(sesionId: number) {
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.perfil });
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.temasEstudio });
       }
+    },
+  });
+}
+
+/** CU-10: plan activo con su avance (null si no tiene). */
+export function usePlanActivo() {
+  return useQuery({ queryKey: QUERY_KEYS.planActivo, queryFn: getPlanActivo });
+}
+
+export function usePlan(planId: number | undefined) {
+  return useQuery({
+    queryKey: QUERY_KEYS.plan(planId ?? 0),
+    queryFn: () => getPlan(planId!),
+    enabled: esIdValido(planId),
+    retry: false,
+  });
+}
+
+export function useDiagnostico(diagnosticoId: number | undefined) {
+  return useQuery({
+    queryKey: QUERY_KEYS.diagnostico(diagnosticoId ?? 0),
+    queryFn: () => getDiagnostico(diagnosticoId!),
+    enabled: esIdValido(diagnosticoId),
+    staleTime: Infinity,
+    retry: false,
+  });
+}
+
+export function useIniciarDiagnostico() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: iniciarDiagnostico,
+    onSuccess: (d) => queryClient.setQueryData(QUERY_KEYS.diagnostico(d.diagnosticoId), d),
+  });
+}
+
+export function useResponderDiagnostico(diagnosticoId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (respuestas: { preguntaId: number; opcionId: number }[]) =>
+      responderDiagnostico(diagnosticoId, respuestas),
+    onSuccess: (resultado) => {
+      queryClient.setQueryData(QUERY_KEYS.plan(resultado.plan.planId), resultado.plan);
+    },
+  });
+}
+
+export function useAceptarPlan(planId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (actividadIds: number[]) => aceptarPlan(planId, actividadIds),
+    onSuccess: (plan) => {
+      queryClient.setQueryData(QUERY_KEYS.plan(plan.planId), plan);
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.planActivo });
     },
   });
 }
