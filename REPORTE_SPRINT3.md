@@ -31,7 +31,7 @@ Casos de uso implementados o completados: **CU-05, CU-07, CU-09, CU-10, CU-11, C
 | 6 | `41f2bae` | **CU-10** diagnóstico, plan de estudio y banco de preguntas (RN-26, RN-27) |
 | 7 | `1c1a42f` | **CU-11** reto diario contrarreloj con racha real (RN-12, RN-13, RN-29, RNF-SE-05) |
 | 8 | `db2a49a` | **CU-13** duelos, **RF-19** perfil, **RF-20** clasificación y navegación con indicadores |
-| 9 | (este commit) | Limpieza de «próximamente», suite de navegador adaptada y ampliada, README y este reporte |
+| 9 | `97f8db6` | Limpieza de «próximamente», suite de navegador adaptada y ampliada, README y este reporte |
 
 **Navegación (encabezado):** Mapa · Biblioteca · Plan de estudio · Reto diario · Tienda · Duelos · Clasificación · Perfil. Indicadores: insignia con el número de duelos pendientes por responder y marca «!» en *Reto diario* mientras el de hoy no se haya terminado; además, un aviso visible en todas las pantallas cuando el estudiante tiene duelos pendientes. En pantallas angostas el menú se abre con un botón.
 
@@ -113,7 +113,7 @@ Estados: **Cumple** · **Cumple con desviación** · **No cumple**. «Back» = e
 |---|---|---|---|
 | 1–2 Racha, multiplicador y reglas | Cumple | `GET /reto-diario/hoy` | `RetoDiarioPage` |
 | 3 Iniciar (10 preguntas de los temas desbloqueados) | Cumple | `POST /reto-diario` | `RetoDiarioPage` |
-| 4–6 Pregunta con temporizador y retroalimentación | Cumple | `…/preguntas/:n/entregar`, `…/respuesta` | `PreguntaCronometrada` (color en los últimos 5 s) |
+| 4–6 Pregunta con temporizador; el sistema indica si la respuesta es correcta y pasa a la siguiente (sin revelar la opción correcta) | Cumple | `…/preguntas/:n/entregar`, `…/respuesta` (devuelve `correcta`, `siguiente` y `aciertos`) | `PreguntaCronometrada` (color en los últimos 5 s) |
 | 7 Completar las 10 | Cumple | termina solo tras la décima | `RetoDiarioPage` |
 | 8–9 Puntaje, recompensas (RN-29), racha (RN-13) y resumen | Cumple | misma transacción | `RetoDiarioPage` |
 | FA1 Tiempo agotado = incorrecta | Cumple | `opcionId: null`; vencida por reloj del servidor | `PreguntaCronometrada` |
@@ -1712,13 +1712,13 @@ model ResultadoDuelo {
 5. **Columnas añadidas a lo pedido:** `TarjetaSesion.primeraAutoevaluacion` (el resumen cuenta cómo se evaluó cada tarjeta la primera vez; sin ella una tarjeta «no sabida» y luego «sabida» no se podría distinguir) y `SesionRepaso.diaTerminada` (RN-25 por día calendario MX). También restricciones únicas en contenido (p. ej. `[faseId, orden]`) para que el seed sea idempotente.
 6. **Plan de estudio.** «Reto desbloqueado» se interpreta literalmente: fase abierta y retos anteriores de la fase aprobados, así que un tema recién abierto aporta primero su primer reto. Si los temas débiles no tienen nada que hacer todavía (p. ej. su fase sigue bloqueada) se genera el plan de mejora para no dejar un plan vacío.
 7. **Duelos.** El retado puede aceptar aunque el retador no haya terminado su ronda; un duelo expira si **cualquiera** de los dos no terminó en 48 h (decisión pedida en el documento); el límite de 3 cuenta duelos `PENDIENTE` y `ACEPTADO`. La respuesta de una pregunta de duelo **no** revela si acertó ni cuál era la correcta hasta que el duelo termina (la revisión llega con el resultado). Los bloqueos del duelo se toman en un orden fijo (duelo y luego estudiantes por id) para evitar interbloqueos.
-8. **Reto diario.** `POST /reto-diario` retoma el reto del día si sigue en curso; un reto de un día anterior sin terminar se cierra en el siguiente acceso con la racha de su propio día; si la última pregunta venció con el navegador cerrado, el reto se cierra solo. Tras responder, el servidor sí revela la opción correcta y la explicación (retroalimentación inmediata pedida para esta mecánica).
+8. **Reto diario.** `POST /reto-diario` retoma el reto del día si sigue en curso; un reto de un día anterior sin terminar se cierra en el siguiente acceso con la racha de su propio día; si la última pregunta venció con el navegador cerrado, el reto se cierra solo. Tras responder, el servidor solo indica si la respuesta fue correcta (CU-11, paso 6); no revela la opción correcta ni la explicación, porque el banco lo comparten el diagnóstico y los duelos (corregido en el seguimiento, sección 11).
 9. **Racha.** El reinicio perezoso conserva el récord y la fecha del último día logrado; se aplica en `GET /auth/perfil`, `/perfil`, el reto diario y el anuncio de recompensas del tablón.
 10. **Perfil.** El avatar es una URL `http(s)` (o vacío para quitarlo); no hay carga de archivos. El `ValidationPipe` global descarta (no rechaza) los campos desconocidos; por eso `PATCH /perfil` ignora `xpTotal` o `email` en lugar de responder 400.
 11. **Clasificación.** Se calcula al consultar y muestra los primeros 50 lugares más la fila propia si queda fuera.
 12. **Precios y tipos de objetos.** Poción de Sabiduría 50 QP (cualquier reto), un Pergamino por tema a 30 QP y Reliquia del Arquitecto 300 QP (cualquier reto).
 13. **Navegación.** «Misiones» se quitó del encabezado (el tablón se abre desde el mapa y desde «Misión actual» del pie) para dejar las ocho secciones pedidas.
-14. **Suites existentes adaptadas al nuevo orden de retos.** `sprint2-aprendizaje.e2e-spec.ts` busca los retos por mecánica en lugar de por posición, y las pruebas de navegador dan por aprobados (sin recompensa) CU-07 y CU-05 cuando miden los retos del Sprint 2. Las pruebas de CU-05 y CU-07 tienen sus propios archivos.
+14. **Suites existentes adaptadas al nuevo orden de retos.** `sprint2-aprendizaje.e2e-spec.ts` busca los retos por mecánica en lugar de por posición, y las pruebas de navegador de los retos del Sprint 2 (`01`, `03` y `05`) dan por aprobados (sin recompensa) CU-07 y CU-05 solo para poder llegar a los retos que miden. Las pruebas de CU-05 y CU-07 tienen sus propios archivos (API y, en el seguimiento, navegador).
 15. **Verificación con base limpia.** El documento pide `docker compose down -v && docker compose up --build`. Como `-v` borra el volumen con los datos locales del equipo (hay un estudiante real de pruebas con 1,120 XP), la verificación desde cero se hizo con un proyecto de Compose aparte (`-p pickquest_limpio`) y su propio volumen, que sí se destruyó; los datos locales no se tocaron.
 
 ---
@@ -1747,21 +1747,60 @@ Nota del entorno: el `.env` local apunta `CORS_ORIGIN` a un túnel temporal, as�
 
 ## 8. Contenido del seed
 
+Esta tabla describe **todo el contenido educativo** del sistema, para la revisión pedagógica. Los datos salen del seed (`backend/prisma/seed.ts` y `backend/prisma/contenido/`) y se verificaron contra la base cargada. No se transcribe el texto de las respuestas correctas; se indica cuántas hay y dónde están. El texto completo está en los archivos de `contenido/`.
+
+### 8.1 Estructura general
+
 | Contenido | Cantidad | Detalle |
 |---|---|---|
-| Fases | 3 | Ciclo de vida del software · Elicitación de requerimientos · Atributos de calidad |
-| Retos | 8 | F1: CU-07 → CU-08 · F2: CU-01 → CU-02 → CU-03 · F3: CU-04 → CU-05 → CU-06 |
-| CU-05 | 1 escenario | Compras Express: 4 atributos, 20 opciones de partes, 4 unidades y 4 efectos cruzados |
-| CU-07 | 1 expediente | VidaCita: 4 documentos, 19 fragmentos y 6 características |
-| Material de estudio (CU-09) | 3 temas | Una explicación real por tema |
-| Ejemplos | 13 | 4 · 5 · 4 por tema |
-| Glosario | 30 | 10 términos por tema |
-| Tarjetas | 36 | 12 por tema |
-| Banco de preguntas (CU-10/11/13) | 45 | 15 por tema, 4 opciones (una correcta) y explicación |
-| Objetos | 5 | Poción de Sabiduría 50 QP; Pergaminos del Ciclo de Vida, de Claridad y de Calidad 30 QP; Reliquia del Arquitecto 300 QP |
-| Estudiantes demo | 2 | `demo@pickquest.dev` (sin progreso, 3 pociones equipadas) y `rival@pickquest.dev` (`rival_demo`: nivel 2 con 680 XP, fase 1 y dos primeros retos de la fase 2 completos, racha de 3 días, 2 pociones). Contraseña de ambos: `pickquest123` |
+| Fases | 3 | 1 Ciclo de vida del software (Básica) · 2 Elicitación de requerimientos · 3 Atributos de calidad. Cada una con su descripción y su contenido de apoyo (teoría, ejemplos, glosario) para el tablón |
+| Retos | 8 | F1: CU-07 → CU-08 · F2: CU-01 → CU-02 → CU-03 · F3: CU-04 → CU-05 → CU-06. Cada reto se habilita al aprobar el anterior de su fase (RN-08) |
+| Objetos | 5 | Poción de Sabiduría 50 QP, Común, cualquier reto · Pergamino del Ciclo de Vida, Pergamino de Claridad (Elicitación) y Pergamino de Calidad (Atributos de calidad), 30 QP, Poco común, solo en retos de su tema · Reliquia del Arquitecto 300 QP, Épica, cualquier reto |
+| Usuarios demo | 2 | `demo@pickquest.dev` (`aventurero_demo`: sin progreso, 3 pociones equipadas) y `rival@pickquest.dev` (`rival_demo`: nivel 2 con 680 XP, fase 1 y dos primeros retos de la fase 2 completos, racha de 3 días, 2 pociones). Contraseña de ambos: `pickquest123` |
 
-El seed es idempotente: vuelve a correr sin duplicar ni borrar progreso; no reescribe el contenido de un reto que ya tiene intentos.
+### 8.2 Retos (contenido de cada mecánica)
+
+Todos los retos aprueban con 80 % o más (RN-03); sus estrellas son 80/90/100 % → 1/2/3, con máximo 2 si se usó ayuda (RN-04).
+
+| Reto | Escenario y contenido | Calificación | Respuesta correcta (dónde está) |
+|---|---|---|---|
+| **1.1 CU-07 Expediente** · 130 XP / 90 QP | Proyecto «VidaCita» (app de citas de la clínica Vida). 4 documentos: minuta (5 fragmentos), correo de la directora (5), ficha técnica (4) y presupuesto y calendario (5) = **19 fragmentos**. 6 características: requisitos que cambian, cliente disponible, entregas tempranas, riesgo técnico bajo, equipo pequeño, presupuesto y plazo flexibles por etapas. 6 modelos para elegir: cascada, modelo en V, incremental, espiral, prototipos y ágil. Mínimo 2 vínculos | RN-22: 50 modelo correcto + 30 × (relevantes bien caracterizadas ÷ relevantes) + 20 × (vínculos que respaldan ÷ vínculos, solo con modelo correcto) − 5 por irrelevante | Modelo correcto: **ágil**. **10 fragmentos relevantes** (7 de ellos respaldan el modelo) y **9 irrelevantes**; cada relevante tiene una característica correcta |
+| **1.2 CU-08 Línea de tiempo** · 150 XP / 100 QP | «Mercadito Escolar» (tienda en línea escolar), modelo cascada, fecha límite **15 semanas**. 8 bloques: 5 fases (análisis 2 sem., diseño 3, construcción 5, pruebas 3, despliegue 1) y 3 actividades de apoyo (entorno 2 sem., plan de pruebas 2, capacitación 2). **10 dependencias** fin-a-inicio. **5 entregables** que se asocian con la fase que los produce | RN-23: 40 × orden de las fases + 30 × dependencias respetadas + 20 × entregables bien asociados + 10 si termina en el plazo | Plan de referencia: análisis 0–2, entorno 2–4, diseño 2–5, plan de pruebas y capacitación 5–7, construcción 5–10, pruebas 10–13, despliegue 13–14 (termina en la semana 14; en secuencia pura serían 20) |
+| **2.1 CU-01 Diálogo** · 200 XP / 120 QP | Don Ramón, dueño de la cafetería «La Esquina». 4 técnicas de elicitación para elegir (entrevista, cuestionario, observación y taller); **12 turnos** como máximo. **10 nodos** de conversación y **36 opciones** de pregunta | RN-16: 20 si elige la técnica correcta + 80 × (requerimientos descubiertos ÷ 6) − 5 por pregunta improductiva. Con 11 de los 12 turnos se descubren los 6 | Técnica correcta: **entrevista**. **6 requerimientos ocultos** (R1 a R3 funcionales: pedidos en tablet, inventario, cobro y división de cuenta; R4 a R6 no funcionales). **9 opciones** los revelan (cubren los 6); **27** son improductivas |
+| **2.2 CU-02 Historias de usuario** · 200 XP / 120 QP | **3 historias** (el mesero registra pedidos, la cajera cobra la cuenta y el encargado de inventario recibe avisos de ingredientes escasos), cada una con **6 casillas** (Como, Quiero, Para, Dado, Cuando, Entonces) = **18 casillas**. Banco de **24 piezas**: 4 de cada tipo | RN-17: casillas correctas ÷ 18 | **18 piezas** son la respuesta de una casilla; **6 son distractores** (tema de aeropuerto: piloto, reservar vuelos…) que no corresponden a ninguna |
+| **2.3 CU-03 Tablero MoSCoW** · 220 XP / 150 QP | «La Esquina», primera versión con capacidad de **20 puntos** de esfuerzo. **10 tarjetas** de requerimientos, cada una con puntos; se clasifican en MUST, SHOULD, COULD o WONT, se marcan como RF o RNF y se ordenan las MUST | RN-18: 50 × tarjetas en su columna + 30 × tarjetas con su tipo (RF/RNF) + 20 × orden de las MUST; las MUST no pueden pasar de la capacidad | MUST: 4 tarjetas (18 puntos); SHOULD: 3 (10); COULD: 2 (13); WONT: 1 (13). 7 funcionales y 3 no funcionales. Hay tentaciones que rebasan la capacidad (programa de puntos, 8; inventario, 5) |
+| **3.1 CU-04 Inspección** · 250 XP / 180 QP | App ficticia «SaludYa» (citas médicas): **3 pantallas** (inicio de sesión, agendar cita, mis citas) de **7 elementos** cada una = 21 elementos. Máximo **9 marcas**; cada marca lleva un atributo de calidad ISO/IEC 25010 | RN-19: cada falla vale 100 ÷ 6; 60 % por marcar su elemento y 40 % por el atributo correcto; cada marca sobre un elemento sin falla resta la mitad de una falla | **6 fallas**: seguridad 1, usabilidad 2, eficiencia de desempeño 1, adecuación funcional 1, fiabilidad 1. **15 elementos** no tienen falla |
+| **3.2 CU-05 Simulador** · 280 XP / 200 QP | Ver 8.3 | RN-20 | Ver 8.3 |
+| **3.3 CU-06 Reparto de presupuesto** · 300 XP / 220 QP | Plataforma de pagos de una cooperativa estudiantil. **20 puntos** de presupuesto para repartir entre **4 atributos** (seguridad, usabilidad, eficiencia de desempeño y mantenibilidad), con **4 efectos cruzados** (seguridad resta 1.5 a eficiencia y 1 a usabilidad; eficiencia resta 1 a mantenibilidad; mantenibilidad suma 0.5 a eficiencia). **3 restricciones obligatorias** y **3 justificaciones** para elegir | RN-21: 50 × restricciones obligatorias cumplidas + 30 × cercanía al reparto de referencia + 20 si elige la justificación correcta | Reparto de referencia: seguridad 8, usabilidad 6, eficiencia 4, mantenibilidad 2. Mínimos: seguridad 70, usabilidad 60, eficiencia 40. **1 de las 3 justificaciones** es la correcta |
+
+### 8.3 CU-05 en detalle (escenario «Compras Express»)
+
+| Elemento | Contenido |
+|---|---|
+| Necesidad vaga | «La app tiene que ser rápida en temporada alta.» |
+| Contexto de la app ficticia | Compras Express: catálogo, carrito y pago desde el celular; en temporada alta (Buen Fin y diciembre) llegan miles de compradores al mismo tiempo |
+| Opciones por parte | **5 partes × 4 opciones = 20 opciones** (fuente, estímulo, artefacto, entorno y respuesta). Cada parte tiene **1 correcta y 3 distractores** |
+| Posición de la correcta | **Siempre la primera de cada parte** (orden 1) — ver el pendiente 6 de la sección 10 |
+| Medida de respuesta | Se llama «tiempo de respuesta» y la carga es «usuarios concurrentes» |
+| Unidades | **4**: segundos (correcta), milisegundos, minutos y pedidos por hora |
+| Deslizador del valor | de 0.5 a 10, de 0.5 en 0.5 |
+| Deslizador de la carga | de 100 a 5,000 usuarios, de 100 en 100 |
+| Rango aceptable (RN-20) | Valor entre **2 y 3 segundos** con **1,500 a 2,500 usuarios** |
+| Modelo de la simulación | Tiempo de respuesta de la app = 0.8 + 0.0008 × carga (segundos): 1,500 usuarios → 2.0 s · 2,000 → 2.4 s · 2,500 → 2.8 s · 5,000 → 4.8 s. El escenario «se cumple» si la app responde en el valor definido o menos y la unidad es la correcta |
+| Simulaciones | Máximo **5** por intento |
+| Calificación (RN-20) | 12 puntos por cada parte correcta (hasta 60) + 40 si la medida está dentro del rango aceptable |
+
+### 8.4 Estudio y diagnóstico
+
+| Contenido | Cantidad | Detalle |
+|---|---|---|
+| Material de estudio (CU-09) | 3 temas | Una explicación de 4 párrafos por tema |
+| Ejemplos | 13 | Ciclo de vida 4 · Elicitación 5 · Atributos de calidad 4 |
+| Glosario | 30 | 10 términos por tema |
+| Tarjetas de repaso | 36 | 12 por tema (frente y reverso) |
+| Banco de preguntas (CU-10, CU-11 y CU-13) | 45 | 15 por tema, 4 opciones (una correcta) y explicación; la posición de la correcta varía entre preguntas |
+
+El seed es idempotente: vuelve a correr sin duplicar ni borrar progreso, y no reescribe el contenido de un reto que ya tiene intentos.
 
 ---
 
@@ -1848,9 +1887,9 @@ Usa `demo@pickquest.dev` (y `rival@pickquest.dev` para duelos), contraseña `pic
 
 ## 10. Pendientes conocidos
 
-- El recorrido de navegador no resuelve **por la interfaz** CU-05 ni CU-07 completos (se cubren con 22 pruebas e2e de API); la suite de navegador los da por aprobados para medir el resto.
 - No hay carga de archivos para el avatar (solo URL).
 - La clasificación y los duelos no se actualizan en vivo: se recalculan al consultar (el aviso de duelos se refresca cada minuto).
 - El diagnóstico no se puede retomar tras recargar la pantalla de preguntas con respuestas a medias (las elecciones viven en el navegador); sí se puede volver a abrir el mismo diagnóstico.
 - El banco tiene 15 preguntas por tema: con la fase 1 sola, el reto diario repite preguntas entre días.
 - Las capturas nuevas de la suite de navegador se generan en `docs/capturas/` pero no se agregaron al repositorio.
+- **CU-05: la opción correcta de cada parte del escenario está siempre en la primera posición** (y la unidad correcta, «segundos», también va primero), y la interfaz las muestra en ese orden. Quien lo note puede acertar sin leer. Conviene mezclar el orden al presentar el contenido o variar la posición en el seed. Está fuera del alcance de este seguimiento, así que no se cambió.
