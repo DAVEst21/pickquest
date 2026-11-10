@@ -1,0 +1,145 @@
+ Image pickquest_limpio-backend Building 
+ Image pickquest_limpio-frontend Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 1.00kB done
+#1 DONE 0.0s
+
+#2 [frontend internal] load build definition from Dockerfile
+#2 transferring dockerfile: 168B done
+#2 DONE 0.0s
+
+#3 [backend internal] load build definition from Dockerfile
+#3 transferring dockerfile: 405B 0.0s done
+#3 DONE 0.0s
+
+#4 [auth] library/node:pull token for registry-1.docker.io
+#4 DONE 0.0s
+
+#5 [backend internal] load metadata for docker.io/library/node:22-alpine
+#5 DONE 0.9s
+
+#6 [frontend internal] load .dockerignore
+#6 transferring context: 118B done
+#6 DONE 0.0s
+
+#7 [backend internal] load .dockerignore
+#7 transferring context: 111B done
+#7 DONE 0.0s
+
+#8 [backend internal] load build context
+#8 DONE 0.0s
+
+#9 [frontend internal] load build context
+#9 transferring context: 32.09kB 0.0s done
+#9 DONE 0.1s
+
+#10 [backend 1/7] FROM docker.io/library/node:22-alpine@sha256:0e1754758c2df4cfa3e68d59e2e1b7374bb7fd9ea6328eaaacf15cc934af8202
+#10 resolve docker.io/library/node:22-alpine@sha256:0e1754758c2df4cfa3e68d59e2e1b7374bb7fd9ea6328eaaacf15cc934af8202 0.1s done
+#10 DONE 0.1s
+
+#11 [frontend 2/5] WORKDIR /app
+#11 CACHED
+
+#12 [frontend 3/5] COPY package*.json ./
+#12 CACHED
+
+#13 [frontend 4/5] RUN npm ci
+#13 CACHED
+
+#8 [backend internal] load build context
+#8 transferring context: 15.45kB 0.1s done
+#8 DONE 0.1s
+
+#14 [backend 6/7] COPY . .
+#14 CACHED
+
+#15 [backend 5/7] RUN npm ci
+#15 CACHED
+
+#16 [backend 2/7] RUN apk add --no-cache openssl
+#16 CACHED
+
+#17 [backend 3/7] WORKDIR /app
+#17 CACHED
+
+#18 [backend 4/7] COPY package*.json ./
+#18 CACHED
+
+#19 [backend 7/7] RUN npx prisma generate
+#19 CACHED
+
+#20 [backend] exporting to image
+#20 exporting layers done
+#20 ...
+
+#21 [frontend 5/5] COPY . .
+#21 DONE 0.2s
+
+#20 [backend] exporting to image
+#20 exporting manifest sha256:fefdb013e3466becb06a6ff94c1ea5e214669267dc594d4c24a69d4145bf7ff2 done
+#20 exporting config sha256:d4d8d4bf107d5bd0d0a6f620d1c035dad0a71b072a74fccdaac237a3789dca45 done
+#20 exporting attestation manifest sha256:7244b0b427f7d05239af64abd6d6e1b2c5ec28e58fecd1b393616f6ff1b3781a 0.1s done
+#20 exporting manifest list sha256:ced90d8a8680da5fecb4340bc9ee953aa5742f908a4d6d40463a6c27ae28e2e6
+#20 exporting manifest list sha256:ced90d8a8680da5fecb4340bc9ee953aa5742f908a4d6d40463a6c27ae28e2e6 0.0s done
+#20 naming to docker.io/library/pickquest_limpio-backend:latest done
+#20 unpacking to docker.io/library/pickquest_limpio-backend:latest 0.0s done
+#20 DONE 0.2s
+
+#22 [frontend] exporting to image
+#22 exporting layers 0.2s done
+#22 exporting manifest sha256:bb62f5c22c4153e6abcf7f576524c203e2d69ed02251c31d52a108345eb73baa 0.0s done
+#22 exporting config sha256:c46cf79a8c07a0999a3a31d4178d535b7090720c9e9dc2cd81ddb07ef945ead6 0.0s done
+#22 exporting attestation manifest sha256:9df9593c8632010eaedc29feaa945a2cc5d31fb150d0db7cac86399982461250
+#22 ...
+
+#23 [backend] resolving provenance for metadata file
+#23 DONE 0.0s
+
+#22 [frontend] exporting to image
+#22 exporting attestation manifest sha256:9df9593c8632010eaedc29feaa945a2cc5d31fb150d0db7cac86399982461250 0.1s done
+#22 exporting manifest list sha256:829e9de1cbc5452acb32ff12b610c1e4e2d8528d4c2afa67cc40337c3b58cf08 0.0s done
+#22 naming to docker.io/library/pickquest_limpio-frontend:latest done
+#22 unpacking to docker.io/library/pickquest_limpio-frontend:latest 0.1s done
+#22 DONE 0.6s
+
+#24 [frontend] resolving provenance for metadata file
+#24 DONE 0.0s
+ Image pickquest_limpio-frontend Built 
+ Image pickquest_limpio-backend Built 
+ Network pickquest_limpio_default Creating 
+ Network pickquest_limpio_default Created 
+ Volume pickquest_limpio_db_data Creating 
+ Volume pickquest_limpio_db_data Created 
+ Container pickquest_limpio-db-1 Creating 
+ Container pickquest_limpio-db-1 Created 
+ Container pickquest_limpio-backend-1 Creating 
+ Container pickquest_limpio-backend-1 Created 
+ Container pickquest_limpio-frontend-1 Creating 
+ Container pickquest_limpio-frontend-1 Created 
+ Container pickquest_limpio-db-1 Starting 
+ Container pickquest_limpio-db-1 Started 
+ Container pickquest_limpio-db-1 Waiting 
+ Container pickquest_limpio-db-1 Healthy 
+ Container pickquest_limpio-backend-1 Starting 
+ Container pickquest_limpio-backend-1 Started 
+ Container pickquest_limpio-frontend-1 Starting 
+ Container pickquest_limpio-frontend-1 Started 
+docs=200
+backend-1  | Applying migration `20260923045937_init`
+backend-1  | Applying migration `20260923140342_categoria_habilidad_y_nivel`
+backend-1  | Applying migration `20260924003340_sync_scs_v2_spec`
+backend-1  | Applying migration `20260924010000_fase1_correcciones_modelo`
+backend-1  | Applying migration `20260930000000_sprint2_modelo_relacional`
+backend-1  | Applying migration `20260930120000_pista_ayuda_relacional`
+backend-1  | Applying migration `20261020000000_cu02_historias`
+backend-1  | Applying migration `20261109192311_sprint3_ajustes_comunes`
+backend-1  | Applying migration `20261109193210_cu05_simulador_escenarios`
+backend-1  | Applying migration `20261109194014_cu07_expediente_proyecto`
+backend-1  | Applying migration `20261109194617_cu12_tienda`
+backend-1  | Applying migration `20261109201009_cu09_repaso_tarjetas`
+backend-1  | Applying migration `20261109202604_cu10_diagnostico_plan`
+backend-1  | Applying migration `20261109204143_cu11_reto_diario`
+backend-1  | Applying migration `20261109205700_cu13_duelos`
+backend-1  | All migrations have been successfully applied.
+backend-1  | Seed listo: 3 fases, 8 retos, 5 objetos, 2 estudiantes, 4 intentos. Usuarios demo: demo@pickquest.dev y rival@pickquest.dev (contraseña pickquest123)
+backend-1  | [5:46:43 PM] Found 0 errors. Watching for file changes.

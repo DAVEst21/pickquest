@@ -1,0 +1,15 @@
+Inicio de la corrida: 2026-11-10T11:45:11-06:00
+== unitarias-backend: inicio 2026-11-10T11:46:57-06:00
+== unitarias-backend: fin 2026-11-10T11:47:53-06:00 (código 0)
+== e2e-backend: inicio 2026-11-10T11:47:53-06:00
+== e2e-backend: fin 2026-11-10T11:51:48-06:00 (código 0)
+== playwright: inicio 2026-11-10T11:51:48-06:00
+== playwright: fin 2026-11-10T12:58:30-06:00 (código 0)
+== build-backend: inicio 2026-11-10T12:58:30-06:00
+== build-backend: fin 2026-11-10T12:58:59-06:00 (código 0)
+== build-frontend: inicio 2026-11-10T12:58:59-06:00
+== build-frontend: fin 2026-11-10T12:59:24-06:00 (código 0)
+== lint-frontend: inicio 2026-11-10T12:59:24-06:00
+== lint-frontend: fin 2026-11-10T12:59:27-06:00 (código 0)
+Fin de la corrida: 2026-11-10T12:59:27-06:00
+LISTO

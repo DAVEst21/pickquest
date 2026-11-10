@@ -105,7 +105,8 @@ test.beforeEach(async ({ browser }) => {
   await abrirReto(page, reto.faseId, reto.id);
   await page.locator('#contador-evidencias').waitFor();
 });
-test.afterEach(async ({}, info) => {
+test.afterEach(async ({ browser }, info) => {
+  void browser;
   await cerrarCaso({ subcarpeta: EVIDENCIAS, info, page, db, alumno, observado });
 });
 
