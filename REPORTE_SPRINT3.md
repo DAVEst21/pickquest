@@ -1728,11 +1728,11 @@ model ResultadoDuelo {
 | Suite | Resultado | Detalle |
 |---|---|---|
 | Unitarias del backend (Jest) | **276 pasan** en 26 archivos | Incluyen las reglas nuevas: RN-20, RN-22, RN-24, RN-25, RN-26 (`dominio`), RN-27 (`generarPlan`), RN-28 y RN-10 (tienda), RN-13/RN-29 (`racha`: multiplicador, reinicio perezoso, racha por día propio), RNF-SE-05 (`tiempo-pregunta`), RN-14/RN-15 (`duelo.reglas`), RN-30 (`clasificacion.reglas`), `diaCalendarioMx`, RN-31 (`referencia`) y los faltantes de cada mecánica |
-| e2e del backend (Jest + Supertest, base real con seed) | **213 pasan** en 14 archivos | `cu05-escenarios` (11), `cu07-expediente` (11), `cu09-estudio` (15), `cu10-plan` (15), `cu11-reto-diario` (26), `cu12-tienda` (11), `cu13-duelos` (24), `rf19-rf20-perfil-clasificacion` (15), `sprint3-comunes` (RN-31 en CU-02 y CU-03, cinto con objeto no aplicable, pista persistente), `cu02-historias`, `sprint2-aprendizaje` (adaptada al nuevo orden de retos), `auth`, `app` y `swagger` |
-| Navegador (Playwright 1.52, Chromium) | **70 casos**, todos pasan | Primera corrida completa: 62 de 65 antes de detenerse (3 fallos de la propia suite, ya corregidos: el HUD de XP está oculto a 1440 px y se lee con `textContent`; el XP del repaso se compara contra el valor previo; y un selector de duelos). Después se repitieron `01`, `02` (12 casos) y `06` (8 casos) y pasan. Las 24 filas del libro de CU-03/CU-04, las 6 de recuperación y los 20 casos de CU-02 pasaron en la corrida completa |
-| Frontend | `tsc` y `vite build` sin errores; `oxlint` 0 advertencias y 0 errores | |
-| Backend | `tsc` (configuración de build) sin errores. `eslint` solo reporta formato de Prettier, que ya fallaba en archivos anteriores al sprint; no hay errores de lógica | No se aplicó `--fix` para no reformatear código de sprints anteriores |
-| Arranque desde cero | Correcto | Proyecto de Compose aparte con base vacía: se aplican las 15 migraciones, el seed corre y los dos usuarios demo inician sesión y consultan todos los endpoints nuevos (ver decisión 15) |
+| e2e del backend (Jest + Supertest, base real con seed) | **215 pasan** en 14 archivos | `cu05-escenarios` (11), `cu07-expediente` (11), `cu09-estudio` (15), `cu10-plan` (15), `cu11-reto-diario` (28), `cu12-tienda` (11), `cu13-duelos` (24), `rf19-rf20-perfil-clasificacion` (15), `sprint3-comunes` (RN-31 en CU-02 y CU-03, cinto con objeto no aplicable, pista persistente), `cu02-historias`, `sprint2-aprendizaje` (adaptada al nuevo orden de retos), `auth`, `app` y `swagger` |
+| Navegador (Playwright 1.52, Chromium) | **82 casos**, todos pasan (47.9 min) | `01-recorrido` 8 · `02-alternativos` 4 · `03-casos-cu03-cu04` 24 · `04-recuperacion` 6 · `05-casos-cu02` 20 · `06-sprint3` 8 · `07-casos-cu05` 6 · `08-casos-cu07` 6. Corrida completa y ininterrumpida del 10-nov-2026, 11:45 a 12:59 (hora del centro de México); ver sección 11 |
+| Frontend | `tsc` y `vite build` sin errores; `oxlint` 0 advertencias y 0 errores | Misma corrida |
+| Backend | `nest build` sin errores. `eslint` solo reporta formato de Prettier, que ya fallaba en archivos anteriores al sprint; no hay errores de lógica | No se aplicó `--fix` para no reformatear código de sprints anteriores |
+| Arranque desde cero | Correcto | Proyecto de Compose aparte con base vacía: se aplican las 15 migraciones y corre el seed; la corrida completa se hizo sobre ese arranque. Los dos usuarios demo inician sesión y consultan todos los endpoints nuevos (ver decisión 15) |
 
 Defectos encontrados y corregidos durante la verificación:
 
@@ -1891,5 +1891,68 @@ Usa `demo@pickquest.dev` (y `rival@pickquest.dev` para duelos), contraseña `pic
 - La clasificación y los duelos no se actualizan en vivo: se recalculan al consultar (el aviso de duelos se refresca cada minuto).
 - El diagnóstico no se puede retomar tras recargar la pantalla de preguntas con respuestas a medias (las elecciones viven en el navegador); sí se puede volver a abrir el mismo diagnóstico.
 - El banco tiene 15 preguntas por tema: con la fase 1 sola, el reto diario repite preguntas entre días.
-- Las capturas nuevas de la suite de navegador se generan en `docs/capturas/` pero no se agregaron al repositorio.
 - **CU-05: la opción correcta de cada parte del escenario está siempre en la primera posición** (y la unidad correcta, «segundos», también va primero), y la interfaz las muestra en ese orden. Quien lo note puede acertar sin leer. Conviene mezclar el orden al presentar el contenido o variar la posición en el seed. Está fuera del alcance de este seguimiento, así que no se cambió.
+
+---
+
+## 11. Seguimiento de la revisión de calidad
+
+Trabajo hecho sobre la misma rama (`feature/sprint3-casos-faltantes`), un commit por punto, sin push y sin tocar el `.env`.
+
+### 11.1 Qué cambió en cada punto
+
+| Punto | Qué se hizo | Archivos principales | Commit |
+|---|---|---|---|
+| 1. CU-11 paso 6 | La respuesta del reto diario ya no devuelve `opcionCorrectaId` ni `explicacion`. Devuelve `correcta`, `tiempoAgotado`, `siguiente` (número de la próxima pregunta o `null`), `aciertos`, `terminado` y el estado del reto. Eso aplica a `…/respuesta`, al abandono, al resumen final, a `GET /reto-diario/hoy`, a FE1 y a la reanudación. La pantalla muestra «Correcto», «Incorrecto» o «Se acabó el tiempo: cuenta como incorrecta» y solo colorea la opción que el alumno eligió. La última pregunta sigue en pantalla hasta pulsar «Ver resumen». Los duelos no se modificaron | `reto-diario.service.ts`, `reto-diario.dto.ts`, `PreguntaCronometrada.tsx`, `types/index.ts`, `cu11-reto-diario.e2e-spec.ts` (prueba `CU-11 paso 6: la respuesta solo indica si es correcta…` y otra para el abandono; 28 pruebas en el archivo), `06-sprint3.spec.ts` (caso de navegador del reto diario) | `08d5cd6` |
+| 2. Navegador de CU-05 y CU-07 | Dos archivos nuevos que resuelven cada reto **por la interfaz**, con el mismo estilo que `05-casos-cu02.spec.ts` (alumno nuevo por caso, captura y una línea en `ejecuciones.jsonl`). Los atajos para dar por aprobados CU-05 y CU-07 se quedaron solo en las suites de los retos del Sprint 2 (`01`, `03` y `05`), donde hacen falta para llegar al reto que se mide; las suites nuevas no los usan | `frontend/e2e/07-casos-cu05.spec.ts`, `08-casos-cu07.spec.ts`, `ayudas-sprint3.ts` | `29a4496` |
+| 3. Corrida completa limpia | Una sola corrida ininterrumpida desde cero (ver 11.2); a la tercera pasó todo. Se agregaron al repositorio las capturas de `docs/capturas/` (14 nuevas, de la 20 a la 33, y las anteriores regeneradas) y las evidencias | `docs/evidencias/sprint3/`, `docs/capturas/`, `docs/evidencias/cu05/`, `docs/evidencias/cu07/`, ajuste de los dos archivos de pruebas nuevos para pasar el lint | `ca56df1` |
+| 4. Tabla del seed (sección 8) | CU-05 se reescribió desde el seed real (describía conceptos de CU-06). Se agregaron las filas de CU-01, CU-02, CU-03, CU-04, CU-06 y CU-08, con las fórmulas de calificación y sin transcribir los textos correctos. La sección ahora tiene 8.1 a 8.4 | `REPORTE_SPRINT3.md` | `20da319` |
+
+Otras correcciones del reporte: en el commit del punto 4 (`20da319`) se ajustaron el renglón del paso 4–6 de CU-11 y la decisión que decía que el servidor revelaba la explicación, y se quitó la nota que decía que CU-05 y CU-07 no se resolvían por la interfaz. En el commit que agrega esta sección se actualizaron los números de la sección 7 y se retiró el pendiente de las capturas, que ya están en el repositorio.
+
+### 11.2 Resultado de la corrida completa
+
+Fecha: **10 de noviembre de 2026, de las 11:45 a las 12:59** (hora del centro de México; 1 h 14 min). Sistema levantado desde cero en el proyecto de Compose `pickquest_limpio` (volumen propio, 15 migraciones y seed), con un archivo de override para CORS que evita modificar el `.env`. Orden de ejecución y resultado:
+
+| Orden | Suite | Resultado | Duración |
+|---|---|---|---|
+| 1 | Unitarias del backend (Jest) | **276 de 276** pasan, 26 archivos | 52 s |
+| 2 | e2e del backend (Jest + Supertest, `--runInBand`) | **215 de 215** pasan, 14 archivos | 3 min 50 s |
+| 3 | Navegador, suite completa de Playwright | **82 de 82** pasan, 0 fallidos, 0 inestables, 0 omitidos, 8 archivos | 47.9 min |
+| 4 | Build del backend | Correcto | 29 s |
+| 5 | Build del frontend (`tsc` y `vite build`) | Correcto | 25 s |
+| 6 | Lint del frontend (`oxlint`) | 0 advertencias, 0 errores | 3 s |
+
+Los códigos de salida de las seis suites son 0 (`codigos.txt`). Hubo dos corridas anteriores que no cuentan: la primera pasó todo pero dejó dos advertencias de lint en mis archivos de pruebas nuevos y guardó el JSON y el HTML en una ruta equivocada; la segunda se interrumpió porque Playwright rechazó el patrón de parámetros que usé para corregir esas advertencias. Se corrigió y se volvió a correr la suite completa, no solo el archivo que falló.
+
+Evidencias, en [`docs/evidencias/sprint3/`](docs/evidencias/sprint3/): `00-arranque-desde-cero.txt`, `01-unitarias-backend.txt`, `02-e2e-backend.txt`, `03-playwright-lista.txt`, `04-build-backend.txt`, `05-build-frontend.txt`, `06-lint-frontend.txt`, `codigos.txt`, `linea-de-tiempo.txt`, `playwright-resultados.json` y `playwright-html/index.html` (abrir con un navegador). Las capturas están en `docs/capturas/` y la evidencia de cada caso, en `docs/evidencias/cu05/` y `docs/evidencias/cu07/` (un PNG por caso y `ejecuciones.jsonl` con correos y tokens ocultos). Se revisó que ni los textos ni las capturas incluyan el `.env`, URLs de túneles ni correos que no sean de los usuarios demo.
+
+### 11.3 Casos nuevos de navegador de CU-05 y CU-07
+
+Todos pasan en la corrida anterior; cada uno usa un alumno nuevo y resuelve el reto por la interfaz.
+
+| Caso | Flujo | Qué comprueba | Resultado |
+|---|---|---|---|
+| CP-ES-01 | CU-05 FN | Elegir las cinco partes, calibrar valor, unidad y carga, simular, ver la gráfica y enviar con partes incorrectas: 88 % (falla el entorno). El escenario pasa de «no cumple» a «cumple» al ajustar | Pasa |
+| CP-ES-02 | CU-05 FE1 | Con una parte vacía, Simular y Enviar señalan lo que falta y no proceden | Pasa |
+| CP-ES-03 | CU-05 FE2 | Tras 5 simulaciones, la sexta muestra el aviso de límite y el botón queda deshabilitado; la API responde 409 | Pasa |
+| CP-ES-04 | CU-05 FA2 | Usar la Poción muestra el rango «entre 2 y 3» (Pociones 3→2) y el 100 % queda con máximo 2 estrellas | Pasa |
+| CP-ES-05 | CU-05 FA3 | Salir a mitad y volver conserva lo elegido y la pista revelada | Pasa |
+| CP-ES-06 | CU-05 RN-31 | Con un intento no aprobado (0 %) no aparece el rango de referencia; al reintentar y aprobar (100 %) aparece | Pasa |
+| CP-EX-01 | CU-07 FN | Abrir documentos, seleccionar fragmentos con clic y con Enter, caracterizar, elegir modelo, vincular y enviar: 77 % (50 + 12 + 20 − 5); la evidencia irrelevante queda marcada | Pasa |
+| CP-EX-02 | CU-07 FE1 | Con menos de dos evidencias vinculadas, Enviar muestra el aviso y no envía | Pasa |
+| CP-EX-03 | CU-07 FE2 | Seleccionar un fragmento ya agregado muestra el aviso y no lo duplica | Pasa |
+| CP-EX-04 | CU-07 FA2 | La ayuda resalta el documento que tiene una evidencia relevante pendiente | Pasa |
+| CP-EX-05 | CU-07 FA3 | Salir y volver conserva evidencias, características, modelo y vínculos | Pasa |
+| CP-EX-06 | CU-07 RN-31 | Con un intento no aprobado (6 %) no aparece el modelo de referencia; al aprobar (82 %) aparece «Modelo de referencia: Ágil» con sus 10 fragmentos | Pasa |
+
+### 11.4 Pendientes encontrados y no corregidos
+
+Estaban fuera de los cuatro puntos, así que no se tocaron:
+
+1. **CU-05: la opción correcta de cada parte y la unidad «segundos» siempre van en primera posición.** Quien lo note acierta sin leer. Falta mezclar el orden al presentarlo o variarlo en el seed; conviene decidirlo con la revisión pedagógica porque cambia el contenido del reto.
+2. **`npm run lint` del backend no pasa**: solo reporta formato de Prettier en archivos que ya lo incumplían antes del sprint. Aplicar `--fix` reformatearía unos 90 archivos, así que no se hizo (se intentó una vez y se revirtió). Conviene un commit aparte, solo de formato.
+3. **Los `ejecuciones.jsonl` de CU-02 y de CU-03/CU-04 crecen en cada corrida** (se agregan líneas, no se sobrescriben; el de CU-02 ya tiene 82). En la corrida limpia solo se vaciaron las carpetas de CU-05 y CU-07, que son nuevas.
+4. **La suite de navegador depende del `.env` de cada máquina**: el `CORS_ORIGIN` actual apunta a un túnel temporal, así que hizo falta un archivo de override de Compose. Convendría un perfil de Compose para pruebas con los valores correctos.
+5. **La suite de navegador tarda 48 minutos** (los archivos de CU-03/CU-04 son los más lentos, unos 5 min cada uno en total). Conviene correrla por archivos o en paralelo antes de cada entrega.
+6. Los pendientes de la sección 10 siguen vigentes.
