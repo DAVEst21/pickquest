@@ -111,12 +111,11 @@ export const PreguntaCronometrada: React.FC<Props> = ({ pregunta, responder, alS
       <h2 className="font-headline-sm text-headline-sm text-on-surface">{pregunta.enunciado}</h2>
       <ul className="flex flex-col gap-space-sm">
         {pregunta.opciones.map((o, i) => {
-          const esCorrecta = retro?.opcionCorrectaId === o.opcionId;
           const esElegida = elegida === o.opcionId;
           let estilo = 'bg-surface-container-low hover:bg-surface-container-high border-outline-variant/30';
           if (respondida && retro) {
-            if (esCorrecta) estilo = 'bg-tertiary-container/30 border-tertiary';
-            else if (esElegida) estilo = 'bg-error-container/30 border-error';
+            // Solo se marca la opción elegida: nunca se señala cuál era la correcta.
+            if (esElegida) estilo = retro.correcta ? 'bg-tertiary-container/30 border-tertiary' : 'bg-error-container/30 border-error';
             else estilo = 'bg-surface-container-low border-outline-variant/20 opacity-70';
           } else if (esElegida) {
             estilo = 'bg-primary-container/30 border-primary';
@@ -154,9 +153,8 @@ export const PreguntaCronometrada: React.FC<Props> = ({ pregunta, responder, alS
               id="retro-pregunta"
             >
               <p className="font-title-md text-title-md">
-                {retro.correcta ? '¡Correcto!' : retro.tiempoAgotado ? 'Se agotó el tiempo: cuenta como incorrecta' : 'Incorrecto'}
+                {retro.correcta ? 'Correcto' : retro.tiempoAgotado ? 'Se acabó el tiempo: cuenta como incorrecta' : 'Incorrecto'}
               </p>
-              {retro.explicacion && <p className="font-body-md text-body-md text-on-surface-variant">{retro.explicacion}</p>}
             </div>
           ) : (
             <p className="font-body-md text-body-md text-on-surface-variant">{mensajeSinRetro ?? 'Respuesta registrada.'}</p>

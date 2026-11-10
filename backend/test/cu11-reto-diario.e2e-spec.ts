@@ -1,7 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { dateADia, diaADate, diaCalendarioMx, sumarDias } from '../src/common/fechas/dia-calendario';
 import { PrismaService } from '../src/common/prisma/prisma.service';
-import { auth, borrarEstudiantes, crearApp, EstudiantePrueba, http, nuevoEstudiante } from './ayudas-e2e';
+import { auth, borrarEstudiantes, clavesDe, crearApp, EstudiantePrueba, http, nuevoEstudiante } from './ayudas-e2e';
 
 jest.setTimeout(180000);
 
@@ -104,8 +104,10 @@ describe('CU-11: reto diario (e2e)', () => {
     // resuelve con 7 aciertos
     const { correcta } = await correctaDe(id, 1);
     const r1 = (await responder(e, id, 1, correcta).expect(200)).body;
-    expect(r1).toMatchObject({ numero: 1, correcta: true, tiempoAgotado: false, opcionCorrectaId: correcta, terminado: false });
-    expect(r1.explicacion).toEqual(expect.any(String));
+    // CU-11 paso 6: solo indica si fue correcta y lo necesario para continuar
+    expect(r1).toMatchObject({ numero: 1, correcta: true, tiempoAgotado: false, siguiente: 2, aciertos: 1, terminado: false });
+    expect(r1).not.toHaveProperty('opcionCorrectaId');
+    expect(r1).not.toHaveProperty('explicacion');
     for (let n = 2; n <= 10; n++) {
       await entregar(e, id, n).expect(200);
       const o = await correctaDe(id, n);
@@ -126,6 +128,44 @@ describe('CU-11: reto diario (e2e)', () => {
     });
     const p = await perfil(e);
     expect(p).toMatchObject({ xpTotal: 14, qpTotal: 35, racha: { diasActuales: 1, diasRecord: 1, multiplicadorQP: 1.1 } });
+  });
+
+  it('CU-11 paso 6: la respuesta solo indica si es correcta; nunca revela la opción correcta ni la explicación (RNF-SE-02)', async () => {
+    const e = await nuevo();
+    const id = await nuevoReto(e);
+    const PROHIBIDAS = ['opcionCorrectaId', 'explicacion', 'opciones', 'opcionesCorrectas', 'enunciado', 'texto'];
+    const sinReveladas = (cuerpo: unknown, donde: string) => {
+      const claves = clavesDe(cuerpo);
+      for (const prohibida of PROHIBIDAS) expect({ donde, clave: prohibida, esta: claves.has(prohibida) }).toEqual({ donde, clave: prohibida, esta: false });
+    };
+
+    sinReveladas((await hoy(e).expect(200)).body, 'GET /hoy con el reto en curso');
+    for (let n = 1; n <= 10; n++) {
+      await entregar(e, id, n).expect(200);
+      const { correcta, incorrecta } = await correctaDe(id, n);
+      const acierta = n % 2 === 1;
+      const res = (await responder(e, id, n, acierta ? correcta : incorrecta).expect(200)).body;
+      sinReveladas(res, `respuesta ${n}`);
+      expect(res).toMatchObject({ numero: n, correcta: acierta, siguiente: n === 10 ? null : n + 1, terminado: n === 10 });
+      expect(res.aciertos).toBe(Math.ceil(n / 2));
+      if (n < 10) sinReveladas((await hoy(e).expect(200)).body, `GET /hoy tras la pregunta ${n} (retomar)`);
+    }
+    // resultado del día: al consultarlo (FE1), al intentar un segundo reto y en el resumen
+    const terminado = (await hoy(e).expect(200)).body;
+    sinReveladas(terminado, 'GET /hoy con el reto terminado');
+    expect(terminado.reto.resultado).toMatchObject({ aciertos: 5, xpOtorgada: 10, qpOtorgado: 25 });
+    sinReveladas((await iniciar(e).expect(409)).body, 'FE1: segundo reto del día');
+    // una pregunta ya resuelta tampoco se vuelve a entregar con la respuesta
+    sinReveladas((await entregar(e, id, 1).expect(409)).body, 'entregar una pregunta ya resuelta');
+  });
+
+  it('CU-11 paso 6: al abandonar tampoco se revela nada', async () => {
+    const e = await nuevo();
+    const id = await nuevoReto(e);
+    await entregar(e, id, 1).expect(200);
+    const estado = (await abandonar(e, id).expect(200)).body;
+    const claves = clavesDe(estado);
+    for (const prohibida of ['opcionCorrectaId', 'explicacion', 'opciones']) expect(claves.has(prohibida)).toBe(false);
   });
 
   it('FE1: un segundo reto el mismo día responde 409 con el resultado y el tiempo que falta', async () => {
@@ -205,7 +245,7 @@ describe('CU-11: reto diario (e2e)', () => {
     await entregar(e, id, 1).expect(200);
     const r = (await responder(e, id, 1, null).expect(200)).body;
     expect(r).toMatchObject({ correcta: false, tiempoAgotado: true });
-    expect(r.opcionCorrectaId).toEqual(expect.any(Number));
+    expect(r).toMatchObject({ siguiente: 2, aciertos: 0 });
     expect(r.estado).toMatchObject({ resueltas: 1, siguiente: 2 });
     await entregar(e, id, 2).expect(200);
   });

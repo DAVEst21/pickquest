@@ -787,8 +787,6 @@ export interface PreguntaCronometrada {
 export interface RetroPregunta {
   correcta: boolean;
   tiempoAgotado: boolean;
-  opcionCorrectaId: number;
-  explicacion: string | null;
 }
 
 // ---------- CU-11 Reto diario ----------
@@ -840,6 +838,10 @@ export interface HoyRetoDiario {
 
 export interface RespuestaRetoDiario extends RetroPregunta {
   numero: number;
+  /** Número de la pregunta que sigue; null si el reto terminó. */
+  siguiente: number | null;
+  /** Aciertos acumulados. */
+  aciertos: number;
   terminado: boolean;
   estado: EstadoRetoDiario;
 }

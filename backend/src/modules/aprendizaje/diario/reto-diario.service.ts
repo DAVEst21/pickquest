@@ -213,12 +213,17 @@ export class RetoDiarioService {
         numero,
         correcta,
         tiempoAgotado: elegida === null || elegida === undefined || !enTiempo,
-        opcionCorrectaId: pregunta.opciones.find((o) => o.correcta)!.id,
-        explicacion: pregunta.explicacion,
       };
     });
     const estado = await this.estado(estudianteId, retoDiarioId);
-    return { ...resultado, terminado: estado.terminado, estado };
+    // CU-11 paso 6: solo si fue correcta y lo necesario para continuar; nunca la opción correcta ni la explicación.
+    return {
+      ...resultado,
+      siguiente: estado.siguiente,
+      aciertos: estado.preguntas.filter((p) => p.correcta === true).length,
+      terminado: estado.terminado,
+      estado,
+    };
   }
 
   /** FA2: las preguntas sin responder cuentan como incorrectas y el reto termina. */

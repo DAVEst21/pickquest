@@ -160,7 +160,11 @@ test.describe('Sprint 3: navegación y pantallas nuevas', () => {
         await capturar(page, '26-reto-diario-pregunta', 1100);
       }
       await page.locator('section[aria-label^="Pregunta"] ul button').first().click();
-      await expect(page.locator('#retro-pregunta')).toBeVisible(); // acierto o error tras cada pregunta
+      // CU-11 paso 6: solo indica si fue correcta (sin la opción correcta ni explicación)
+      await expect(page.locator('#retro-pregunta')).toHaveText(/^(Correcto|Incorrecto|Se acabó el tiempo: cuenta como incorrecta)$/);
+      // solo se marca la opción elegida: nunca se señala cuál era la correcta
+      const acerto = (await page.locator('#retro-pregunta').innerText()) === 'Correcto';
+      await expect(page.locator('section[aria-label^="Pregunta"] ul button.border-tertiary')).toHaveCount(acerto ? 1 : 0);
       await page.getByRole('button', { name: n === 10 ? 'Ver resumen' : 'Siguiente pregunta' }).click();
     }
     await expect(page.locator('#resultado-aciertos')).toBeVisible();

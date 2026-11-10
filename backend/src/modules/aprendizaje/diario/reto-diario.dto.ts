@@ -90,9 +90,14 @@ export class RespuestaRetoDiarioDto {
   correcta: boolean;
   /** Se agotó el tiempo o no se respondió. */
   tiempoAgotado: boolean;
-  /** Se revela después de responder, para la retroalimentación. */
-  opcionCorrectaId: number;
-  explicacion: string | null;
+  /**
+   * CU-11 paso 6: la respuesta solo indica si fue correcta. Nunca trae la opción correcta ni la explicación:
+   * el banco de preguntas lo comparten el diagnóstico y los duelos (RNF-SE-02).
+   */
+  /** Número de la pregunta que sigue; null si el reto terminó. */
+  siguiente: number | null;
+  /** Aciertos acumulados hasta ahora. */
+  aciertos: number;
   terminado: boolean;
   estado: EstadoRetoDiarioDto;
 }
