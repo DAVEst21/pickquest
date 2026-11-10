@@ -64,7 +64,8 @@ export const DueloPage: React.FC = () => {
   };
 
   // Jugando una pregunta.
-  if (pregunta && actual.accion === 'JUGAR_RONDA') {
+  // La última pregunta sigue en pantalla (con su aviso de respuesta registrada) aunque la ronda ya haya terminado.
+  if (pregunta) {
     return (
       <Pagina>
         <div className="max-w-2xl mx-auto px-gutter py-space-xl flex flex-col gap-space-lg">

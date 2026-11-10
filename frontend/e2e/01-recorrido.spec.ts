@@ -2,6 +2,8 @@ import { expect, test, type Page } from '@playwright/test';
 import {
   abrirFaseDesdeElMapa,
   capturar,
+  aprobarRetosPrevios,
+  DEMO,
   enviarYLeerResultado,
   esperarGuardado,
   iniciarSesionDemo,
@@ -32,6 +34,8 @@ test.describe('Recorrido completo: mapa → tablón → reto → resultado', () 
     expect(estados).toEqual(['desbloqueada', 'bloqueada', 'bloqueada']);
     expect((await page.content()).toLowerCase()).not.toContain('sprint');
     await capturar(page, '01-mapa', 1300);
+    // Los retos del Sprint 3 (CU-07 y CU-05) se dan por aprobados, sin recompensa: este recorrido mide los del Sprint 2.
+    await aprobarRetosPrevios(DEMO.email);
   });
 
   test('CU-08 Línea de tiempo (fase 1)', async () => {
@@ -249,7 +253,8 @@ test.describe('Recorrido completo: mapa → tablón → reto → resultado', () 
   });
 
   test('CU-06 Reparto de presupuesto (fase 3, reto 2)', async () => {
-    await page.locator('#siguiente-btn').click();
+    await abrirFaseDesdeElMapa(page, 3);
+    await page.locator('[data-reto-id]').filter({ hasText: 'Equilibra la plataforma de pagos' }).getByRole('button', { name: /Iniciar reto/ }).click();
     await page.waitForURL(/\/intento\/\d+/);
     await page.locator('#puntos-restantes').waitFor();
 
@@ -276,7 +281,8 @@ test.describe('Recorrido completo: mapa → tablón → reto → resultado', () 
     await page.getByText('Overworld SDLC').waitFor();
     const estados = await page.locator('[data-fase-orden]').evaluateAll((els) => els.map((e) => e.getAttribute('data-estado')));
     expect(estados).toEqual(['completada', 'completada', 'completada']);
-    const hud = (await page.locator('header').innerText()).replace(/\s+/g, ' ');
+    // textContent: con 1440 px de ancho la barra de XP del encabezado está oculta, pero sigue en la página
+    const hud = ((await page.locator('header').textContent()) ?? '').replace(/\s+/g, ' ');
     expect(hud).toContain('1320 / 1500 XP'); // 150 + 200 + 220 + 250 + 300
     expect(hud).toContain('890 QP'); // 100 + 120 + 150 + 180 + 220
   });

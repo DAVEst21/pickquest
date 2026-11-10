@@ -363,7 +363,7 @@ async function cargarMaterialDeEstudio(faseId: number, tema: TemaFase) {
 }
 
 /**
- * Segundo estudiante demo (rival_demo): ya completó la fase 1 y el primer reto de la fase 2, con una
+ * Segundo estudiante demo (rival_demo): ya completó la fase 1 y los dos primeros retos de la fase 2, con una
  * racha activa y una poción equipada. Así comparte con el primer demo el tema de la fase 1 para los duelos
  * y aparece en la clasificación con otro nivel y otra XP. Idempotente: solo se crea la primera vez.
  */
@@ -372,7 +372,7 @@ async function cargarEstudianteRival() {
   if (existente) return;
 
   const retos = await prisma.reto.findMany({
-    where: { OR: [{ fase: { orden: 1 } }, { fase: { orden: 2 }, orden: 1 }] },
+    where: { OR: [{ fase: { orden: 1 } }, { fase: { orden: 2 }, orden: { lte: 2 } }] },
     orderBy: [{ fase: { orden: 'asc' } }, { orden: 'asc' }],
   });
   const hoy = new Date();

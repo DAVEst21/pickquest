@@ -84,7 +84,8 @@ test.describe('Flujos alternativos y de excepción', () => {
   test('los reintentos de retos aprobados no vuelven a otorgar XP ni QP (RN-07)', async () => {
     await page.goto('/');
     await page.getByText('Overworld SDLC').waitFor();
-    const hud = (await page.locator('header').innerText()).replace(/\s+/g, ' ');
+    // textContent: con 1440 px de ancho la barra de XP del encabezado está oculta, pero sigue en la página
+    const hud = ((await page.locator('header').textContent()) ?? '').replace(/\s+/g, ' ');
     expect(hud).toContain('1320 / 1500 XP');
     expect(hud).toContain('890 QP');
   });

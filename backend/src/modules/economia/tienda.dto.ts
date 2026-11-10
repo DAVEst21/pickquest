@@ -48,9 +48,15 @@ export class TiendaDto {
   catalogo: ObjetoTiendaDto[];
 }
 
+export class RetoDeObjetoDto {
+  retoId: number;
+  titulo: string;
+  fase: string;
+}
+
 export class ObjetoDetalleDto extends ObjetoTiendaDto {
   /** Retos en los que puede usarse. */
-  retos: { retoId: number; titulo: string; fase: string }[];
+  retos: RetoDeObjetoDto[];
 }
 
 export class CompraRealizadaDto {

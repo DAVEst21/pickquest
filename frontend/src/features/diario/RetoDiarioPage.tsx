@@ -162,7 +162,8 @@ export const RetoDiarioPage: React.FC = () => {
   }
 
   const terminado = reto?.terminado ? reto : data.estado === 'TERMINADO' ? data.reto : yaRealizado?.reto ?? null;
-  if (terminado?.resultado) {
+  // Con la última pregunta en pantalla primero se muestra su retroalimentación; el resumen llega con «Ver resumen».
+  if (terminado?.resultado && !pregunta) {
     const segundos = yaRealizado?.segundosHastaSiguiente ?? data.segundosHastaSiguiente;
     return (
       <Pagina>

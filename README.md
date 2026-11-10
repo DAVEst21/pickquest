@@ -2,16 +2,30 @@
 
 PickQuest es una plataforma gamificada para aprender el ciclo de vida del software (SDLC). La persona avanza por un mapa de fases (el *Overworld*) y en cada fase resuelve retos que no son de opción múltiple, sino **mecánicas de juego** que ejercitan una habilidad real de ingeniería de software. Cada intento se califica en el servidor (porcentaje, estrellas, XP y QP), se conserva la mejor calificación y la siguiente fase se desbloquea al completar la anterior.
 
-Retos disponibles (Sprint 2):
+Retos disponibles, en el orden en que se desbloquean:
 
 | Fase | Reto | Mecánica |
 |---|---|---|
+| 1. Ciclo de vida del software | Elegir el ciclo de vida investigando el expediente de un proyecto (CU-07) | Documentos con evidencias seleccionables |
 | 1. Ciclo de vida del software | Planificar un proyecto en una línea de tiempo (CU-08) | Gantt con dependencias y fecha límite |
 | 2. Elicitación de requerimientos | Descubrir requerimientos dialogando con un stakeholder (CU-01) | Diálogo ramificado conducido por el servidor |
 | 2. Elicitación de requerimientos | Construir historias de usuario armando sus piezas (CU-02) | Piezas Como/Quiero/Para y Dado/Cuando/Entonces |
 | 2. Elicitación de requerimientos | Priorizar requerimientos en un tablero MoSCoW (CU-03) | Tablero de priorización |
 | 3. Atributos de calidad | Detectar fallas de calidad inspeccionando un sistema (CU-04) | Inspección de una aplicación ficticia |
+| 3. Atributos de calidad | Calibrar escenarios de calidad en un simulador (CU-05) | Escenario de seis partes y simulación con gráfica |
 | 3. Atributos de calidad | Equilibrar atributos de calidad repartiendo un presupuesto (CU-06) | Medidores con efectos cruzados |
+
+Además de los retos, el menú ofrece:
+
+| Sección | Qué hace |
+|---|---|
+| Biblioteca | Material de cada tema (explicación, ejemplos, glosario) y repaso con tarjetas de repetición espaciada (CU-09) |
+| Plan de estudio | Diagnóstico de 9 preguntas y un plan de actividades según el dominio de cada tema (CU-10) |
+| Reto diario | 10 preguntas contrarreloj una vez al día; mantiene la racha y el multiplicador de QP (CU-11) |
+| Tienda | Compra de objetos con QP y cinto de dos objetos equipados (CU-12) |
+| Duelos | Reta a otro estudiante: misma ronda de 5 preguntas, gana el mejor resultado (CU-13) |
+| Clasificación | Tabla por XP, con desempate por estrellas y por quién llegó primero (RF-20) |
+| Perfil | Nivel, XP, QP, racha, estrellas por fase, inventario, plan activo, nombre y avatar (RF-19) |
 
 Las respuestas correctas y los datos de referencia **nunca viajan al navegador** antes de calificar.
 
@@ -66,14 +80,14 @@ Síntoma típico: la pantalla de inicio de sesión dice «No se pudo conectar co
 
 Ejemplos en `backend/.env.example` y `frontend/.env.example`.
 
-## Usuario demo
+## Usuarios demo
 
-| Campo | Valor |
-|---|---|
-| Correo | `demo@pickquest.dev` |
-| Contraseña | `pickquest123` |
+| Usuario | Correo | Contraseña | Progreso |
+|---|---|---|---|
+| `aventurero_demo` | `demo@pickquest.dev` | `pickquest123` | Sin intentos, nivel 1 y 3 Pociones de Sabiduría **equipadas** (las que usa la ayuda de los retos) |
+| `rival_demo` | `rival@pickquest.dev` | `pickquest123` | Fase 1 y dos primeros retos de la fase 2 completos (nivel 2), racha de 3 días y 2 pociones: sirve como rival en los duelos y para ver una clasificación con dos niveles distintos |
 
-Arranca sin intentos, con nivel 1 y 3 Pociones de Sabiduría **equipadas** (las que usa la ayuda de los retos). También puedes registrar usuarios nuevos desde la pantalla de registro.
+También puedes registrar usuarios nuevos desde la pantalla de registro.
 
 ## Pruebas
 
@@ -97,7 +111,7 @@ docker compose exec backend npm run test:e2e
 
 ### e2e del navegador (Playwright)
 
-La suite está en `frontend/e2e/` y recorre la aplicación real como lo haría una persona: mapa → tablón → reto → resultado de las 5 mecánicas (arrastrando barras y tarjetas), los flujos alternativos y de excepción más importantes (confirmaciones, envío automático, ayuda, recarga con el avance conservado) y la retroalimentación de un intento no aprobado. Guarda capturas de pantalla en `docs/capturas/`.
+La suite está en `frontend/e2e/` y recorre la aplicación real como lo haría una persona: mapa → tablón → reto → resultado de las mecánicas del Sprint 2 (arrastrando barras y tarjetas; CU-05 y CU-07 se dan por aprobados sin recompensa) y, en `06-sprint3.spec.ts`, la navegación, la tienda, el repaso con teclado, el reto diario, el plan de estudio, un duelo entre los dos usuarios demo, la clasificación y el perfil, los flujos alternativos y de excepción más importantes (confirmaciones, envío automático, ayuda, recarga con el avance conservado) y la retroalimentación de un intento no aprobado. Guarda capturas de pantalla en `docs/capturas/`.
 
 Antes de empezar la suite **reinicia el progreso del usuario demo** (borra sus intentos, y deja 0 XP, 0 QP y 3 pociones), y avisa con un mensaje claro si el `.env` dejó mal `CORS_ORIGIN` o `VITE_API_URL`.
 
@@ -170,7 +184,7 @@ pickquest/
 │   ├── prisma/
 │   │   ├── schema.prisma       # modelo relacional
 │   │   ├── migrations/         # migraciones SQL
-│   │   ├── seed.ts             # 3 fases, 6 retos, objetos y usuario demo (idempotente)
+│   │   ├── seed.ts             # 3 fases, 8 retos, objetos, material de estudio, 45 preguntas y 2 usuarios demo (idempotente)
 │   │   ├── contenido/          # contenido educativo de cada reto
 │   │   └── contenido-archivado/# retos de opción múltiple del Sprint 1 (solo datos)
 │   ├── src/
@@ -180,19 +194,24 @@ pickquest/
 │   │       ├── aprendizaje/    # fases, tablón, intentos, borrador, ayuda, calificación
 │   │       │   └── mecanicas/  # un evaluador por mecánica + fórmulas puras de calificación
 │   │       ├── progreso/       # XP, QP, nivel y multiplicador
-│   │       ├── economia/       # inventario y objetos equipados
-│   │       └── social/         # vacío (Sprint 3)
+│   │       │   ├── estudio/    # biblioteca y repaso con tarjetas (CU-09)
+│   │       │   ├── plan/       # diagnóstico y plan de estudio (CU-10)
+│   │       │   └── diario/     # reto diario contrarreloj (CU-11)
+│   │       ├── economia/       # inventario, tienda y objetos equipados (CU-12)
+│   │       └── social/         # duelos (CU-13), clasificación (RF-20) y perfil (RF-19)
 │   └── test/                   # pruebas e2e del backend
 ├── frontend/                   # React + Vite
 │   ├── src/
 │   │   ├── components/         # Header, Footer, modales...
-│   │   ├── features/           # auth, overworld, mision (tablón), reto (una carpeta por mecánica), resultado
+│   │   ├── features/           # auth, overworld, mision (tablón), reto (una carpeta por mecánica), resultado,
+│   │   │                       # estudio, plan, diario, tienda, duelos, clasificacion, perfil
 │   │   ├── services/           # cliente HTTP, TanStack Query
 │   │   ├── store/              # Zustand (sesión y perfil)
 │   │   └── types/
 │   └── e2e/                    # suite de Playwright
 ├── docs/capturas/              # capturas generadas por la suite de Playwright
 ├── REPORTE_SPRINT2.md          # reporte del Sprint 2 (esquema, endpoints, decisiones, pruebas manuales)
+├── REPORTE_SPRINT3.md          # reporte del Sprint 3 (cumplimiento del anexo A, esquema, endpoints, decisiones)
 └── ADENDA_SPRINT2.md           # ajustes posteriores al reporte
 ```
 

@@ -1,4 +1,12 @@
-import { IsIn, IsString, MaxLength, MinLength, ValidateIf, IsInt, Min } from 'class-validator';
+import {
+  IsIn,
+  IsString,
+  MaxLength,
+  MinLength,
+  ValidateIf,
+  IsInt,
+  Min,
+} from 'class-validator';
 
 /**
  * POST /duelos. El rival se identifica por su nombre de aventurero (único y público), porque nunca se
@@ -91,7 +99,12 @@ export class DueloDto {
   miRonda: RondaEstadoDto;
   /** Mi propio resultado, una vez que termino mi ronda. */
   miResultado: ResultadoParticipanteDto | null;
-  accion: 'ACEPTAR_O_RECHAZAR' | 'JUGAR_RONDA' | 'ESPERAR_RIVAL' | 'VER_RESULTADO' | null;
+  accion:
+    | 'ACEPTAR_O_RECHAZAR'
+    | 'JUGAR_RONDA'
+    | 'ESPERAR_RIVAL'
+    | 'VER_RESULTADO'
+    | null;
   resultado: ResultadoDueloDto | null;
 }
 
@@ -117,11 +130,16 @@ export class AvisoDueloDto {
   expiraEn: Date;
 }
 
+export class OpcionDueloDto {
+  opcionId: number;
+  texto: string;
+}
+
 export class PreguntaDueloDto {
   numero: number;
   total: number;
   enunciado: string;
-  opciones: { opcionId: number; texto: string }[];
+  opciones: OpcionDueloDto[];
   limiteSegundos: number;
   segundosRestantes: number;
 }

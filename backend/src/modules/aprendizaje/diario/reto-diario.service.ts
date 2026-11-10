@@ -30,7 +30,6 @@ import {
 } from './reto-diario.dto';
 
 type Tx = Prisma.TransactionClient;
-type Db = Tx | PrismaService;
 
 const REGLAS: ReglasRetoDiarioDto = {
   preguntas: PREGUNTAS_RETO_DIARIO,
