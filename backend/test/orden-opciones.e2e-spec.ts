@@ -162,6 +162,20 @@ describe('Orden de presentación de las opciones (e2e)', () => {
     expect(mostrado).not.toEqual(delSeed);
   });
 
+  it('CU-08: los bloques y los entregables cambian de orden entre intentos (no salen en el orden cronológico del plan) y se conservan al retomar', async () => {
+    const r = await muestrear('LINEA_TIEMPO', (intento) => ({
+      bloques: intento.contenido.bloques.map((b: any) => b.id),
+      entregables: intento.contenido.entregables.map((e: any) => e.id),
+    }));
+    variaYSeConserva(r);
+    // En el seed las fases van en orden cronológico y los entregables en el orden de sus fases (ids ascendentes).
+    const ascendente = (ids: number[]) => ids.every((id, i) => i === 0 || id > ids[i - 1]);
+    const comoSeed = r.firmas
+      .map((f) => JSON.parse(f))
+      .every((f) => ascendente(f.bloques) && ascendente(f.entregables));
+    expect(comoSeed).toBe(false);
+  });
+
   it('CU-01: la lista de técnicas y las preguntas de cada nodo cambian de orden entre intentos y se conservan al retomar', async () => {
     const r = await muestrear(
       'DIALOGO_STAKEHOLDER',
