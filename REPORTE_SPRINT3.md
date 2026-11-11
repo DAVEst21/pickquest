@@ -1727,8 +1727,8 @@ model ResultadoDuelo {
 
 | Suite | Resultado | Detalle |
 |---|---|---|
-| Unitarias del backend (Jest) | **276 pasan** en 26 archivos | Incluyen las reglas nuevas: RN-20, RN-22, RN-24, RN-25, RN-26 (`dominio`), RN-27 (`generarPlan`), RN-28 y RN-10 (tienda), RN-13/RN-29 (`racha`: multiplicador, reinicio perezoso, racha por día propio), RNF-SE-05 (`tiempo-pregunta`), RN-14/RN-15 (`duelo.reglas`), RN-30 (`clasificacion.reglas`), `diaCalendarioMx`, RN-31 (`referencia`) y los faltantes de cada mecánica |
-| e2e del backend (Jest + Supertest, base real con seed) | **215 pasan** en 14 archivos | `cu05-escenarios` (11), `cu07-expediente` (11), `cu09-estudio` (15), `cu10-plan` (15), `cu11-reto-diario` (28), `cu12-tienda` (11), `cu13-duelos` (24), `rf19-rf20-perfil-clasificacion` (15), `sprint3-comunes` (RN-31 en CU-02 y CU-03, cinto con objeto no aplicable, pista persistente), `cu02-historias`, `sprint2-aprendizaje` (adaptada al nuevo orden de retos), `auth`, `app` y `swagger` |
+| Unitarias del backend (Jest) | **282 pasan** en 27 archivos | Incluyen las reglas nuevas: RN-20, RN-22, RN-24, RN-25, RN-26 (`dominio`), RN-27 (`generarPlan`), RN-28 y RN-10 (tienda), RN-13/RN-29 (`racha`: multiplicador, reinicio perezoso, racha por día propio), RNF-SE-05 (`tiempo-pregunta`), RN-14/RN-15 (`duelo.reglas`), RN-30 (`clasificacion.reglas`), `diaCalendarioMx`, RN-31 (`referencia`) y los faltantes de cada mecánica |
+| e2e del backend (Jest + Supertest, base real con seed) | **223 pasan** en 15 archivos | `orden-opciones` (8, sección 11.5), `cu05-escenarios` (11), `cu07-expediente` (11), `cu09-estudio` (15), `cu10-plan` (15), `cu11-reto-diario` (28), `cu12-tienda` (11), `cu13-duelos` (24), `rf19-rf20-perfil-clasificacion` (15), `sprint3-comunes` (RN-31 en CU-02 y CU-03, cinto con objeto no aplicable, pista persistente), `cu02-historias`, `sprint2-aprendizaje` (adaptada al nuevo orden de retos), `auth`, `app` y `swagger` |
 | Navegador (Playwright 1.52, Chromium) | **82 casos**, todos pasan (47.9 min) | `01-recorrido` 8 · `02-alternativos` 4 · `03-casos-cu03-cu04` 24 · `04-recuperacion` 6 · `05-casos-cu02` 20 · `06-sprint3` 8 · `07-casos-cu05` 6 · `08-casos-cu07` 6. Corrida completa y ininterrumpida del 10-nov-2026, 11:45 a 12:59 (hora del centro de México); ver sección 11 |
 | Frontend | `tsc` y `vite build` sin errores; `oxlint` 0 advertencias y 0 errores | Misma corrida |
 | Backend | `nest build` sin errores. `eslint` solo reporta formato de Prettier, que ya fallaba en archivos anteriores al sprint; no hay errores de lógica | No se aplicó `--fix` para no reformatear código de sprints anteriores |
@@ -1780,7 +1780,7 @@ Todos los retos aprueban con 80 % o más (RN-03); sus estrellas son 80/90/100 % 
 | Necesidad vaga | «La app tiene que ser rápida en temporada alta.» |
 | Contexto de la app ficticia | Compras Express: catálogo, carrito y pago desde el celular; en temporada alta (Buen Fin y diciembre) llegan miles de compradores al mismo tiempo |
 | Opciones por parte | **5 partes × 4 opciones = 20 opciones** (fuente, estímulo, artefacto, entorno y respuesta). Cada parte tiene **1 correcta y 3 distractores** |
-| Posición de la correcta | **Siempre la primera de cada parte** (orden 1) — ver el pendiente 6 de la sección 10 |
+| Posición de la correcta | En el seed va primera en cada parte, pero la interfaz presenta las opciones y las unidades **mezcladas por intento**, así que no hay posición fija (sección 11.5) |
 | Medida de respuesta | Se llama «tiempo de respuesta» y la carga es «usuarios concurrentes» |
 | Unidades | **4**: segundos (correcta), milisegundos, minutos y pedidos por hora |
 | Deslizador del valor | de 0.5 a 10, de 0.5 en 0.5 |
@@ -1891,7 +1891,7 @@ Usa `demo@pickquest.dev` (y `rival@pickquest.dev` para duelos), contraseña `pic
 - La clasificación y los duelos no se actualizan en vivo: se recalculan al consultar (el aviso de duelos se refresca cada minuto).
 - El diagnóstico no se puede retomar tras recargar la pantalla de preguntas con respuestas a medias (las elecciones viven en el navegador); sí se puede volver a abrir el mismo diagnóstico.
 - El banco tiene 15 preguntas por tema: con la fase 1 sola, el reto diario repite preguntas entre días.
-- **CU-05: la opción correcta de cada parte del escenario está siempre en la primera posición** (y la unidad correcta, «segundos», también va primero), y la interfaz las muestra en ese orden. Quien lo note puede acertar sin leer. Conviene mezclar el orden al presentar el contenido o variar la posición en el seed. Está fuera del alcance de este seguimiento, así que no se cambió.
+- *(Resuelto en la sección 11.5)* La posición de la respuesta correcta en CU-05 y en otras mecánicas ya no es fija: cada intento presenta las opciones mezcladas.
 
 ---
 
@@ -1925,7 +1925,7 @@ Fecha: **10 de noviembre de 2026, de las 11:45 a las 12:59** (hora del centro de
 
 Los códigos de salida de las seis suites son 0 (`codigos.txt`). Hubo dos corridas anteriores que no cuentan: la primera pasó todo pero dejó dos advertencias de lint en mis archivos de pruebas nuevos y guardó el JSON y el HTML en una ruta equivocada; la segunda se interrumpió porque Playwright rechazó el patrón de parámetros que usé para corregir esas advertencias. Se corrigió y se volvió a correr la suite completa, no solo el archivo que falló.
 
-Evidencias, en [`docs/evidencias/sprint3/`](docs/evidencias/sprint3/): `00-arranque-desde-cero.txt`, `01-unitarias-backend.txt`, `02-e2e-backend.txt`, `03-playwright-lista.txt`, `04-build-backend.txt`, `05-build-frontend.txt`, `06-lint-frontend.txt`, `codigos.txt`, `linea-de-tiempo.txt`, `playwright-resultados.json` y `playwright-html/index.html` (abrir con un navegador). Las capturas están en `docs/capturas/` y la evidencia de cada caso, en `docs/evidencias/cu05/` y `docs/evidencias/cu07/` (un PNG por caso y `ejecuciones.jsonl` con correos y tokens ocultos). Se revisó que ni los textos ni las capturas incluyan el `.env`, URLs de túneles ni correos que no sean de los usuarios demo.
+Evidencias, en [`docs/evidencias/sprint3/`](docs/evidencias/sprint3/): `00-arranque-desde-cero.txt`, `01-unitarias-backend.txt`, `02-e2e-backend.txt`, `03-playwright-lista.txt`, `04-build-backend.txt`, `05-build-frontend.txt`, `06-lint-frontend.txt`, `codigos.txt`, `linea-de-tiempo.txt`, `playwright-resultados.json` y `playwright-html/index.html` (abrir con un navegador). Las capturas están en `docs/capturas/` y la evidencia de cada caso, en `docs/evidencias/cu05/` y `docs/evidencias/cu07/` (un PNG por caso; el `ejecuciones.jsonl` de cada carpeta, con correos y tokens ocultos, se genera al correr y desde la sección 11.5 no se versiona). Se revisó que ni los textos ni las capturas incluyan el `.env`, URLs de túneles ni correos que no sean de los usuarios demo.
 
 ### 11.3 Casos nuevos de navegador de CU-05 y CU-07
 
@@ -1950,9 +1950,52 @@ Todos pasan en la corrida anterior; cada uno usa un alumno nuevo y resuelve el r
 
 Estaban fuera de los cuatro puntos, así que no se tocaron:
 
-1. **CU-05: la opción correcta de cada parte y la unidad «segundos» siempre van en primera posición.** Quien lo note acierta sin leer. Falta mezclar el orden al presentarlo o variarlo en el seed; conviene decidirlo con la revisión pedagógica porque cambia el contenido del reto.
+1. *(Resuelto en 11.5)* La posición fija de la respuesta correcta en CU-05 y en las demás mecánicas afectadas.
 2. **`npm run lint` del backend no pasa**: solo reporta formato de Prettier en archivos que ya lo incumplían antes del sprint. Aplicar `--fix` reformatearía unos 90 archivos, así que no se hizo (se intentó una vez y se revirtió). Conviene un commit aparte, solo de formato.
-3. **Los `ejecuciones.jsonl` de CU-02 y de CU-03/CU-04 crecen en cada corrida** (se agregan líneas, no se sobrescriben; el de CU-02 ya tiene 82). En la corrida limpia solo se vaciaron las carpetas de CU-05 y CU-07, que son nuevas.
+3. *(Resuelto en 11.5)* Los `ejecuciones.jsonl` que generan las pruebas ya no se versionan.
 4. **La suite de navegador depende del `.env` de cada máquina**: el `CORS_ORIGIN` actual apunta a un túnel temporal, así que hizo falta un archivo de override de Compose. Convendría un perfil de Compose para pruebas con los valores correctos.
 5. **La suite de navegador tarda 48 minutos** (los archivos de CU-03/CU-04 son los más lentos, unos 5 min cada uno en total). Conviene correrla por archivos o en paralelo antes de cada entrega.
 6. Los pendientes de la sección 10 siguen vigentes.
+
+### 11.5 Orden de las opciones: la posición de la correcta ya no es una pista
+
+**Qué se encontró.** El pendiente de CU-05 (la correcta siempre en primera posición) era un caso de un patrón más general: el seed guarda el contenido con un orden fijo y la interfaz lo mostraba tal cual. Se revisó cada mecánica en la base cargada y en el código:
+
+| Mecánica / contenido | Patrón encontrado | Corregido |
+|---|---|---|
+| CU-05 Simulador | La correcta era la primera de las cuatro opciones de cada una de las cinco partes y «segundos» la primera unidad. La respuesta además llevaba `orden`, que delataba la posición del seed | Sí |
+| CU-06 Presupuesto | La justificación correcta era la primera de las tres | Sí |
+| CU-07 Expediente | Los seis modelos salían siempre en el mismo orden y el correcto (ágil) siempre era el último; las características salían en un orden fijo | Sí |
+| CU-03 MoSCoW | Las tarjetas salían agrupadas por columna (MUST, SHOULD, COULD, WONT) y las MUST en su orden de referencia: el orden de la lista contestaba el reto | Sí |
+| CU-01 Diálogo | En cada nodo las preguntas productivas iban primero y las improductivas al final; la técnica correcta («entrevista») era la primera de las cuatro | Sí |
+| CU-02 Historias | El banco de 24 piezas seguía el orden de las historias: la pieza de cada casilla quedaba en una posición predecible | Sí |
+| Banco de preguntas (diagnóstico, reto diario, duelos) | **No afectado**: la correcta ocupa la posición 1 en 11 preguntas, la 2 en 13, la 3 en 11 y la 4 en 10 de las 45, sin patrón por tema | No hizo falta |
+
+**Cómo se corrigió.** Una función de mezcla determinista (`backend/src/common/orden/mezcla-determinista.ts`, Fisher-Yates con un generador de 32 bits) que toma como semilla el id del intento y el nombre de la lista. Cada intento ve su propio orden y, al retomarlo (FA3) o recargar la pantalla, el orden es el mismo sin guardar nada en la base. El contrato `contenidoPublico` de las mecánicas recibe ahora el id del intento. En CU-05 y CU-03, `orden` pasó a ser la posición en que se presenta cada opción (1 a n), no la del seed. En CU-01 se mezclan las opciones del nodo completo y se filtran las ya elegidas, de modo que al elegir una pregunta las demás conservan su orden relativo. La calificación y los datos del seed no cambiaron; el frontend no necesitó cambios porque ya mostraba las listas en el orden recibido.
+
+**Pruebas nuevas.** `backend/test/orden-opciones.e2e-spec.ts` (8 pruebas e2e) y `mezcla-determinista.spec.ts` (6 pruebas unitarias). Por cada mecánica afectada (CU-01, CU-02, CU-03, CU-05, CU-06, CU-07) se abren varios intentos del mismo reto, se lee de la base dónde está la respuesta correcta y se comprueba que (a) en dos intentos distintos su posición no es siempre la misma y no coincide con la del seed, y (b) al retomar el intento (volver a iniciarlo y recargarlo) el contenido y el borrador no cambian. Para CU-01 hay una prueba más: al elegir una pregunta, las que quedan conservan su orden. Otra prueba revisa la distribución de la correcta en el banco de preguntas. Cada prueba sigue abriendo intentos hasta ver dos órdenes distintos (con tope de 14), para no depender de un único sorteo.
+
+**Archivos y commit.** `common/orden/mezcla-determinista.ts` (y su spec), `mecanicas/tipos.ts`, `aprendizaje.service.ts` y los evaluadores de CU-01, CU-02, CU-03, CU-05, CU-06 y CU-07. Commit `71713a2`.
+
+**Otros dos cambios de este seguimiento.**
+
+- *ejecuciones.jsonl:* los registros que generan las pruebas de navegador (`docs/evidencias/cu02/ejecuciones.jsonl`, `cu05/`, `cu07/` y `docs/evidencias/cu03-cu04.jsonl`, que es el mismo tipo de archivo) se agregaron al `.gitignore` y se quitaron del repositorio con `git rm --cached` (siguen en disco). Commit `9b8291e`.
+- *Prueba de navegador del plan de estudio (CU-10):* la corrida mostró que la prueba `06-sprint3` marcaba siempre la primera opción del diagnóstico, y que el tamaño del plan dependía de qué preguntas salieran al azar (con 2 de 3 aciertos en dos temas, el plan tenía una sola actividad). No tenía relación con el orden de las opciones, pero la prueba fallaba de forma intermitente. Ahora responde con una opción incorrecta leída de la base y el resultado es determinista. Commit `6e979d8`.
+
+**Resultado de las pruebas** (10 de noviembre de 2026, entre las 21:50 y las 22:50, hora del centro de México; evidencias en [`docs/evidencias/sprint3/orden-opciones/`](docs/evidencias/sprint3/orden-opciones/)):
+
+| Suite | Resultado |
+|---|---|
+| Unitarias del backend | **282 de 282** pasan, 27 archivos |
+| e2e del backend, completas (`--runInBand`) | **223 de 223** pasan, 15 archivos (215 anteriores + 8 de `orden-opciones`) |
+| Playwright, los 8 archivos, con el sistema levantado desde cero en el proyecto de Compose aparte | Primera corrida: **78 pasan**, 1 falla y 3 no se ejecutan, todo en `06-sprint3` (la prueba del plan descrita arriba; las otras tres van detrás en la misma serie). Los siete archivos de las mecánicas (`01`, `02`, `03`, `04`, `05`, `07` y `08`: 74 casos) pasan completos |
+| Playwright, `06-sprint3` tras corregir la prueba | **8 de 8** pasan |
+| Build del backend, build del frontend y lint del frontend | Correctos; lint con 0 advertencias y 0 errores |
+
+No repetí los 82 casos después de arreglar `06-sprint3`: se corrigió solo esa prueba, ninguna otra depende de ella, y los 74 casos de los otros archivos ya habían pasado en esa misma corrida. Si se prefiere un registro con los 82 en una sola corrida, hay que repetirla (unos 40 minutos). El reporte HTML de Playwright de esta corrida no se guardó porque incluía el rastro de la falla y pesaba 8 MB; quedan el JSON y el texto.
+
+**Pendientes que se encontraron y no se corrigieron.**
+
+- **CU-08 Línea de tiempo** tiene el mismo patrón: las fases salen en su orden cronológico correcto (análisis, diseño, construcción, pruebas y despliegue) y los cinco entregables en el mismo orden de las fases. No estaba en la lista de mecánicas a revisar, así que no se modificó; se corrige igual que las demás, mezclando los bloques y los entregables por intento.
+- **CU-04 Inspección** se revisó y no tiene el patrón: las fallas caen en posiciones distintas en las tres pantallas (4.º y 6.º elemento en una, 4.º y 5.º en otra, 2.º y 3.º en la tercera).
+- En CU-07 los fragmentos de cada documento se dejaron en su orden de lectura (es contenido para leer, no una lista de opciones).
