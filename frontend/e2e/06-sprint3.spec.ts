@@ -191,13 +191,25 @@ test.describe('Sprint 3: navegación y pantallas nuevas', () => {
     await expect(page.getByText('Faltan 9 preguntas por responder').first()).toBeVisible();
 
     const preguntas = page.locator('ol > li fieldset');
-    for (let i = 0; i < 8; i++) await preguntas.nth(i).locator('input[type=radio]').first().check();
+    // Se responde con una opción incorrecta (leída de la base) para que el diagnóstico siempre marque
+    // temas por reforzar: con la primera opción el resultado dependía de qué preguntas salieran al azar.
+    const marcarIncorrecta = async (i: number) => {
+      const enunciado = ((await preguntas.nth(i).locator('legend').textContent()) ?? '').replace(/^\d+\.\s*/, '').trim();
+      const [fila] = await sql(
+        `SELECT o.texto FROM opcion_pregunta o JOIN pregunta_banco p ON p.id = o."preguntaId"
+          WHERE p.enunciado = $1 AND NOT o.correcta ORDER BY o.orden LIMIT 1`,
+        [enunciado],
+      );
+      expect(fila, `pregunta sin opción incorrecta: ${enunciado}`).toBeTruthy();
+      await preguntas.nth(i).locator('label').filter({ has: page.getByText(fila.texto, { exact: true }) }).locator('input[type=radio]').check();
+    };
+    for (let i = 0; i < 8; i++) await marcarIncorrecta(i);
     await page.getByRole('button', { name: 'Terminar diagnóstico' }).click();
     await expect(page.getByText('Falta 1 pregunta por responder').first()).toBeVisible();
     await expect(page.getByText('Esta pregunta está pendiente')).toBeVisible();
     await capturar(page, '28-diagnostico', 2300);
 
-    await preguntas.nth(8).locator('input[type=radio]').first().check();
+    await marcarIncorrecta(8);
     await page.getByRole('button', { name: 'Terminar diagnóstico' }).click();
     await page.waitForURL(/\/plan\/propuesta\/\d+$/);
     await expect(page.getByText('Tu dominio por tema')).toBeVisible();
