@@ -419,7 +419,7 @@ export class AprendizajeService {
       estado: 'EN_CURSO',
       intentoId: intento.id,
       ...(await this.cabecera(db, intento)),
-      contenido: await evaluador.contenidoPublico(db, intento.retoId),
+      contenido: await evaluador.contenidoPublico(db, intento.retoId, intento.id),
       borrador: await evaluador.borrador(db, intento.id),
       ayudaUsada: intento.usoAyuda,
       pista: await this.pistaGuardada(db, intento.id),

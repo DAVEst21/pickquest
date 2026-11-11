@@ -9,6 +9,7 @@ import {
   ResultadoCalificacion,
   retoIdDeIntento,
 } from '../tipos';
+import { ordenarParaIntento } from '../../../../common/orden/mezcla-determinista';
 import { validarCuerpo } from '../validar-cuerpo';
 import { BorradorPresupuestoDto } from './reparto-presupuesto.dto';
 import {
@@ -62,7 +63,7 @@ export class RepartoPresupuestoEvaluador implements EvaluadorMecanica {
     };
   }
 
-  async contenidoPublico(db: Db, retoId: number): Promise<ContenidoPublicoDto> {
+  async contenidoPublico(db: Db, retoId: number, intentoId: number): Promise<ContenidoPublicoDto> {
     const c = await this.cargarContenido(db, retoId);
     // Sin asignacionReferencia ni cuál justificación es la correcta.
     return {
@@ -75,7 +76,11 @@ export class RepartoPresupuestoEvaluador implements EvaluadorMecanica {
         minimoObligatorio: a.minimoObligatorio,
       })),
       efectos: c.efectos,
-      justificaciones: c.justificaciones.map((j) => ({ id: j.id, texto: j.texto })),
+      // La justificación correcta no va siempre en el mismo lugar: se mezcla por intento.
+      justificaciones: ordenarParaIntento(c.justificaciones, intentoId, 'justificaciones').map((j) => ({
+        id: j.id,
+        texto: j.texto,
+      })),
     };
   }
 

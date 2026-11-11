@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { Mecanica, TecnicaElicitacion } from '@prisma/client';
+import { ordenarParaIntento } from '../../../../common/orden/mezcla-determinista';
 import {
   BorradorDto,
   ContenidoPublicoDto,
@@ -53,7 +54,7 @@ export class DialogoStakeholderEvaluador implements EvaluadorMecanica {
     return { tecnica: respuesta?.tecnicaElegida ?? null, turnos };
   }
 
-  async contenidoPublico(db: Db, retoId: number): Promise<ContenidoPublicoDto> {
+  async contenidoPublico(db: Db, retoId: number, intentoId: number): Promise<ContenidoPublicoDto> {
     const a = await this.cargarArbol(db, retoId);
     // Sin tecnicaCorrecta, sin el árbol y sin los requerimientos ocultos.
     return {
@@ -64,7 +65,8 @@ export class DialogoStakeholderEvaluador implements EvaluadorMecanica {
       },
       turnosMaximos: a.stakeholder.turnosMaximos,
       totalRequerimientos: a.requerimientos.length,
-      tecnicas: Object.values(TecnicaElicitacion),
+      // La técnica correcta no va siempre al principio: se mezcla por intento.
+      tecnicas: ordenarParaIntento(Object.values(TecnicaElicitacion), intentoId, 'tecnicas'),
     };
   }
 
@@ -79,7 +81,18 @@ export class DialogoStakeholderEvaluador implements EvaluadorMecanica {
     const nodoActualId = ultimo?.opcion.siguienteNodoId ?? a.inicial.id;
     const turnosRestantes = Math.max(0, a.stakeholder.turnosMaximos - p.turnos.length);
 
-    const { nodoId, opciones } = opcionesDisponibles(nodoActualId, a.inicial.id, a.opciones, elegidas);
+    const disponibles = opcionesDisponibles(nodoActualId, a.inicial.id, a.opciones, elegidas);
+    const nodoId = disponibles.nodoId;
+    // En el seed las preguntas productivas van primero en cada nodo. Se mezclan las opciones del nodo
+    // completo (no solo las que quedan) para que, al elegir una, las demás conserven su orden relativo.
+    const rango = new Map(
+      ordenarParaIntento(
+        a.opciones.filter((o) => o.nodoId === nodoId),
+        intentoId,
+        `dialogo:nodo${nodoId}`,
+      ).map((o, i) => [o.id, i]),
+    );
+    const opciones = [...disponibles.opciones].sort((x, y) => rango.get(x.id)! - rango.get(y.id)!);
     const nodo = a.nodos.find((n) => n.id === nodoId)!;
 
     const vistos = new Set<number>();

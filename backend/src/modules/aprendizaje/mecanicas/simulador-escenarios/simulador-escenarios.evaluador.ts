@@ -9,6 +9,7 @@ import {
   ResultadoCalificacion,
   retoIdDeIntento,
 } from '../tipos';
+import { ordenarParaIntento } from '../../../../common/orden/mezcla-determinista';
 import { validarCuerpo } from '../validar-cuerpo';
 import { BorradorEscenarioDto } from './simulador-escenarios.dto';
 import {
@@ -45,7 +46,7 @@ export class SimuladorEscenariosEvaluador implements EvaluadorMecanica {
     return db.escenarioCalidad.findUniqueOrThrow({ where: { retoId } });
   }
 
-  async contenidoPublico(db: Db, retoId: number): Promise<ContenidoPublicoDto> {
+  async contenidoPublico(db: Db, retoId: number, intentoId: number): Promise<ContenidoPublicoDto> {
     const e = await this.escenario(db, retoId);
     const unidades = await db.unidadEscenario.findMany({ where: { retoId }, orderBy: { id: 'asc' } });
     const opciones = await db.opcionParteEscenario.findMany({
@@ -58,7 +59,9 @@ export class SimuladorEscenariosEvaluador implements EvaluadorMecanica {
       contextoApp: e.contextoApp,
       nombreMetrica: e.nombreMetrica,
       nombreCarga: e.nombreCarga,
-      unidades: unidades.map((u) => ({ id: u.id, nombre: u.nombre })),
+      // El orden de las opciones y de las unidades no revela la correcta: se mezcla por intento
+      // y `orden` pasa a ser la posición en que se presentan (no la del seed).
+      unidades: ordenarParaIntento(unidades, intentoId, 'unidades').map((u) => ({ id: u.id, nombre: u.nombre })),
       deslizadores: {
         valorMin: num(e.valorMinSlider),
         valorMax: num(e.valorMaxSlider),
@@ -71,9 +74,11 @@ export class SimuladorEscenariosEvaluador implements EvaluadorMecanica {
       partes: PARTES_ESCENARIO.map((parte) => ({
         parte,
         nombre: NOMBRE_PARTE[parte],
-        opciones: opciones
-          .filter((o) => o.parte === parte)
-          .map((o) => ({ id: o.id, orden: o.orden, texto: o.texto })),
+        opciones: ordenarParaIntento(
+          opciones.filter((o) => o.parte === parte),
+          intentoId,
+          `escenario:${parte}`,
+        ).map((o, i) => ({ id: o.id, orden: i + 1, texto: o.texto })),
       })),
     };
   }

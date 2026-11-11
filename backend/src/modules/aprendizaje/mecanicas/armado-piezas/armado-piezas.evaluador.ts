@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { Mecanica } from '@prisma/client';
 import { Db, EvaluadorMecanica, retoIdDeIntento } from '../tipos';
+import { ordenarParaIntento } from '../../../../common/orden/mezcla-determinista';
 import { validarCuerpo } from '../validar-cuerpo';
 import { BorradorHistoriasDto } from './armado-piezas.dto';
 import { calificarHistorias } from './armado-piezas.calificacion';
@@ -8,7 +9,7 @@ import { calificarHistorias } from './armado-piezas.calificacion';
 @Injectable()
 export class ArmadoPiezasEvaluador implements EvaluadorMecanica {
   readonly mecanica = Mecanica.ARMADO_PIEZAS;
-  async contenidoPublico(db: Db, retoId: number) {
+  async contenidoPublico(db: Db, retoId: number, intentoId: number) {
     const historias = await db.historiaUsuario.findMany({
       where: { retoId },
       orderBy: { orden: 'asc' },
@@ -24,7 +25,8 @@ export class ArmadoPiezasEvaluador implements EvaluadorMecanica {
       orderBy: { orden: 'asc' },
       select: { id: true, tipo: true, texto: true },
     });
-    return { historias, piezas };
+    // El banco de piezas se presenta mezclado por intento: el orden del seed sigue el de las historias.
+    return { historias, piezas: ordenarParaIntento(piezas, intentoId, 'piezas') };
   }
   async borrador(db: Db, intentoId: number) {
     const colocaciones = await db.respuestaCasilla.findMany({

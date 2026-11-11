@@ -9,6 +9,7 @@ import {
   ResultadoCalificacion,
   retoIdDeIntento,
 } from '../tipos';
+import { ordenarParaIntento } from '../../../../common/orden/mezcla-determinista';
 import { validarCuerpo } from '../validar-cuerpo';
 import { BorradorExpedienteDto } from './expediente-proyecto.dto';
 import {
@@ -32,7 +33,7 @@ export class ExpedienteProyectoEvaluador implements EvaluadorMecanica {
     });
   }
 
-  async contenidoPublico(db: Db, retoId: number): Promise<ContenidoPublicoDto> {
+  async contenidoPublico(db: Db, retoId: number, intentoId: number): Promise<ContenidoPublicoDto> {
     const expediente = await db.expediente.findUniqueOrThrow({ where: { retoId } });
     const documentos = await db.documentoExpediente.findMany({
       where: { retoId },
@@ -44,8 +45,12 @@ export class ExpedienteProyectoEvaluador implements EvaluadorMecanica {
     return {
       nombreProyecto: expediente.nombreProyecto,
       minimoVinculos: MINIMO_VINCULOS,
-      modelos: MODELOS,
-      caracteristicas: caracteristicas.map((c) => ({ id: c.id, nombre: c.nombre })),
+      // El modelo correcto y la característica de cada evidencia no van siempre en la misma posición.
+      modelos: ordenarParaIntento(MODELOS, intentoId, 'modelos'),
+      caracteristicas: ordenarParaIntento(caracteristicas, intentoId, 'caracteristicas').map((c) => ({
+        id: c.id,
+        nombre: c.nombre,
+      })),
       documentos: documentos.map((d) => ({
         id: d.id,
         orden: d.orden,
