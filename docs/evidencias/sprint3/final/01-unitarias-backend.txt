@@ -1,0 +1,34 @@
+PASS src/modules/social/duelos/duelo.reglas.spec.ts (79.064 s)
+PASS src/modules/economia/tienda.reglas.spec.ts (79.239 s)
+PASS src/modules/aprendizaje/mecanicas/expediente-proyecto/expediente-proyecto.calificacion.spec.ts (79.646 s)
+PASS src/modules/aprendizaje/mecanicas/retroalimentacion.spec.ts (80.355 s)
+PASS src/modules/aprendizaje/mecanicas/linea-tiempo/linea-tiempo.calificacion.spec.ts (81.132 s)
+PASS src/common/fechas/dia-calendario.spec.ts (80.963 s)
+PASS src/modules/aprendizaje/estudio/repaso.reglas.spec.ts (80.853 s)
+PASS src/modules/aprendizaje/mecanicas/inspeccion-sistema/inspeccion-sistema.calificacion.spec.ts (81.461 s)
+PASS src/modules/aprendizaje/calificacion-estrellas.spec.ts
+PASS src/modules/aprendizaje/mecanicas/pista.spec.ts
+PASS src/modules/aprendizaje/mecanicas/simulador-escenarios/simulador-escenarios.calificacion.spec.ts (81.786 s)
+PASS src/modules/progreso/racha.spec.ts (82.015 s)
+PASS src/modules/aprendizaje/estado-fases.spec.ts (81.968 s)
+PASS src/modules/social/clasificacion/clasificacion.reglas.spec.ts
+PASS src/common/tiempo/tiempo-pregunta.spec.ts
+PASS src/modules/aprendizaje/estado-reto.spec.ts
+PASS src/common/orden/mezcla-determinista.spec.ts
+PASS src/modules/progreso/multiplicador.spec.ts
+PASS src/modules/aprendizaje/mecanicas/referencia.spec.ts
+PASS src/modules/aprendizaje/mecanicas/reparto-presupuesto/reparto-presupuesto.calificacion.spec.ts (82.453 s)
+PASS src/modules/aprendizaje/mecanicas/armado-piezas/armado-piezas.calificacion.spec.ts
+PASS src/modules/progreso/nivel.spec.ts
+PASS src/modules/progreso/dominio.spec.ts
+PASS src/modules/aprendizaje/mecanicas/tablero-moscow/tablero-moscow.calificacion.spec.ts (83.672 s)
+PASS src/modules/aprendizaje/plan/plan.reglas.spec.ts (83.807 s)
+PASS src/modules/aprendizaje/mecanicas/dialogo-stakeholder/dialogo-stakeholder.calificacion.spec.ts (83.749 s)
+PASS src/app.controller.spec.ts
+A worker process has failed to exit gracefully and has been force exited. This is likely caused by tests leaking due to improper teardown. Try running with --detectOpenHandles to find leaks. Active timers can also cause this, ensure that .unref() was called on them.
+
+Test Suites: 27 passed, 27 total
+Tests:       283 passed, 283 total
+Snapshots:   0 total
+Time:        92.119 s
+Ran all test suites.

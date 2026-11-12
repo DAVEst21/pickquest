@@ -1,0 +1,15 @@
+Inicio: 2026-11-12T00:00:09-06:00 · commit 2a7ae23 · .env: ls: cannot access '.env': No such file or directory
+== unitarias-backend: inicio 2026-11-12T00:05:34-06:00
+== unitarias-backend: fin 2026-11-12T00:07:13-06:00 (código 0)
+== e2e-backend: inicio 2026-11-12T00:07:13-06:00
+== e2e-backend: fin 2026-11-12T00:11:57-06:00 (código 0)
+== playwright: inicio 2026-11-12T00:11:57-06:00
+== playwright: fin 2026-11-12T10:02:40-06:00 (código 0)
+== build-backend: inicio 2026-11-12T10:02:40-06:00
+== build-backend: fin 2026-11-12T10:03:08-06:00 (código 0)
+== build-frontend: inicio 2026-11-12T10:03:08-06:00
+== build-frontend: fin 2026-11-12T10:03:30-06:00 (código 0)
+== lint-frontend: inicio 2026-11-12T10:03:30-06:00
+== lint-frontend: fin 2026-11-12T10:03:33-06:00 (código 0)
+Fin: 2026-11-12T10:03:33-06:00
+LISTO

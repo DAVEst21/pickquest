@@ -1727,8 +1727,8 @@ model ResultadoDuelo {
 
 | Suite | Resultado | Detalle |
 |---|---|---|
-| Unitarias del backend (Jest) | **282 pasan** en 27 archivos | Incluyen las reglas nuevas: RN-20, RN-22, RN-24, RN-25, RN-26 (`dominio`), RN-27 (`generarPlan`), RN-28 y RN-10 (tienda), RN-13/RN-29 (`racha`: multiplicador, reinicio perezoso, racha por día propio), RNF-SE-05 (`tiempo-pregunta`), RN-14/RN-15 (`duelo.reglas`), RN-30 (`clasificacion.reglas`), `diaCalendarioMx`, RN-31 (`referencia`) y los faltantes de cada mecánica |
-| e2e del backend (Jest + Supertest, base real con seed) | **223 pasan** en 15 archivos | `orden-opciones` (8, sección 11.5), `cu05-escenarios` (11), `cu07-expediente` (11), `cu09-estudio` (15), `cu10-plan` (15), `cu11-reto-diario` (28), `cu12-tienda` (11), `cu13-duelos` (24), `rf19-rf20-perfil-clasificacion` (15), `sprint3-comunes` (RN-31 en CU-02 y CU-03, cinto con objeto no aplicable, pista persistente), `cu02-historias`, `sprint2-aprendizaje` (adaptada al nuevo orden de retos), `auth`, `app` y `swagger` |
+| Unitarias del backend (Jest) | **283 pasan** en 27 archivos | Incluyen las reglas nuevas: RN-20, RN-22, RN-24, RN-25, RN-26 (`dominio`), RN-27 (`generarPlan`), RN-28 y RN-10 (tienda), RN-13/RN-29 (`racha`: multiplicador, reinicio perezoso, racha por día propio), RNF-SE-05 (`tiempo-pregunta`), RN-14/RN-15 (`duelo.reglas`), RN-30 (`clasificacion.reglas`), `diaCalendarioMx`, RN-31 (`referencia`) y los faltantes de cada mecánica |
+| e2e del backend (Jest + Supertest, base real con seed) | **224 pasan** en 15 archivos | `orden-opciones` (9, secciones 11.5 y 11.6), `cu05-escenarios` (11), `cu07-expediente` (11), `cu09-estudio` (15), `cu10-plan` (15), `cu11-reto-diario` (28), `cu12-tienda` (11), `cu13-duelos` (24), `rf19-rf20-perfil-clasificacion` (15), `sprint3-comunes` (RN-31 en CU-02 y CU-03, cinto con objeto no aplicable, pista persistente), `cu02-historias`, `sprint2-aprendizaje` (adaptada al nuevo orden de retos), `auth`, `app` y `swagger` |
 | Navegador (Playwright 1.52, Chromium) | **82 casos**, todos pasan (47.9 min) | `01-recorrido` 8 · `02-alternativos` 4 · `03-casos-cu03-cu04` 24 · `04-recuperacion` 6 · `05-casos-cu02` 20 · `06-sprint3` 8 · `07-casos-cu05` 6 · `08-casos-cu07` 6. Corrida completa y ininterrumpida del 10-nov-2026, 11:45 a 12:59 (hora del centro de México); ver sección 11 |
 | Frontend | `tsc` y `vite build` sin errores; `oxlint` 0 advertencias y 0 errores | Misma corrida |
 | Backend | `nest build` sin errores. `eslint` solo reporta formato de Prettier, que ya fallaba en archivos anteriores al sprint; no hay errores de lógica | No se aplicó `--fix` para no reformatear código de sprints anteriores |
@@ -1996,6 +1996,26 @@ No repetí los 82 casos después de arreglar `06-sprint3`: se corrigió solo esa
 
 **Pendientes que se encontraron y no se corrigieron.**
 
-- **CU-08 Línea de tiempo** tiene el mismo patrón: las fases salen en su orden cronológico correcto (análisis, diseño, construcción, pruebas y despliegue) y los cinco entregables en el mismo orden de las fases. No estaba en la lista de mecánicas a revisar, así que no se modificó; se corrige igual que las demás, mezclando los bloques y los entregables por intento.
+- *(Resuelto en 11.6)* **CU-08 Línea de tiempo** tenía el mismo patrón: las fases salían en su orden cronológico correcto (análisis, diseño, construcción, pruebas y despliegue) y los cinco entregables en el mismo orden de las fases.
 - **CU-04 Inspección** se revisó y no tiene el patrón: las fallas caen en posiciones distintas en las tres pantallas (4.º y 6.º elemento en una, 4.º y 5.º en otra, 2.º y 3.º en la tercera).
 - En CU-07 los fragmentos de cada documento se dejaron en su orden de lectura (es contenido para leer, no una lista de opciones).
+
+### 11.6 Ajustes previos al push y corrida final sobre un clon limpio
+
+**CU-08 (commit `ed0903e`).** Los bloques y los entregables de la línea de tiempo se presentan ahora mezclados por intento, igual que en las demás mecánicas. Se agregó la prueba correspondiente a `orden-opciones.e2e-spec.ts` (ahora 9 pruebas).
+
+**CU-01, nodos agotados (commit `2a7ae23`).** Al mezclar las preguntas, una prueba de navegador (`02-alternativos`, que siempre elige la primera opción) llegó a un caso que antes no aparecía: elegidas varias preguntas que regresan al nodo inicial, el nodo actual y el inicial se agotaban y la lista de preguntas quedaba vacía aunque sobraran turnos y quedaran 20 o más preguntas sin hacer. Ahora, si el nodo actual y el inicial no tienen preguntas pendientes, se ofrece el primer nodo que aún las tenga; solo cuando ya se hicieron todas la lista queda vacía. Cambio en `opcionesDisponibles` y dos pruebas unitarias nuevas. No cambia la calificación.
+
+**README (commit `3914a1f`).** Describe las suites de CU-05 y CU-07 y aclara que los `*.jsonl` no se versionan.
+
+**Corrida final.** Se hizo sobre un **clon limpio de la rama, sin archivo `.env`** (como lo haría un tester), con `docker compose up --build` desde cero (15 migraciones y seed), en el commit `2a7ae23`, el 12 de noviembre de 2026. Todo en una sola corrida y sin repetir nada; evidencias en [`docs/evidencias/sprint3/final/`](docs/evidencias/sprint3/final/):
+
+| Suite | Resultado |
+|---|---|
+| Unitarias del backend | **283 de 283**, 27 archivos |
+| e2e del backend (`--runInBand`) | **224 de 224**, 15 archivos |
+| Playwright, los 8 archivos | **82 de 82**, 0 fallidos, 0 inestables, 47.6 min |
+| Build del backend, build del frontend | Correctos |
+| Lint del frontend | 0 advertencias, 0 errores |
+
+Hubo un intento anterior de esta corrida (commit `3914a1f`) con 78 de 82 casos: falló `02-alternativos` por el caso de CU-01 descrito arriba, y se corrigió. La hora de pared de la corrida final aparece como 10 horas porque el equipo estuvo suspendido durante la noche; el tiempo de ejecución de Playwright fue de 47.6 minutos.
