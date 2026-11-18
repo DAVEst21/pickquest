@@ -203,6 +203,8 @@ export const RetoDiarioPage: React.FC = () => {
             }}
             alSiguiente={() => void pedir(reto!)}
             textoSiguiente={pregunta.numero === pregunta.total ? 'Ver resumen' : 'Siguiente pregunta'}
+            // D-002 (FA1): con el tiempo agotado pasa sola; la décima espera a «Ver resumen».
+            avanzarAlAgotarse={pregunta.numero < pregunta.total}
           />
           {aviso && (
             <p className="font-body-md text-body-md text-error" role="alert">

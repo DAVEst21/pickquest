@@ -154,7 +154,7 @@ test.describe('Sprint 3: navegación y pantallas nuevas', () => {
     expect(xpTotal).toBe(xpAntes + 10);
   });
 
-  test('CU-11 Reto diario: temporizador que cambia de color, retroalimentación, resumen y FE1', async () => {
+  test('CU-11 Reto diario: temporizador que cambia de color, avance al agotarse el tiempo (CP-RD-U06), retroalimentación, resumen y FE1', async () => {
     await page.goto('/reto-diario');
     await expect(page.locator('#racha-dias')).toHaveText('0 días');
     await expect(page.getByText('No puedes usar objetos en este reto.')).toBeVisible();
@@ -168,6 +168,32 @@ test.describe('Sprint 3: navegación y pantallas nuevas', () => {
         await expect(page.locator('#temporizador')).toHaveAttribute('data-urgente', 'false');
         await expect(page.locator('#temporizador')).toHaveAttribute('data-urgente', 'true', { timeout: 20_000 });
         await capturar(page, '26-reto-diario-pregunta', 1100);
+        // CP-RD-U06 (D-002, FA1): sin responder, al llegar a 0 se muestra «Se acabó el tiempo» unos 1.5 s y
+        // pasa sola a la siguiente pregunta, sin pulsar «Siguiente pregunta»
+        // se mide con sondeo por cuadro para no sumar el intervalo de espera de expect
+        await page.waitForFunction(() => document.querySelector('#retro-pregunta')?.textContent?.includes('Se acabó el tiempo'), null, {
+          polling: 'raf',
+          timeout: 25_000,
+        });
+        const inicioAviso = Date.now();
+        await page.waitForFunction(() => document.querySelector('#numero-pregunta')?.textContent === 'Pregunta 2 de 10', null, {
+          polling: 'raf',
+          timeout: 5_000,
+        });
+        const msAviso = Date.now() - inicioAviso;
+        expect(msAviso).toBeGreaterThanOrEqual(1_300);
+        expect(msAviso).toBeLessThan(3_500);
+        continue;
+      }
+      if (n === 10) {
+        // CP-RD-U06: en la décima el aviso se queda en pantalla hasta pulsar «Ver resumen»
+        await expect(page.locator('#retro-pregunta')).toContainText('Se acabó el tiempo', { timeout: 25_000 });
+        await page.waitForTimeout(3_000);
+        await expect(page.locator('#numero-pregunta')).toHaveText('Pregunta 10 de 10');
+        await expect(page.locator('#retro-pregunta')).toContainText('Se acabó el tiempo');
+        await page.getByRole('button', { name: 'Ver resumen' }).click();
+        break;
+      }
       await page.locator('section[aria-label^="Pregunta"] ul button').first().click();
       // CU-11 paso 6: solo indica si fue correcta (sin la opción correcta ni explicación)
       await expect(page.locator('#retro-pregunta')).toHaveText(/^(Correcto|Incorrecto|Se acabó el tiempo: cuenta como incorrecta)$/);

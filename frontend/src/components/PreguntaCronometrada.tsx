@@ -13,13 +13,28 @@ interface Props {
   textoSiguiente: string;
   /** Mensaje cuando no se muestra la retroalimentación de la respuesta. */
   mensajeSinRetro?: string;
+  /**
+   * D-002 (CU-11 FA1): al agotarse el tiempo se muestra el aviso 1.5 s y se pasa solo a la siguiente pregunta.
+   * Si el estudiante sí responde, siempre avanza con el botón. Por omisión no avanza (duelos).
+   */
+  avanzarAlAgotarse?: boolean;
 }
+
+/** Cuánto se muestra «Se acabó el tiempo» antes de pasar solo a la siguiente pregunta. */
+const MS_AVISO_TIEMPO_AGOTADO = 1500;
 
 /**
  * Pregunta con temporizador (CU-11 y CU-13). El tiempo visible cambia de color en los últimos 5 segundos;
  * al llegar a 0 se envía `null` (FA1). Las opciones se eligen con clic o con las teclas 1 a 4.
  */
-export const PreguntaCronometrada: React.FC<Props> = ({ pregunta, responder, alSiguiente, textoSiguiente, mensajeSinRetro }) => {
+export const PreguntaCronometrada: React.FC<Props> = ({
+  pregunta,
+  responder,
+  alSiguiente,
+  textoSiguiente,
+  mensajeSinRetro,
+  avanzarAlAgotarse = false,
+}) => {
   // Fin del tiempo según lo que dijo el servidor al entregar la pregunta (solo el reloj visible).
   const [finEn] = useState(() => Date.now() + pregunta.segundosRestantes * 1000);
   const [restante, setRestante] = useState(pregunta.segundosRestantes);
@@ -30,11 +45,25 @@ export const PreguntaCronometrada: React.FC<Props> = ({ pregunta, responder, alS
   const [error, setError] = useState<string | null>(null);
   // Evita enviar dos veces (clic + fin del tiempo en el mismo instante).
   const bloqueo = useRef(false);
+  // La respuesta la envió el temporizador (no el estudiante) y el avance ya se pidió (evita avanzar dos veces).
+  const envioPorTiempo = useRef(false);
+  const yaAvanzo = useRef(false);
+  const avanzar = useCallback(() => {
+    if (yaAvanzo.current) return;
+    yaAvanzo.current = true;
+    alSiguiente();
+  }, [alSiguiente]);
+  const avanzarRef = useRef(avanzar);
+  useEffect(() => {
+    avanzarRef.current = avanzar;
+  });
 
   const enviar = useCallback(
     async (opcionId: number | null) => {
       if (bloqueo.current) return;
       bloqueo.current = true;
+      // Solo el temporizador envía null: esa respuesta es la del tiempo agotado (D-002).
+      envioPorTiempo.current = opcionId === null;
       setEnviando(true);
       setError(null);
       try {
@@ -65,6 +94,13 @@ export const PreguntaCronometrada: React.FC<Props> = ({ pregunta, responder, alS
     }, 100);
     return () => window.clearInterval(id);
   }, [finEn, respondida]);
+
+  // D-002: tras mostrar «Se acabó el tiempo» se continúa solo (la última pregunta espera al botón «Ver resumen»).
+  useEffect(() => {
+    if (!respondida || !avanzarAlAgotarse || !envioPorTiempo.current) return;
+    const id = window.setTimeout(() => avanzarRef.current(), MS_AVISO_TIEMPO_AGOTADO);
+    return () => window.clearTimeout(id);
+  }, [respondida, avanzarAlAgotarse]);
 
   useEffect(() => {
     const alPresionar = (e: KeyboardEvent) => {
@@ -161,7 +197,7 @@ export const PreguntaCronometrada: React.FC<Props> = ({ pregunta, responder, alS
           )}
           <button
             type="button"
-            onClick={alSiguiente}
+            onClick={avanzar}
             className="self-end px-space-lg py-space-sm rounded-lg bg-primary-container hover:bg-primary text-on-primary-container font-title-md font-bold"
           >
             {textoSiguiente}
