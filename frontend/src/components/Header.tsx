@@ -42,7 +42,7 @@ export const Header: React.FC = () => {
   const xpSiguienteNivel = perfil?.xpSiguienteNivel ?? 1;
   const xpPercent = Math.min(100, Math.round((xpTotal / xpSiguienteNivel) * 100));
 
-  const duelosPendientes = avisos?.length ?? 0;
+  const duelosPendientes = avisos?.filter((a) => a.tipo === 'INVITACION').length ?? 0;
   // El reto diario cuenta como pendiente mientras no se haya terminado el de hoy.
   const diarioPendiente = diario !== undefined && diario.estado !== 'TERMINADO';
   const empieza = (prefijo: string) => (ruta: string) => ruta.startsWith(prefijo);

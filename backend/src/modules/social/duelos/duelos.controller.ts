@@ -41,9 +41,25 @@ export class DuelosController {
   }
 
   @Get('avisos')
-  @ApiOperation({ summary: 'CU-13: duelos pendientes en los que el estudiante es el retado (aviso al iniciar sesión)' })
+  @ApiOperation({
+    summary: 'CU-13: avisos al iniciar sesión: invitaciones pendientes y cierres (rechazo o expiración) de duelos propios',
+    description: 'tipo INVITACION: el estudiante es el retado. tipo CIERRE (FA1, FE1): el duelo que retó fue rechazado o expiró, sin XP.',
+  })
   avisos(@EstudianteActual() estudiante: EstudianteAutenticado): Promise<AvisoDueloDto[]> {
     return this.duelos.avisos(estudiante.id);
+  }
+
+  @Post(':dueloId/aviso-visto')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'CU-13 FA1/FE1: el retador cierra el aviso de un duelo rechazado o expirado; no se repite' })
+  @ApiForbiddenResponse({ description: 'Solo el retador tiene aviso de cierre' })
+  @ApiConflictResponse({ description: 'El duelo no está rechazado ni expirado' })
+  @ApiNotFoundResponse({ description: 'El duelo no existe o el estudiante no participa' })
+  avisoVisto(
+    @EstudianteActual() estudiante: EstudianteAutenticado,
+    @Param('dueloId', ParseIntPipe) dueloId: number,
+  ): Promise<void> {
+    return this.duelos.marcarAvisoVisto(estudiante.id, dueloId);
   }
 
   @Get()

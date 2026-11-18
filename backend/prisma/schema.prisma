@@ -1405,6 +1405,8 @@ model Duelo {
   ganadorId   Int?
   empate      Boolean     @default(false)
   terminadoEn DateTime?
+  // D-001: el retador ya vio el aviso de cierre (rechazo o expiración) de su duelo.
+  avisoCierreVisto Boolean @default(false)
 
   retador    Estudiante       @relation("DueloRetador", fields: [retadorId], references: [id], onDelete: Cascade)
   retado     Estudiante       @relation("DueloRetado", fields: [retadoId], references: [id], onDelete: Cascade)

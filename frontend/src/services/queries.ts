@@ -16,6 +16,7 @@ import {
   getEquipados,
   getFases,
   getAvisosDuelos,
+  marcarAvisoDueloVisto,
   getClasificacion,
   getDiagnostico,
   getDuelo,
@@ -416,6 +417,15 @@ export function useAceptarDuelo() {
 export function useRechazarDuelo() {
   const refrescar = useRefrescarDuelos();
   return useMutation({ mutationFn: (dueloId: number) => rechazarDuelo(dueloId), onSuccess: refrescar });
+}
+
+/** D-001: al cerrar el aviso de un duelo rechazado o expirado se marca como visto y deja de mostrarse. */
+export function useMarcarAvisoDueloVisto() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dueloId: number) => marcarAvisoDueloVisto(dueloId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.avisosDuelos }),
+  });
 }
 
 // ---------- RF-20 Clasificación y RF-19 Perfil ----------

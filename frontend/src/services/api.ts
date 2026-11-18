@@ -271,6 +271,11 @@ export function rechazarDuelo(dueloId: number): Promise<Duelo> {
   return http(`/duelos/${dueloId}/rechazar`, { method: 'POST' });
 }
 
+/** D-001: el retador cierra el aviso de un duelo rechazado o expirado. */
+export function marcarAvisoDueloVisto(dueloId: number): Promise<void> {
+  return http(`/duelos/${dueloId}/aviso-visto`, { method: 'POST' });
+}
+
 export function entregarPreguntaDuelo(dueloId: number, numero: number): Promise<PreguntaCronometrada> {
   return http(`/duelos/${dueloId}/preguntas/${numero}/entregar`, { method: 'POST' });
 }

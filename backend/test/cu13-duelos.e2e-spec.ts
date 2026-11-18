@@ -322,6 +322,72 @@ describe('CU-13: duelos (e2e)', () => {
     expect(await xp(b)).toBe(0);
   });
 
+  const avisosDe = async (e: Jugador) => (await http(app).get('/duelos/avisos').set(auth(e)).expect(200)).body as Array<Record<string, any>>;
+  const avisoVisto = (e: Jugador, id: number) => http(app).post(`/duelos/${id}/aviso-visto`).set(auth(e));
+
+  it('D-001 FA1: el retador recibe una sola vez el aviso de cierre del duelo rechazado, con 0 XP', async () => {
+    const a = await nuevo();
+    const b = await nuevo();
+    const id = await crearDuelo(a, b);
+    // pendiente: ni el retador ni el estudiante ajeno tienen aviso de cierre
+    expect(await avisosDe(a)).toHaveLength(0);
+    await rechazar(b, id).expect(200);
+
+    const avisos = await avisosDe(a);
+    expect(avisos).toHaveLength(1);
+    expect(avisos[0]).toMatchObject({
+      tipo: 'CIERRE',
+      dueloId: id,
+      estado: 'RECHAZADO',
+      xpOtorgada: 0,
+      rival: { nombreAventurero: b.nombre },
+      tema: 'CICLO_VIDA',
+    });
+    // el retado que rechazó no recibe aviso de cierre ni de invitación
+    expect(await avisosDe(b)).toHaveLength(0);
+    // consultar de nuevo no lo consume: sigue hasta que el retador lo cierra
+    expect(await avisosDe(a)).toHaveLength(1);
+
+    await avisoVisto(b, id).expect(403);
+    await avisoVisto(a, id).expect(204);
+    expect(await avisosDe(a)).toHaveLength(0);
+    // marcarlo otra vez es inocuo y el duelo sigue en el historial
+    await avisoVisto(a, id).expect(204);
+    expect((await http(app).get('/duelos').set(auth(a)).expect(200)).body.historial[0]).toMatchObject({ dueloId: id, estado: 'RECHAZADO' });
+    expect(await xp(a)).toBe(0);
+    expect(await xp(b)).toBe(0);
+  });
+
+  it('D-001 FE1: el retador recibe una sola vez el aviso de cierre del duelo expirado, con 0 XP', async () => {
+    const a = await nuevo();
+    const b = await nuevo();
+    const id = await crearDuelo(a, b);
+    await jugarRonda(a, id, 5);
+    await prisma.duelo.update({ where: { id }, data: { expiraEn: new Date(Date.now() - 1000) } });
+
+    // la expiración se evalúa al consultar los avisos
+    const avisos = await avisosDe(a);
+    expect(avisos).toHaveLength(1);
+    expect(avisos[0]).toMatchObject({ tipo: 'CIERRE', dueloId: id, estado: 'EXPIRADO', xpOtorgada: 0, rival: { nombreAventurero: b.nombre } });
+    // el retado tampoco recibe ya la invitación
+    expect(await avisosDe(b)).toHaveLength(0);
+
+    await avisoVisto(a, id).expect(204);
+    expect(await avisosDe(a)).toHaveLength(0);
+    expect(await xp(a)).toBe(0);
+    expect(await xp(b)).toBe(0);
+  });
+
+  it('D-001: no hay aviso de cierre para un duelo que sigue pendiente, ni para un ajeno', async () => {
+    const a = await nuevo();
+    const b = await nuevo();
+    const c = await nuevo();
+    const id = await crearDuelo(a, b);
+    await avisoVisto(a, id).expect(409);
+    await avisoVisto(c, id).expect(404);
+    expect(await avisosDe(a)).toHaveLength(0);
+  });
+
   it('FE2: con 3 duelos pendientes el retador no puede crear otro y el mensaje indica el límite', async () => {
     const a = await nuevo();
     const rivales = [await nuevo(), await nuevo(), await nuevo(), await nuevo()];

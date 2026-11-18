@@ -43,6 +43,16 @@ async function jugarRondaDeDuelo(page: Page) {
   }
 }
 
+/** El estudiante demo reta a rival_demo desde la interfaz sin jugar su ronda; devuelve el id del duelo. */
+async function retarSinJugar(page: Page): Promise<number> {
+  await page.goto('/duelos');
+  await page.locator('main select').nth(0).selectOption('rival_demo');
+  await page.locator('main select').nth(1).selectOption('CICLO_VIDA');
+  await page.getByRole('button', { name: 'Retar y jugar mi ronda' }).click();
+  await page.waitForURL(/\/duelos\/\d+$/);
+  return Number(page.url().split('/').pop());
+}
+
 test.describe('Sprint 3: navegación y pantallas nuevas', () => {
   let page: Page;
 
@@ -158,7 +168,6 @@ test.describe('Sprint 3: navegación y pantallas nuevas', () => {
         await expect(page.locator('#temporizador')).toHaveAttribute('data-urgente', 'false');
         await expect(page.locator('#temporizador')).toHaveAttribute('data-urgente', 'true', { timeout: 20_000 });
         await capturar(page, '26-reto-diario-pregunta', 1100);
-      }
       await page.locator('section[aria-label^="Pregunta"] ul button').first().click();
       // CU-11 paso 6: solo indica si fue correcta (sin la opción correcta ni explicación)
       await expect(page.locator('#retro-pregunta')).toHaveText(/^(Correcto|Incorrecto|Se acabó el tiempo: cuenta como incorrecta)$/);
@@ -282,6 +291,61 @@ test.describe('Sprint 3: navegación y pantallas nuevas', () => {
     expect(filas).toHaveLength(2);
     expect(filas.reduce((suma, f) => suma + f.xpOtorgada, 0)).toBeGreaterThanOrEqual(60); // 50+20 o 30+30
     expect(page.url()).toContain(`/duelos/${dueloId}`);
+  });
+
+  test('CP-DU-I04 (D-001, CU-13 FA1): el retador ve el aviso de cierre del duelo rechazado, con 0 XP, y no se repite', async ({ browser }) => {
+    const dueloId = await retarSinJugar(page);
+    await page.goto('/');
+    await expect(page.getByText('Overworld SDLC')).toBeVisible();
+    await expect(page.locator('[data-aviso-cierre]')).toHaveCount(0); // pendiente: aún no hay cierre
+
+    const paginaRival = await nuevaPagina(browser);
+    try {
+      await entrar(paginaRival, RIVAL);
+      await paginaRival.goto('/duelos');
+      await paginaRival.getByRole('button', { name: 'Rechazar' }).first().click();
+      await expect(paginaRival.getByText('Rechazado').first()).toBeVisible();
+    } finally {
+      await paginaRival.context().close();
+    }
+
+    // al volver al mapa el retador ve el cierre; el indicador de invitaciones del encabezado no lo cuenta
+    await page.goto('/');
+    const aviso = page.locator(`[data-aviso-cierre="${dueloId}"]`);
+    await expect(aviso).toContainText('Tu duelo contra rival_demo fue rechazado. 0 XP.');
+    await expect(page.getByRole('navigation', { name: 'Navegación principal' }).first().getByRole('status', { name: /duelo pendiente/ })).toHaveCount(0);
+    await capturar(page, '33-duelo-aviso-rechazado', 1000);
+
+    // al cerrarlo se marca como visto y no vuelve a aparecer
+    await aviso.getByRole('button', { name: 'Entendido' }).click();
+    await expect(page.locator('[data-aviso-cierre]')).toHaveCount(0);
+    await page.reload();
+    await expect(page.getByText('Overworld SDLC')).toBeVisible();
+    await expect(page.locator('[data-aviso-cierre]')).toHaveCount(0);
+    const [fila] = await sql(`SELECT estado, "avisoCierreVisto" AS visto FROM duelo WHERE id = $1`, [dueloId]);
+    expect(fila).toMatchObject({ estado: 'RECHAZADO', visto: true });
+  });
+
+  test('CP-DU-I05 (D-001, CU-13 FE1): el retador ve el aviso de cierre del duelo expirado, con 0 XP, y no se repite', async () => {
+    const dueloId = await retarSinJugar(page);
+    await sql(`UPDATE duelo SET "expiraEn" = now() - interval '1 minute' WHERE id = $1`, [dueloId]);
+
+    // la expiración se evalúa al consultar: basta con volver al mapa
+    await page.goto('/');
+    const aviso = page.locator(`[data-aviso-cierre="${dueloId}"]`);
+    await expect(aviso).toContainText('Tu duelo contra rival_demo expiró. 0 XP.');
+    await capturar(page, '34-duelo-aviso-expirado', 1000);
+
+    await aviso.getByRole('button', { name: 'Entendido' }).click();
+    await expect(page.locator('[data-aviso-cierre]')).toHaveCount(0);
+    await page.reload();
+    await expect(page.getByText('Overworld SDLC')).toBeVisible();
+    await expect(page.locator('[data-aviso-cierre]')).toHaveCount(0);
+    const [fila] = await sql(`SELECT estado, "avisoCierreVisto" AS visto FROM duelo WHERE id = $1`, [dueloId]);
+    expect(fila).toMatchObject({ estado: 'EXPIRADO', visto: true });
+    // 0 XP: el estudiante demo no ganó nada por el duelo expirado
+    const xpPorDuelo = await sql(`SELECT count(*)::int AS n FROM resultado_duelo WHERE "dueloId" = $1`, [dueloId]);
+    expect(xpPorDuelo[0].n).toBe(0);
   });
 
   test('RF-20 Clasificación: tabla con nombre, nivel, XP y estrellas; resalta la fila propia y no muestra correos', async () => {

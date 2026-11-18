@@ -898,8 +898,14 @@ export interface ListaDuelos {
 }
 
 export interface AvisoDuelo {
+  /** INVITACION: me retaron; CIERRE (D-001): mi duelo como retador fue rechazado o expiró, sin XP. */
+  tipo: 'INVITACION' | 'CIERRE';
   dueloId: number;
   retador: { nombreAventurero: string; nivel: number };
+  /** El otro participante: quien me retó (INVITACION) o a quien reté (CIERRE). */
+  rival: { nombreAventurero: string; nivel: number };
+  estado: 'PENDIENTE' | 'RECHAZADO' | 'EXPIRADO';
+  xpOtorgada: number;
   tema: TemaFase;
   temaNombre: string;
   expiraEn: string;

@@ -122,9 +122,19 @@ export class ListaDuelosDto {
   activos: number;
 }
 
+/**
+ * INVITACION: duelo pendiente en el que el estudiante es el retado.
+ * CIERRE (D-001): duelo propio como retador que el rival rechazó o que expiró; no otorga XP.
+ */
 export class AvisoDueloDto {
+  tipo: 'INVITACION' | 'CIERRE';
   dueloId: number;
   retador: ParticipanteDto;
+  /** El otro participante: quien retó (INVITACION) o a quien se retó (CIERRE). */
+  rival: ParticipanteDto;
+  estado: 'PENDIENTE' | 'RECHAZADO' | 'EXPIRADO';
+  /** Siempre 0: un duelo rechazado o expirado no otorga XP. */
+  xpOtorgada: number;
   tema: string;
   temaNombre: string;
   expiraEn: Date;

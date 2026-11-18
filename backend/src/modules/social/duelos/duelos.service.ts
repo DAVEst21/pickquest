@@ -185,21 +185,61 @@ export class DuelosService {
     };
   }
 
-  /** Duelos pendientes en los que el estudiante es el retado: el aviso al iniciar sesión. */
+  /**
+   * Avisos al iniciar sesión: las invitaciones pendientes recibidas y (D-001) los cierres, sin XP, de los duelos
+   * propios como retador que el rival rechazó o que expiraron y cuyo aviso aún no se ha visto.
+   */
   async avisos(estudianteId: number): Promise<AvisoDueloDto[]> {
     await this.expirarVencidos();
-    const pendientes = await this.prisma.duelo.findMany({
-      where: { retadoId: estudianteId, estado: 'PENDIENTE' },
-      include: INCLUIR,
-      orderBy: { creadoEn: 'asc' },
-    });
-    return pendientes.map((d) => ({
+    const [pendientes, cerrados] = await Promise.all([
+      this.prisma.duelo.findMany({
+        where: { retadoId: estudianteId, estado: 'PENDIENTE' },
+        include: INCLUIR,
+        orderBy: { creadoEn: 'asc' },
+      }),
+      this.prisma.duelo.findMany({
+        where: { retadorId: estudianteId, estado: { in: ['RECHAZADO', 'EXPIRADO'] }, avisoCierreVisto: false },
+        include: INCLUIR,
+        orderBy: { creadoEn: 'asc' },
+      }),
+    ]);
+    const comun = (d: DueloCompleto) => ({
       dueloId: d.id,
       retador: { nombreAventurero: d.retador.nombreAventurero, nivel: d.retador.nivel },
+      xpOtorgada: 0,
       tema: d.tema,
       temaNombre: NOMBRE_TEMA[d.tema],
       expiraEn: d.expiraEn,
-    }));
+    });
+    return [
+      ...pendientes.map(
+        (d): AvisoDueloDto => ({
+          ...comun(d),
+          tipo: 'INVITACION',
+          estado: 'PENDIENTE',
+          rival: { nombreAventurero: d.retador.nombreAventurero, nivel: d.retador.nivel },
+        }),
+      ),
+      ...cerrados.map(
+        (d): AvisoDueloDto => ({
+          ...comun(d),
+          tipo: 'CIERRE',
+          estado: d.estado as 'RECHAZADO' | 'EXPIRADO',
+          rival: { nombreAventurero: d.retado.nombreAventurero, nivel: d.retado.nivel },
+        }),
+      ),
+    ];
+  }
+
+  /** D-001: el retador cierra el aviso de un duelo rechazado o expirado; no vuelve a aparecer (idempotente). */
+  async marcarAvisoVisto(estudianteId: number, dueloId: number): Promise<void> {
+    await this.expirarVencidos();
+    const duelo = await this.dueloPropio(this.prisma, estudianteId, dueloId);
+    if (duelo.retadorId !== estudianteId) throw new ForbiddenException('Solo el retador tiene aviso de cierre');
+    if (duelo.estado !== 'RECHAZADO' && duelo.estado !== 'EXPIRADO') {
+      throw new ConflictException('Este duelo no tiene aviso de cierre');
+    }
+    await this.prisma.duelo.update({ where: { id: dueloId }, data: { avisoCierreVisto: true } });
   }
 
   async detalle(estudianteId: number, dueloId: number): Promise<DueloDto> {
