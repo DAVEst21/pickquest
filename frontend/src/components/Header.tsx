@@ -13,8 +13,12 @@ interface ItemNavegacion {
   indicador?: { texto: string; etiqueta: string } | null;
 }
 
-const clasesEnlace = (activo: boolean) =>
-  `relative flex items-center gap-space-xs px-space-md py-space-sm rounded-lg font-title-md text-title-md whitespace-nowrap transition-all ${
+/**
+ * `relleno` es el espacio horizontal de cada enlace: el menú de escritorio lo reduce para que las 8 secciones
+ * no invadan el bloque del jugador (nivel, QP, racha y avatar).
+ */
+const clasesEnlace = (activo: boolean, relleno = 'px-space-md') =>
+  `relative flex items-center gap-space-xs ${relleno} py-space-sm rounded-lg font-title-md text-title-md whitespace-nowrap transition-all ${
     activo
       ? 'bg-surface-container-high text-primary shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]'
       : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
@@ -77,7 +81,7 @@ export const Header: React.FC = () => {
 
   return (
     <header className="fixed top-0 w-full z-50 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_12px_rgba(0,0,0,0.45)]">
-      <div className="h-20 w-full max-w-[90rem] mx-auto px-gutter flex items-center justify-between gap-space-md">
+      <div className="h-20 w-full max-w-[90rem] 2xl:max-w-[100rem] mx-auto px-gutter flex items-center justify-between gap-space-md">
         {/* Marca */}
         <div className="flex items-center gap-space-md shrink-0">
           <Link to="/" className="flex items-center gap-space-sm group">
@@ -101,7 +105,7 @@ export const Header: React.FC = () => {
           className="hidden xl:flex items-center gap-space-xs bg-surface-container-low/70 p-space-xs rounded-xl min-w-0"
         >
           {items.map((item) => (
-            <Link key={item.ruta} to={item.ruta} className={clasesEnlace(item.activo(location.pathname))} aria-current={item.activo(location.pathname) ? 'page' : undefined}>
+            <Link key={item.ruta} to={item.ruta} className={clasesEnlace(item.activo(location.pathname), 'px-space-sm min-[1640px]:px-space-md')} aria-current={item.activo(location.pathname) ? 'page' : undefined}>
               {item.etiqueta}
               {item.indicador && <Indicador {...item.indicador} />}
             </Link>
