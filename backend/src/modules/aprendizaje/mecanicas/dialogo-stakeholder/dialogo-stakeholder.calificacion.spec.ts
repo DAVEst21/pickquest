@@ -82,7 +82,14 @@ describe('CU-01: faltantes y opciones disponibles', () => {
     expect(r.opciones.map((o) => o.id)).toEqual([2, 1]);
   });
 
-  it('si tampoco quedan en el inicial no hay opciones', () => {
+  it('si el nodo y el inicial se agotaron se ofrece otro nodo que aún tenga preguntas (no se queda sin opciones con turnos)', () => {
+    const con3 = [...opciones, { id: 4, nodoId: 30, orden: 1 }, { id: 5, nodoId: 30, orden: 2 }];
+    const r = opcionesDisponibles(20, 10, con3, new Set([1, 2, 3]));
+    expect(r.nodoId).toBe(30);
+    expect(r.opciones.map((o) => o.id)).toEqual([4, 5]);
+  });
+
+  it('solo cuando ya se hicieron todas las preguntas no hay opciones', () => {
     expect(opcionesDisponibles(20, 10, opciones, new Set([1, 2, 3])).opciones).toEqual([]);
   });
 });

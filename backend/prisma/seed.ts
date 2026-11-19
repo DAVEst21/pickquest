@@ -12,15 +12,21 @@
  * El contenido de los retos de opción múltiple del Sprint 1 está archivado
  * en prisma/contenido-archivado/ (no se usa aquí).
  */
-import { Mecanica, Prisma, PrismaClient, TipoObjeto } from '@prisma/client';
+import { Mecanica, Prisma, PrismaClient, TemaFase } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { diaADate, diaAnterior, diaCalendarioMx } from '../src/common/fechas/dia-calendario';
 import { calcularNivel } from '../src/modules/progreso/nivel';
 import { crearHistorias, HISTORIAS } from './contenido/historias-usuario';
 import { DIALOGO } from './contenido/dialogo-stakeholder';
+import { ESCENARIO_CALIDAD } from './contenido/escenario-calidad';
+import { EXPEDIENTE } from './contenido/expediente';
 import { FASES } from './contenido/fases';
+import { BANCO_PREGUNTAS } from './contenido/banco-preguntas';
+import { MATERIAL_POR_TEMA } from './contenido/estudio';
 import { INSPECCION } from './contenido/inspeccion';
 import { LINEA_TIEMPO } from './contenido/linea-tiempo';
 import { MOSCOW } from './contenido/tablero-moscow';
+import { OBJETOS } from './contenido/objetos';
 import { PRESUPUESTO } from './contenido/presupuesto';
 import { RetoBase } from './contenido/tipos';
 
@@ -36,36 +42,14 @@ interface RetoDefinicion {
 }
 
 const RETOS: RetoDefinicion[] = [
-  { faseOrden: 1, orden: 1, mecanica: 'LINEA_TIEMPO', base: LINEA_TIEMPO, crearContenido: crearLineaTiempo },
+  { faseOrden: 1, orden: 1, mecanica: 'EXPEDIENTE_PROYECTO', base: EXPEDIENTE, crearContenido: crearExpediente },
+  { faseOrden: 1, orden: 2, mecanica: 'LINEA_TIEMPO', base: LINEA_TIEMPO, crearContenido: crearLineaTiempo },
   { faseOrden: 2, orden: 1, mecanica: 'DIALOGO_STAKEHOLDER', base: DIALOGO, crearContenido: crearDialogo },
   { faseOrden: 2, orden: 2, mecanica: 'ARMADO_PIEZAS', base: HISTORIAS, crearContenido: crearHistorias },
   { faseOrden: 2, orden: 3, mecanica: 'TABLERO_MOSCOW', base: MOSCOW, crearContenido: crearMoscow },
   { faseOrden: 3, orden: 1, mecanica: 'INSPECCION_SISTEMA', base: INSPECCION, crearContenido: crearInspeccion },
-  { faseOrden: 3, orden: 2, mecanica: 'REPARTO_PRESUPUESTO', base: PRESUPUESTO, crearContenido: crearPresupuesto },
-];
-
-const OBJETOS_SEED = [
-  {
-    nombre: 'Poción de Sabiduría',
-    tipo: 'POCION' as TipoObjeto,
-    costoQP: 50,
-    efecto: 'Revela una pista contextual sobre el reto.',
-    rareza: 'Común',
-  },
-  {
-    nombre: 'Pergamino de Claridad',
-    tipo: 'PERGAMINO' as TipoObjeto,
-    costoQP: 100,
-    efecto: 'Descarta una opción de respuesta incorrecta.',
-    rareza: 'Rara',
-  },
-  {
-    nombre: 'Reliquia del Arquitecto',
-    tipo: 'RELIQUIA' as TipoObjeto,
-    costoQP: 300,
-    efecto: 'Otorga un 50% extra de XP en el reto actual.',
-    rareza: 'Épica',
-  },
+  { faseOrden: 3, orden: 2, mecanica: 'SIMULADOR_ESCENARIOS', base: ESCENARIO_CALIDAD, crearContenido: crearEscenario },
+  { faseOrden: 3, orden: 3, mecanica: 'REPARTO_PRESUPUESTO', base: PRESUPUESTO, crearContenido: crearPresupuesto },
 ];
 
 const DEMO = {
@@ -74,6 +58,13 @@ const DEMO = {
   nombreAventurero: 'aventurero_demo',
   avatar:
     'https://lh3.googleusercontent.com/aida-public/AB6AXuAkK1BCQ8uGfm-oL05s5RyoOMILULmuhtykUluqRc6SeaYtNxAeZ6CjcKfWiev__MjOaHVUvHYGN6QnGKkuJwCaIA0_4Zihc1pI32IKqSSiN8PajarzaqNy-qacQnYF_ge64QGn508tpjeK3XYAYlMf3tSI053ZuLimtZf9VySuiyaGCZfRw38emwEPMwTRPSH2FtcrGSz93xx1vi4NYNRKYZA0qPEsFmy7oNgFY-G6xbXwSsNt9SLt',
+};
+
+// Segundo estudiante demo, con progreso distinto al del primero, para probar duelos y clasificación.
+const RIVAL = {
+  email: 'rival@pickquest.dev',
+  password: 'pickquest123',
+  nombreAventurero: 'rival_demo',
 };
 
 // ---------------------------------------------------------------------
@@ -98,6 +89,12 @@ async function borrarContenido(tx: Tx, retoId: number) {
   await tx.entregablePlan.deleteMany({ where: { retoId } });
   await tx.bloquePlan.deleteMany({ where: { retoId } }); // cascada: dependencias
   await tx.planProyecto.deleteMany({ where: { retoId } });
+  await tx.opcionParteEscenario.deleteMany({ where: { retoId } });
+  await tx.escenarioCalidad.deleteMany({ where: { retoId } });
+  await tx.unidadEscenario.deleteMany({ where: { retoId } });
+  await tx.documentoExpediente.deleteMany({ where: { retoId } }); // cascada: fragmentos
+  await tx.caracteristicaProyecto.deleteMany({ where: { retoId } });
+  await tx.expediente.deleteMany({ where: { retoId } });
 }
 
 /** CU-08 */
@@ -211,6 +208,77 @@ async function crearInspeccion(tx: Tx, retoId: number) {
   }
 }
 
+/** CU-07 */
+async function crearExpediente(tx: Tx, retoId: number) {
+  const c = EXPEDIENTE;
+  await tx.expediente.create({
+    data: { retoId, nombreProyecto: c.nombreProyecto, modeloCorrecto: c.modeloCorrecto, explicacion: c.explicacion },
+  });
+  const idPorCaracteristica = new Map<string, number>();
+  for (const nombre of c.caracteristicas) {
+    const { id } = await tx.caracteristicaProyecto.create({ data: { retoId, nombre } });
+    idPorCaracteristica.set(nombre, id);
+  }
+  let ordenDoc = 1;
+  for (const d of c.documentos) {
+    const documento = await tx.documentoExpediente.create({
+      data: { retoId, orden: ordenDoc++, tipo: d.tipo, titulo: d.titulo },
+    });
+    let orden = 1;
+    for (const f of d.fragmentos) {
+      await tx.fragmentoDocumento.create({
+        data: {
+          documentoId: documento.id,
+          orden: orden++,
+          texto: f.texto,
+          caracteristicaCorrectaId: f.caracteristica ? idPorCaracteristica.get(f.caracteristica)! : null,
+          respaldaModelo: f.respalda ?? false,
+        },
+      });
+    }
+  }
+}
+
+/** CU-05 */
+async function crearEscenario(tx: Tx, retoId: number) {
+  const c = ESCENARIO_CALIDAD;
+  const idPorUnidad = new Map<string, number>();
+  for (const nombre of c.unidades) {
+    const { id } = await tx.unidadEscenario.create({ data: { retoId, nombre } });
+    idPorUnidad.set(nombre, id);
+  }
+  await tx.escenarioCalidad.create({
+    data: {
+      retoId,
+      necesidadVaga: c.necesidadVaga,
+      contextoApp: c.contextoApp,
+      nombreMetrica: c.nombreMetrica,
+      nombreCarga: c.nombreCarga,
+      unidadCorrectaId: idPorUnidad.get(c.unidadCorrecta)!,
+      valorMinSlider: new Prisma.Decimal(c.valorMinSlider),
+      valorMaxSlider: new Prisma.Decimal(c.valorMaxSlider),
+      pasoSlider: new Prisma.Decimal(c.pasoSlider),
+      cargaMinSlider: c.cargaMinSlider,
+      cargaMaxSlider: c.cargaMaxSlider,
+      pasoCarga: c.pasoCarga,
+      valorMinAceptable: new Prisma.Decimal(c.valorMinAceptable),
+      valorMaxAceptable: new Prisma.Decimal(c.valorMaxAceptable),
+      cargaMinAceptable: c.cargaMinAceptable,
+      cargaMaxAceptable: c.cargaMaxAceptable,
+      simBase: new Prisma.Decimal(c.simBase),
+      simPendiente: new Prisma.Decimal(c.simPendiente),
+    },
+  });
+  for (const [parte, opciones] of Object.entries(c.partes)) {
+    let orden = 1;
+    for (const o of opciones) {
+      await tx.opcionParteEscenario.create({
+        data: { retoId, parte: parte as never, orden: orden++, texto: o.texto, correcta: o.correcta ?? false },
+      });
+    }
+  }
+}
+
 /** CU-06 */
 async function crearPresupuesto(tx: Tx, retoId: number) {
   await tx.escenarioPresupuesto.create({ data: { retoId, presupuesto: PRESUPUESTO.presupuesto } });
@@ -245,6 +313,113 @@ async function crearPresupuesto(tx: Tx, retoId: number) {
 
 // ---------------------------------------------------------------------
 
+/** Banco de preguntas (CU-10, CU-11, CU-13). Idempotente: actualiza en su lugar, nunca borra respuestas. */
+async function cargarBancoDePreguntas() {
+  for (const p of BANCO_PREGUNTAS) {
+    const pregunta = await prisma.preguntaBanco.upsert({
+      where: { tema_enunciado: { tema: p.tema, enunciado: p.enunciado } },
+      update: { explicacion: p.explicacion, activa: true },
+      create: { tema: p.tema, enunciado: p.enunciado, explicacion: p.explicacion },
+    });
+    for (const [i, texto] of p.opciones.entries()) {
+      await prisma.opcionPregunta.upsert({
+        where: { preguntaId_orden: { preguntaId: pregunta.id, orden: i + 1 } },
+        update: { texto, correcta: i === p.correcta },
+        create: { preguntaId: pregunta.id, orden: i + 1, texto, correcta: i === p.correcta },
+      });
+    }
+  }
+}
+
+/** CU-09: material de estudio y tarjetas del tema. Idempotente: actualiza en su lugar, nunca borra. */
+async function cargarMaterialDeEstudio(faseId: number, tema: TemaFase) {
+  const material = MATERIAL_POR_TEMA[tema];
+  await prisma.materialTema.upsert({
+    where: { faseId },
+    update: { explicacion: material.explicacion },
+    create: { faseId, explicacion: material.explicacion },
+  });
+  for (const [i, e] of material.ejemplos.entries()) {
+    await prisma.ejemploTema.upsert({
+      where: { faseId_orden: { faseId, orden: i + 1 } },
+      update: { titulo: e.titulo, texto: e.texto },
+      create: { faseId, orden: i + 1, titulo: e.titulo, texto: e.texto },
+    });
+  }
+  for (const g of material.glosario) {
+    await prisma.terminoGlosario.upsert({
+      where: { faseId_termino: { faseId, termino: g.termino } },
+      update: { definicion: g.definicion },
+      create: { faseId, ...g },
+    });
+  }
+  for (const [i, t] of material.tarjetas.entries()) {
+    await prisma.tarjeta.upsert({
+      where: { faseId_orden: { faseId, orden: i + 1 } },
+      update: { frente: t.frente, reverso: t.reverso },
+      create: { faseId, orden: i + 1, ...t },
+    });
+  }
+}
+
+/**
+ * Segundo estudiante demo (rival_demo): ya completó la fase 1 y los dos primeros retos de la fase 2, con una
+ * racha activa y una poción equipada. Así comparte con el primer demo el tema de la fase 1 para los duelos
+ * y aparece en la clasificación con otro nivel y otra XP. Idempotente: solo se crea la primera vez.
+ */
+async function cargarEstudianteRival() {
+  const existente = await prisma.estudiante.findUnique({ where: { email: RIVAL.email } });
+  if (existente) return;
+
+  const retos = await prisma.reto.findMany({
+    where: { OR: [{ fase: { orden: 1 } }, { fase: { orden: 2 }, orden: { lte: 2 } }] },
+    orderBy: [{ fase: { orden: 'asc' } }, { orden: 'asc' }],
+  });
+  const hoy = new Date();
+  const hace = (dias: number) => new Date(hoy.getTime() - dias * 24 * 3600 * 1000);
+  const xpTotal = retos.reduce((suma, r) => suma + r.recompensaXp, 0);
+  const qpTotal = retos.reduce((suma, r) => suma + r.recompensaQp, 0);
+  const ayer = diaAnterior(diaCalendarioMx());
+
+  const rival = await prisma.estudiante.create({
+    data: {
+      email: RIVAL.email,
+      passwordHash: await bcrypt.hash(RIVAL.password, 12),
+      nombreAventurero: RIVAL.nombreAventurero,
+      avatar: '',
+      nivel: calcularNivel(xpTotal).nivel,
+      xpTotal,
+      qpTotal,
+      xpAlcanzadaEn: hace(1),
+      racha: {
+        create: { diasActuales: 3, diasRecord: 5, multiplicadorQP: 1.3, ultimaActividad: diaADate(ayer) },
+      },
+    },
+  });
+  for (const [i, reto] of retos.entries()) {
+    await prisma.intentoReto.create({
+      data: {
+        estudianteId: rival.id,
+        retoId: reto.id,
+        estado: 'CALIFICADO',
+        porcentaje: i % 2 === 0 ? 100 : 90,
+        calificacionEstrellas: i % 2 === 0 ? 3 : 2,
+        aprobado: true,
+        xpGanado: reto.recompensaXp,
+        qpGanado: reto.recompensaQp,
+        creadoEn: hace(3 - Math.min(i, 2)),
+        calificadoEn: hace(3 - Math.min(i, 2)),
+      },
+    });
+  }
+  const pocion = await prisma.objeto.findUnique({ where: { nombre: 'Poción de Sabiduría' } });
+  if (pocion) {
+    await prisma.inventarioObjeto.create({
+      data: { estudianteId: rival.id, objetoId: pocion.id, cantidad: 2, equipado: true },
+    });
+  }
+}
+
 async function main() {
   const fasePorOrden = new Map<number, number>();
   for (const fase of FASES) {
@@ -260,10 +435,13 @@ async function main() {
       update: apoyo,
       create: { faseId: id, ...apoyo },
     });
+    await cargarMaterialDeEstudio(id, fase.tema);
   }
 
+  await cargarBancoDePreguntas();
+
   const objetosPorNombre = new Map<string, number>();
-  for (const obj of OBJETOS_SEED) {
+  for (const obj of OBJETOS) {
     const registro = await prisma.objeto.upsert({
       where: { nombre: obj.nombre },
       update: {
@@ -271,6 +449,7 @@ async function main() {
         costoQP: obj.costoQP,
         efecto: obj.efecto,
         rareza: obj.rareza,
+        tema: obj.tema,
       },
       create: obj,
     });
@@ -348,6 +527,8 @@ async function main() {
     });
   }
 
+  await cargarEstudianteRival();
+
   const [fases, retos, objetos, estudiantes, intentos] = await Promise.all([
     prisma.fase.count(),
     prisma.reto.count(),
@@ -357,7 +538,7 @@ async function main() {
   ]);
   console.log(
     `Seed listo: ${fases} fases, ${retos} retos, ${objetos} objetos, ${estudiantes} estudiantes, ${intentos} intentos. ` +
-      `Usuario demo: ${DEMO.email} / ${DEMO.password}`,
+      `Usuarios demo: ${DEMO.email} y ${RIVAL.email} (contraseña ${DEMO.password})`,
   );
 }
 

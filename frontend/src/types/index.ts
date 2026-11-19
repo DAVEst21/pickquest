@@ -165,6 +165,8 @@ export interface ObjetoEquipado {
   efecto: string;
   rareza: string;
   cantidad: number;
+  /** null: sirve en cualquier reto; con valor, solo en los retos de esa fase. */
+  tema: TemaFase | null;
 }
 
 export interface Libreta {
@@ -313,10 +315,122 @@ export interface BorradorHistorias { colocaciones: { casillaId: number; piezaId:
 export interface PistaDistractores { tipo: 'DISTRACTORES_RETIRADOS'; piezaIds: number[] }
 export interface RetroHistorias {
   mecanica: 'ARMADO_PIEZAS'; referenciaCompleta: boolean;
-  historias: { historiaId: number; orden: number; necesidad: string; casillas: { casillaId: number; tipo: TipoPiezaHistoria; piezaElegida: string | null; acertada: boolean }[] }[];
+  historias: { historiaId: number; orden: number; necesidad: string; casillas: { casillaId: number; tipo: TipoPiezaHistoria; piezaElegida: string | null; acertada: boolean; /** RN-31 */ piezaCorrecta?: string | null }[] }[];
 }
 
-export type Pista = PistaDistractores | PistaDependencia | PistaColumna | PistaPantalla | PistaRestriccion | PistaOpcionDialogo;
+// CU-05 Simulador de escenarios de calidad
+export type ParteEscenario = 'FUENTE' | 'ESTIMULO' | 'ARTEFACTO' | 'ENTORNO' | 'RESPUESTA';
+export interface ContenidoEscenario {
+  necesidadVaga: string;
+  contextoApp: string;
+  nombreMetrica: string;
+  nombreCarga: string;
+  unidades: { id: number; nombre: string }[];
+  deslizadores: { valorMin: number; valorMax: number; paso: number; cargaMin: number; cargaMax: number; pasoCarga: number };
+  limiteSimulaciones: number;
+  partes: { parte: ParteEscenario; nombre: string; opciones: { id: number; orden: number; texto: string }[] }[];
+}
+export interface SimulacionGuardada {
+  numero: number;
+  valor: number;
+  carga: number;
+  valorApp: number;
+  cumple: boolean;
+}
+export interface BorradorEscenario {
+  elecciones: { parte: ParteEscenario; opcionId: number }[];
+  valor: number | null;
+  unidadId: number | null;
+  carga: number | null;
+  simulaciones: SimulacionGuardada[];
+  simulacionesRestantes: number;
+}
+/** POST /intentos/:id/escenario/simular */
+export interface ResultadoSimulacion extends SimulacionGuardada {
+  restantes: number;
+  /** Respuesta de la app a distintas cargas, para la gráfica frente al umbral. */
+  curva: { carga: number; valorApp: number }[];
+}
+export interface PistaRango {
+  tipo: 'RANGO_ESCENARIO';
+  valorMin: number;
+  valorMax: number;
+  unidad: string | null;
+  cargaMin: number;
+  cargaMax: number;
+}
+export interface RetroEscenario {
+  mecanica: 'SIMULADOR_ESCENARIOS';
+  referenciaCompleta: boolean;
+  necesidadVaga: string;
+  nombreMetrica: string;
+  nombreCarga: string;
+  partes: { parte: ParteEscenario; nombre: string; elegida: string | null; acertada: boolean; /** RN-31 */ correcta?: string | null }[];
+  medida: { valor: number | null; unidad: string | null; carga: number | null; unidadAcertada: boolean; dentroDelRango: boolean };
+  simulacionesUsadas: number;
+  limiteSimulaciones: number;
+  /** RN-31 */
+  rangoAceptable?: { valorMin: number; valorMax: number; cargaMin: number; cargaMax: number; unidad: string | null };
+}
+
+// CU-07 Expediente del proyecto
+export type ModeloCicloVida = 'CASCADA' | 'MODELO_V' | 'INCREMENTAL' | 'ESPIRAL' | 'PROTOTIPOS' | 'AGIL';
+export interface ContenidoExpediente {
+  nombreProyecto: string;
+  minimoVinculos: number;
+  modelos: ModeloCicloVida[];
+  caracteristicas: { id: number; nombre: string }[];
+  documentos: {
+    id: number;
+    orden: number;
+    tipo: 'MINUTA' | 'CORREO' | 'FICHA_TECNICA' | 'PRESUPUESTO';
+    titulo: string;
+    fragmentos: { id: number; orden: number; texto: string }[];
+  }[];
+}
+export interface BorradorExpediente {
+  evidencias: { fragmentoId: number; caracteristicaId: number | null }[];
+  modelo: ModeloCicloVida | null;
+  vinculos: number[];
+}
+export interface PistaDocumento {
+  tipo: 'DOCUMENTO';
+  documentoId: number | null;
+}
+export interface RetroExpediente {
+  mecanica: 'EXPEDIENTE_PROYECTO';
+  referenciaCompleta: boolean;
+  nombreProyecto: string;
+  modeloElegido: ModeloCicloVida | null;
+  modeloAcertado: boolean;
+  evidencias: {
+    fragmentoId: number;
+    texto: string;
+    documento: string;
+    caracteristicaElegida: string | null;
+    relevante: boolean;
+    /** RN-31 */
+    caracteristicaCorrecta?: string | null;
+    /** RN-31 */
+    caracteristicaAcertada?: boolean;
+  }[];
+  vinculos: number;
+  /** RN-31 */
+  modeloCorrecto?: ModeloCicloVida;
+  /** RN-31 */
+  explicacion?: string;
+  /** RN-31 */
+  fragmentosRelevantes?: {
+    fragmentoId: number;
+    texto: string;
+    documento: string;
+    caracteristica: string | null;
+    respaldaModelo: boolean;
+    seleccionada: boolean;
+  }[];
+}
+
+export type Pista = PistaDistractores | PistaDependencia | PistaColumna | PistaPantalla | PistaRestriccion | PistaOpcionDialogo | PistaRango | PistaDocumento;
 
 /** POST /intentos/:id/ayuda */
 export interface AyudaAplicada {
@@ -450,6 +564,8 @@ export interface RetroDialogo {
 }
 
 export type Retroalimentacion =
+  | RetroExpediente
+  | RetroEscenario
   | RetroHistorias
   | RetroLineaTiempo
   | RetroMoscow
@@ -493,4 +609,358 @@ export interface Credenciales {
 
 export interface DatosRegistro extends Credenciales {
   nombreAventurero: string;
+}
+
+export interface ObjetoTienda {
+  objetoId: number;
+  nombre: string;
+  tipo: 'POCION' | 'PERGAMINO' | 'RELIQUIA';
+  costoQP: number;
+  efecto: string;
+  rareza: string;
+  tema: TemaFase | null;
+  dondeSeUsa: string;
+  unidades: number;
+  equipado: boolean;
+}
+
+/** GET /tienda (CU-12). */
+export interface Tienda {
+  saldoQP: number;
+  maxUnidadesPorObjeto: number;
+  maxEquipados: number;
+  equipados: number;
+  catalogo: ObjetoTienda[];
+}
+
+export interface ObjetoDetalle extends ObjetoTienda {
+  retos: { retoId: number; titulo: string; fase: string }[];
+}
+
+export interface CompraRealizada {
+  compraId: number;
+  objetoId: number;
+  nombre: string;
+  cantidad: number;
+  qpPagados: number;
+  saldoQP: number;
+  unidades: number;
+  equipado: boolean;
+}
+
+export interface ObjetoInventario {
+  objetoId: number;
+  nombre: string;
+  tipo: string;
+  efecto: string;
+  rareza: string;
+  tema: TemaFase | null;
+  dondeSeUsa: string;
+  cantidad: number;
+  equipado: boolean;
+}
+
+// ---------- CU-09 Repaso con tarjetas ----------
+
+export type Autoevaluacion = 'LO_SABIA' | 'DUDE' | 'NO_LO_SABIA';
+
+export interface TemaEstudio {
+  faseId: number;
+  orden: number;
+  nombre: string;
+  tema: TemaFase;
+  estado: string;
+  bloqueado: boolean;
+  totalTarjetas: number;
+  tarjetasParaHoy: number;
+  sesionPendiente: boolean;
+  dominio: number | null;
+}
+
+export interface MaterialTema {
+  faseId: number;
+  nombre: string;
+  tema: TemaFase;
+  explicacion: string;
+  ejemplos: { orden: number; titulo: string; texto: string }[];
+  glosario: { termino: string; definicion: string }[];
+  totalTarjetas: number;
+  sesionPendiente: boolean;
+}
+
+export interface TarjetaRepaso {
+  tarjetaId: number;
+  posicion: number;
+  frente: string;
+  reverso: string;
+}
+
+export interface SesionRepaso {
+  sesionId: number;
+  faseId: number;
+  nombre: string;
+  retomada: boolean;
+  terminada: boolean;
+  total: number;
+  completadas: number;
+  pendientes: number;
+  tarjetaActual: TarjetaRepaso | null;
+  resumen: { sabidas: number; dudadas: number; noSabidas: number; xpOtorgada: number; dominio: number } | null;
+}
+
+// ---------- CU-10 Diagnóstico y plan de estudio ----------
+
+export interface PreguntaDiagnostico {
+  preguntaId: number;
+  orden: number;
+  enunciado: string;
+  opciones: { opcionId: number; texto: string }[];
+}
+
+export interface DiagnosticoIniciado {
+  diagnosticoId: number;
+  preguntas: PreguntaDiagnostico[];
+}
+
+export interface ResultadoTema {
+  tema: TemaFase;
+  nombre: string;
+  aciertos: number;
+  preguntas: number;
+  porcentaje: number;
+  dominio: number;
+  debil: boolean;
+}
+
+export interface RevisionPregunta {
+  preguntaId: number;
+  enunciado: string;
+  opcionElegidaId: number;
+  opcionCorrectaId: number;
+  correcta: boolean;
+  explicacion: string | null;
+}
+
+export interface ActividadPlan {
+  actividadId: number;
+  orden: number;
+  tipo: 'RETO' | 'REPASO' | 'DUELO';
+  tema: TemaFase;
+  temaNombre: string;
+  faseId: number;
+  retoId: number | null;
+  retoTitulo: string | null;
+  motivo: string;
+  hecha: boolean;
+}
+
+export interface PlanEstudio {
+  planId: number;
+  estado: 'PROPUESTO' | 'ACTIVO' | 'REEMPLAZADO';
+  esPlanMejora: boolean;
+  creadoEn: string;
+  aceptadoEn: string | null;
+  actividades: ActividadPlan[];
+  avance: { hechas: number; total: number; porcentaje: number };
+}
+
+export interface DiagnosticoTerminado {
+  diagnosticoId: number;
+  resultados: ResultadoTema[];
+  revision: RevisionPregunta[];
+  plan: PlanEstudio;
+}
+
+// ---------- Preguntas cronometradas (CU-11 reto diario y CU-13 duelos) ----------
+
+/** Pregunta habilitada por el servidor: nunca incluye la opción correcta. */
+export interface PreguntaCronometrada {
+  numero: number;
+  total: number;
+  enunciado: string;
+  opciones: { opcionId: number; texto: string }[];
+  limiteSegundos: number;
+  segundosRestantes: number;
+}
+
+/** Retroalimentación después de responder (la opción correcta se revela solo entonces). */
+export interface RetroPregunta {
+  correcta: boolean;
+  tiempoAgotado: boolean;
+}
+
+// ---------- CU-11 Reto diario ----------
+
+export interface RachaDiaria {
+  diasActuales: number;
+  diasRecord: number;
+  multiplicadorQP: number;
+}
+
+export interface ResultadoRetoDiario {
+  aciertos: number;
+  total: number;
+  porcentaje: number;
+  xpOtorgada: number;
+  qpOtorgado: number;
+  multiplicadorAplicado: number;
+  logroRacha: boolean;
+  racha: RachaDiaria;
+}
+
+export interface EstadoRetoDiario {
+  retoDiarioId: number;
+  dia: string;
+  multiplicador: number;
+  total: number;
+  resueltas: number;
+  siguiente: number | null;
+  segundosRestantes: number | null;
+  terminado: boolean;
+  preguntas: { numero: number; entregada: boolean; correcta: boolean | null }[];
+  resultado: ResultadoRetoDiario | null;
+}
+
+export interface HoyRetoDiario {
+  dia: string;
+  racha: RachaDiaria;
+  reglas: {
+    preguntas: number;
+    segundosPorPregunta: number;
+    porcentajeRacha: number;
+    xpPorAcierto: number;
+    qpPorAcierto: number;
+  };
+  estado: 'DISPONIBLE' | 'EN_CURSO' | 'TERMINADO';
+  reto: EstadoRetoDiario | null;
+  segundosHastaSiguiente: number | null;
+}
+
+export interface RespuestaRetoDiario extends RetroPregunta {
+  numero: number;
+  /** Número de la pregunta que sigue; null si el reto terminó. */
+  siguiente: number | null;
+  /** Aciertos acumulados. */
+  aciertos: number;
+  terminado: boolean;
+  estado: EstadoRetoDiario;
+}
+
+// ---------- CU-13 Duelos ----------
+
+export interface Rival {
+  nombreAventurero: string;
+  nivel: number;
+  temasEnComun: { tema: TemaFase; nombre: string }[];
+  duelos: { ganados: number; perdidos: number; empatados: number };
+}
+
+export interface ResultadoParticipante {
+  porcentaje: number;
+  segundosTotales: number;
+  xpOtorgada: number;
+}
+
+export interface Duelo {
+  dueloId: number;
+  tema: TemaFase;
+  temaNombre: string;
+  estado: 'PENDIENTE' | 'ACEPTADO' | 'TERMINADO' | 'RECHAZADO' | 'EXPIRADO';
+  rol: 'RETADOR' | 'RETADO';
+  rival: { nombreAventurero: string; nivel: number };
+  creadoEn: string;
+  expiraEn: string;
+  miRonda: { total: number; resueltas: number; siguiente: number | null; terminada: boolean; segundosRestantes: number | null };
+  miResultado: ResultadoParticipante | null;
+  accion: 'ACEPTAR_O_RECHAZAR' | 'JUGAR_RONDA' | 'ESPERAR_RIVAL' | 'VER_RESULTADO' | null;
+  resultado: {
+    yo: ResultadoParticipante;
+    rival: ResultadoParticipante;
+    ganador: 'YO' | 'RIVAL' | 'EMPATE';
+    revision: {
+      numero: number;
+      enunciado: string;
+      opcionElegidaId: number | null;
+      opcionCorrectaId: number;
+      correcta: boolean;
+      explicacion: string | null;
+    }[];
+  } | null;
+}
+
+export interface ListaDuelos {
+  pendientes: Duelo[];
+  porJugar: Duelo[];
+  enEspera: Duelo[];
+  historial: Duelo[];
+  limitePendientes: number;
+  activos: number;
+}
+
+export interface AvisoDuelo {
+  /** INVITACION: me retaron; CIERRE (D-001): mi duelo como retador fue rechazado o expiró, sin XP. */
+  tipo: 'INVITACION' | 'CIERRE';
+  dueloId: number;
+  retador: { nombreAventurero: string; nivel: number };
+  /** El otro participante: quien me retó (INVITACION) o a quien reté (CIERRE). */
+  rival: { nombreAventurero: string; nivel: number };
+  estado: 'PENDIENTE' | 'RECHAZADO' | 'EXPIRADO';
+  xpOtorgada: number;
+  tema: TemaFase;
+  temaNombre: string;
+  expiraEn: string;
+}
+
+export interface RespuestaDuelo {
+  numero: number;
+  registrada: boolean;
+  rondaTerminada: boolean;
+  duelo: Duelo;
+}
+
+// ---------- RF-20 Clasificación y RF-19 Perfil ----------
+
+export interface FilaClasificacion {
+  posicion: number;
+  nombreAventurero: string;
+  nivel: number;
+  xpTotal: number;
+  estrellas: number;
+  esYo: boolean;
+}
+
+export interface Clasificacion {
+  calculadaEn: string;
+  totalEstudiantes: number;
+  filas: FilaClasificacion[];
+  miPosicion: number;
+}
+
+export interface EstrellasFase {
+  faseId: number;
+  orden: number;
+  nombre: string;
+  tema: TemaFase;
+  retosAprobados: number;
+  totalRetos: number;
+  estrellas: number;
+  estrellasMaximas: number;
+  calificacionEstrellasFase: number | null;
+}
+
+export interface PerfilCompleto {
+  nombreAventurero: string;
+  email: string;
+  avatar: string | null;
+  nivel: number;
+  xpTotal: number;
+  xpSiguienteNivel: number;
+  xpNivelActual: number;
+  qpTotal: number;
+  racha: RachaDiaria;
+  estrellasTotales: number;
+  estrellasPorFase: EstrellasFase[];
+  inventario: ObjetoInventario[];
+  maxEquipados: number;
+  planActivo: PlanEstudio | null;
 }

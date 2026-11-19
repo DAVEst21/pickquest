@@ -59,6 +59,14 @@ export default async function globalSetup() {
     await cliente.query(`DELETE FROM intento_reto WHERE "estudianteId" = ${demo}`);
     await cliente.query(`UPDATE estudiante SET "xpTotal" = 0, "qpTotal" = 0, nivel = 1 WHERE email = 'demo@pickquest.dev'`);
     await cliente.query(`UPDATE inventario_objeto SET cantidad = 3, equipado = true WHERE "estudianteId" = ${demo}`);
+    // Sprint 3: el demo vuelve a empezar también en repaso, plan, reto diario, duelos, compras y perfil.
+    for (const tabla of ['sesion_repaso', 'progreso_tarjeta', 'consulta_tema', 'diagnostico', 'plan_estudio', 'reto_diario', 'compra_objeto', 'dominio_tema']) {
+      await cliente.query(`DELETE FROM ${tabla} WHERE "estudianteId" = ${demo}`);
+    }
+    await cliente.query(`DELETE FROM duelo WHERE "retadorId" = ${demo} OR "retadoId" = ${demo}`);
+    await cliente.query(`DELETE FROM inventario_objeto WHERE "estudianteId" = ${demo} AND "objetoId" NOT IN (SELECT id FROM objeto WHERE nombre = 'Poción de Sabiduría')`);
+    await cliente.query(`UPDATE racha_estudio SET "diasActuales" = 0, "diasRecord" = 0, "multiplicadorQP" = 1, "ultimaActividad" = NULL WHERE "estudianteId" = ${demo}`);
+    await cliente.query(`UPDATE estudiante SET "nombreAventurero" = 'aventurero_demo', "xpAlcanzadaEn" = now() WHERE email = 'demo@pickquest.dev'`);
   } finally {
     await cliente.end();
   }

@@ -1,0 +1,21 @@
+PASS test/sprint2-aprendizaje.e2e-spec.ts (68.794 s)
+PASS test/cu11-reto-diario.e2e-spec.ts (22.174 s)
+PASS test/cu13-duelos.e2e-spec.ts (32.693 s)
+PASS test/cu10-plan.e2e-spec.ts (12.214 s)
+PASS test/cu09-estudio.e2e-spec.ts (14.732 s)
+PASS test/rf19-rf20-perfil-clasificacion.e2e-spec.ts (10.109 s)
+PASS test/cu07-expediente.e2e-spec.ts (8.437 s)
+PASS test/cu05-escenarios.e2e-spec.ts (35.679 s)
+PASS test/cu12-tienda.e2e-spec.ts (7.451 s)
+PASS test/cu02-historias.e2e-spec.ts (17.603 s)
+PASS test/sprint3-comunes.e2e-spec.ts (13.254 s)
+PASS test/auth.e2e-spec.ts
+PASS test/swagger.e2e-spec.ts
+PASS test/app.e2e-spec.ts
+PASS test/orden-opciones.e2e-spec.ts (16.222 s)
+
+Test Suites: 15 passed, 15 total
+Tests:       223 passed, 223 total
+Snapshots:   0 total
+Time:        269.28 s
+Ran all test suites.

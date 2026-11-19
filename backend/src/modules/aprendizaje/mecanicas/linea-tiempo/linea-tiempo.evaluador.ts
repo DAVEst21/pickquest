@@ -15,6 +15,7 @@ import {
   ResultadoCalificacion,
   retoIdDeIntento,
 } from '../tipos';
+import { ordenarParaIntento } from '../../../../common/orden/mezcla-determinista';
 import { validarCuerpo } from '../validar-cuerpo';
 import { BorradorLineaTiempoDto } from './linea-tiempo.dto';
 import {
@@ -57,19 +58,21 @@ export class LineaTiempoEvaluador implements EvaluadorMecanica {
     };
   }
 
-  async contenidoPublico(db: Db, retoId: number): Promise<ContenidoPublicoDto> {
+  async contenidoPublico(db: Db, retoId: number, intentoId: number): Promise<ContenidoPublicoDto> {
     const c = await this.cargarContenido(db, retoId);
     // Sin inicioReferencia, sin dependencias y sin faseCorrectaId: se evalúan en el servidor.
     return {
       modelo: c.plan.modelo,
       duracionMaximaSemanas: c.plan.duracionMaximaSemanas,
-      bloques: c.bloques.map((b) => ({
+      // En el seed los bloques van en su orden cronológico correcto y los entregables en el orden de
+      // las fases: presentarlos así contestaría el reto. Se mezclan por intento.
+      bloques: ordenarParaIntento(c.bloques, intentoId, 'bloques').map((b) => ({
         id: b.id,
         tipo: b.tipo,
         nombre: b.nombre,
         duracionSemanas: b.duracionSemanas,
       })),
-      entregables: c.entregables.map((e) => ({ id: e.id, nombre: e.nombre })),
+      entregables: ordenarParaIntento(c.entregables, intentoId, 'entregables').map((e) => ({ id: e.id, nombre: e.nombre })),
     };
   }
 

@@ -1,4 +1,5 @@
 import type { Browser, Page, Route } from '@playwright/test';
+import { Client } from 'pg';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -115,4 +116,41 @@ export async function entrarAlReto(page: Page, faseOrden: number, tituloReto: st
     await page.getByRole('button', { name: 'Reintentar', exact: true }).last().click();
   }
   await page.waitForURL(/\/intento\/\d+/);
+}
+
+/**
+ * Retos del Sprint 3 que se intercalan en las fases del Sprint 2 (CU-07 abre la fase 1 y CU-05 va entre
+ * CU-04 y CU-06). Estas pruebas miden los retos del Sprint 2, así que los dan por aprobados sin recompensa;
+ * CU-05 y CU-07 tienen sus propias pruebas de API y de navegador.
+ */
+export const MECANICAS_SPRINT3_PREVIAS = ['EXPEDIENTE_PROYECTO', 'SIMULADOR_ESCENARIOS'];
+
+export const DB_URL = process.env.E2E_DATABASE_URL ?? 'postgresql://pickquest:pickquest@localhost:5432/pickquest';
+
+/** Registra un intento aprobado al 100 % sin XP ni QP (no altera los totales que miden las pruebas). */
+export async function aprobarSinRecompensa(db: Client, estudianteId: number, retoId: number) {
+  await db.query(
+    `INSERT INTO intento_reto ("estudianteId","retoId",estado,porcentaje,"calificacionEstrellas",aprobado,"usoAyuda","xpGanado","qpGanado","creadoEn","actualizadoEn","calificadoEn")
+     VALUES ($1,$2,'CALIFICADO',100,3,true,false,0,0,now(),now(),now())`,
+    [estudianteId, retoId],
+  );
+}
+
+/** Da por aprobados (sin recompensa) los retos del Sprint 3 para el estudiante con ese correo. */
+export async function aprobarRetosPrevios(email: string, mecanicas = MECANICAS_SPRINT3_PREVIAS) {
+  const db = new Client({ connectionString: DB_URL });
+  await db.connect();
+  try {
+    const { rows } = await db.query('SELECT id FROM estudiante WHERE email = $1', [email]);
+    const retos = await db.query('SELECT id FROM reto WHERE mecanica = ANY($1::"Mecanica"[])', [mecanicas]);
+    for (const r of retos.rows) {
+      const ya = await db.query(
+        `SELECT 1 FROM intento_reto WHERE "estudianteId"=$1 AND "retoId"=$2 AND estado='CALIFICADO' AND aprobado`,
+        [rows[0].id, r.id],
+      );
+      if (ya.rowCount === 0) await aprobarSinRecompensa(db, rows[0].id, r.id);
+    }
+  } finally {
+    await db.end();
+  }
 }

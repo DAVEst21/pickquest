@@ -10,6 +10,7 @@ import * as bcrypt from 'bcrypt';
 import { esErrorUnico } from '../../common/prisma/prisma-errores';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { calcularNivel } from '../progreso/nivel';
+import { leerRachaVigente, RachaLeida } from '../progreso/racha';
 import { LoginDto } from './dto/login.dto';
 import { PerfilEstudianteDto, SesionDto } from './dto/perfil-estudiante.dto';
 import { RegistroDto } from './dto/registro.dto';
@@ -66,7 +67,7 @@ export class AuthService {
     if (!estudiante || !valida) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
-    return this.crearSesion(estudiante);
+    return this.crearSesion(estudiante, await leerRachaVigente(this.prisma, estudiante.id));
   }
 
   async perfil(estudianteId: number): Promise<PerfilEstudianteDto> {
@@ -77,21 +78,26 @@ export class AuthService {
     if (!estudiante) {
       throw new NotFoundException('Estudiante no encontrado');
     }
-    return aPerfil(estudiante);
+    return aPerfil(estudiante, await leerRachaVigente(this.prisma, estudiante.id));
   }
 
   private async crearSesion(
     estudiante: EstudianteConRacha,
+    racha?: RachaLeida,
   ): Promise<SesionDto> {
     const payload: JwtPayload = { sub: estudiante.id, email: estudiante.email };
     return {
       accessToken: await this.jwt.signAsync(payload),
-      estudiante: aPerfil(estudiante),
+      estudiante: aPerfil(estudiante, racha),
     };
   }
 }
 
-function aPerfil(estudiante: EstudianteConRacha): PerfilEstudianteDto {
+/**
+ * `racha` ya trae el reinicio perezoso aplicado (RN-13): toda lectura de la racha pasa por
+ * `leerRachaVigente`. Sin ella (registro) se usan los valores guardados.
+ */
+function aPerfil(estudiante: EstudianteConRacha, racha?: RachaLeida): PerfilEstudianteDto {
   return {
     id: estudiante.id,
     email: estudiante.email,
@@ -103,11 +109,10 @@ function aPerfil(estudiante: EstudianteConRacha): PerfilEstudianteDto {
     qpTotal: estudiante.qpTotal,
     racha: estudiante.racha
       ? {
-          diasActuales: estudiante.racha.diasActuales,
-          diasRecord: estudiante.racha.diasRecord,
-          // (Fase 1) multiplicadorQP ahora es Decimal en la BD: se convierte
-          // explícitamente para no serializar un objeto Decimal como string.
-          multiplicadorQP: Number(estudiante.racha.multiplicadorQP),
+          diasActuales: racha?.dias ?? estudiante.racha.diasActuales,
+          diasRecord: racha?.record ?? estudiante.racha.diasRecord,
+          // multiplicadorQP es Decimal en la BD: se convierte a número para serializarlo.
+          multiplicadorQP: racha?.multiplicador ?? Number(estudiante.racha.multiplicadorQP),
         }
       : null,
   };

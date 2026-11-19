@@ -1,5 +1,7 @@
 import { RetoHistorias } from './historias/RetoHistorias';
-import type { ContenidoHistorias, BorradorHistorias } from '../../types';
+import { RetoEscenario } from './escenario/RetoEscenario';
+import { RetoExpediente } from './expediente/RetoExpediente';
+import type { ContenidoHistorias, BorradorHistorias, ContenidoEscenario, BorradorEscenario, PistaRango, ContenidoExpediente, BorradorExpediente, PistaDocumento } from '../../types';
 import React, { useCallback, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { PantallaCarga, PantallaError } from '../../components/EstadoPantalla';
@@ -78,7 +80,7 @@ const ResolverReto: React.FC<{ intento: IntentoEnCurso }> = ({ intento }) => {
   const navigate = useNavigate();
   const { reto, fase, intentoId } = intento;
   const autoguardado = useAutoguardado(intentoId);
-  const equipados = useEquipados();
+  const equipados = useEquipados(reto.id);
   const usarAyuda = useUsarAyuda(intentoId);
   const enviarIntento = useEnviarIntento();
 
@@ -150,11 +152,32 @@ const ResolverReto: React.FC<{ intento: IntentoEnCurso }> = ({ intento }) => {
     deshabilitado: operando,
     onCambio: autoguardado.guardar,
     onEstado: alCambiarEstado,
+    vaciar: autoguardado.vaciar,
   };
   const m = MECANICA[reto.mecanica];
 
   const ejercicio = (() => {
     switch (reto.mecanica) {
+      case 'EXPEDIENTE_PROYECTO':
+        return (
+          <RetoExpediente
+            {...comun}
+            pista={pista?.tipo === 'DOCUMENTO' ? (pista as PistaDocumento) : null}
+            contenido={intento.contenido as ContenidoExpediente}
+            borrador={intento.borrador as BorradorExpediente}
+          />
+        );
+      case 'SIMULADOR_ESCENARIOS':
+        return (
+          <RetoEscenario
+            {...comun}
+            pista={pista?.tipo === 'RANGO_ESCENARIO' ? (pista as PistaRango) : null}
+            intentoId={intentoId}
+            contenido={intento.contenido as ContenidoEscenario}
+            borrador={intento.borrador as BorradorEscenario}
+            onError={(m) => mostrarToast(m, 'error')}
+          />
+        );
       case 'ARMADO_PIEZAS':
         return <RetoHistorias {...comun} contenido={intento.contenido as ContenidoHistorias} borrador={intento.borrador as BorradorHistorias} />;
       case 'LINEA_TIEMPO':
@@ -208,7 +231,7 @@ const ResolverReto: React.FC<{ intento: IntentoEnCurso }> = ({ intento }) => {
           <div className="bg-surface-container-low rounded-xl p-space-xl text-center border border-surface-container-high/40">
             <span className="material-symbols-outlined text-headline-lg text-on-surface-variant">hourglass_empty</span>
             <p className="font-title-md text-title-md text-on-surface mt-space-sm">
-              Este reto estará disponible próximamente
+              Este tipo de reto no se puede mostrar en esta versión de la aplicación
             </p>
           </div>
         );

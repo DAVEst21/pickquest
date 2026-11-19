@@ -1,12 +1,44 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { Sesion } from '../types';
+import type { Autoevaluacion, Sesion } from '../types';
 import { useAuthStore } from '../store/authStore';
 import { usePlayerStore } from '../store/playerStore';
 import {
+  abandonarRetoDiario,
+  aceptarDuelo,
+  actualizarPerfil,
+  crearDuelo,
+  aceptarPlan,
+  autoevaluarTarjeta,
+  comprarObjeto,
+  desequiparObjeto,
   enviarIntento,
+  equiparObjeto,
   getEquipados,
   getFases,
+  getAvisosDuelos,
+  marcarAvisoDueloVisto,
+  getClasificacion,
+  getDiagnostico,
+  getDuelo,
+  getDuelos,
+  getPerfilCompleto,
+  getRivales,
+  rechazarDuelo,
   getIntento,
+  getRetoDiarioHoy,
+  iniciarRetoDiario,
+  getPlan,
+  getPlanActivo,
+  iniciarDiagnostico,
+  responderDiagnostico,
+  getMaterialTema,
+  getSesionRepaso,
+  getTemasEstudio,
+  iniciarRepaso,
+  registrarConsultaTema,
+  getInventario,
+  getObjetoTienda,
+  getTienda,
   getLibreta,
   getPerfil,
   getTablon,
@@ -21,8 +53,24 @@ export const QUERY_KEYS = {
   fases: ['fases'] as const,
   tablon: (faseId: number) => ['tablon', faseId] as const,
   intento: (id: number) => ['intento', id] as const,
-  equipados: ['equipados'] as const,
+  equipados: (retoId?: number) => ['equipados', retoId ?? 0] as const,
   libreta: (retoId: number) => ['libreta', retoId] as const,
+  tienda: ['tienda'] as const,
+  retoDiarioHoy: ['reto-diario', 'hoy'] as const,
+  duelos: ['duelos'] as const,
+  avisosDuelos: ['duelos', 'avisos'] as const,
+  rivales: ['duelos', 'rivales'] as const,
+  duelo: (id: number) => ['duelos', 'detalle', id] as const,
+  clasificacion: ['clasificacion'] as const,
+  perfilCompleto: ['perfil-completo'] as const,
+  planActivo: ['plan', 'activo'] as const,
+  plan: (id: number) => ['plan', id] as const,
+  diagnostico: (id: number) => ['plan', 'diagnostico', id] as const,
+  temasEstudio: ['estudio', 'temas'] as const,
+  materialTema: (faseId: number) => ['estudio', 'material', faseId] as const,
+  sesionRepaso: (id: number) => ['estudio', 'sesion', id] as const,
+  inventario: ['inventario'] as const,
+  objetoTienda: (id: number) => ['tienda', 'objeto', id] as const,
 };
 
 const esIdValido = (id: number | undefined): id is number =>
@@ -62,8 +110,8 @@ export function useIntento(intentoId: number) {
 }
 
 /** Objetos equipados para el cinto de ayudas. */
-export function useEquipados() {
-  return useQuery({ queryKey: QUERY_KEYS.equipados, queryFn: getEquipados });
+export function useEquipados(retoId?: number) {
+  return useQuery({ queryKey: QUERY_KEYS.equipados(retoId), queryFn: () => getEquipados(retoId) });
 }
 
 /** CU-01: requerimientos descubiertos en intentos calificados. */
@@ -91,7 +139,7 @@ export function useUsarAyuda(intentoId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (objetoId: number) => usarAyuda(intentoId, objetoId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.equipados }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['equipados'] }),
   });
 }
 
@@ -132,4 +180,272 @@ export function useLogin() {
 export function useRegistro() {
   const abrirSesion = useAbrirSesion();
   return useMutation({ mutationFn: registrar, onSuccess: abrirSesion });
+}
+
+/** CU-12: catálogo, saldo y unidades. */
+export function useTienda() {
+  return useQuery({ queryKey: QUERY_KEYS.tienda, queryFn: getTienda });
+}
+
+export function useObjetoTienda(objetoId: number | undefined) {
+  return useQuery({
+    queryKey: QUERY_KEYS.objetoTienda(objetoId ?? 0),
+    queryFn: () => getObjetoTienda(objetoId!),
+    enabled: esIdValido(objetoId),
+  });
+}
+
+export function useInventario() {
+  return useQuery({ queryKey: QUERY_KEYS.inventario, queryFn: getInventario });
+}
+
+/** Tras comprar o equipar se vuelven a pedir saldo, tienda, inventario y cinto del servidor. */
+function useRefrescarEconomia() {
+  const queryClient = useQueryClient();
+  return () => {
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.tienda });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.inventario });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.perfil });
+    queryClient.invalidateQueries({ queryKey: ['equipados'] });
+  };
+}
+
+export function useComprarObjeto() {
+  const refrescar = useRefrescarEconomia();
+  return useMutation({
+    mutationFn: ({ objetoId, cantidad }: { objetoId: number; cantidad: number }) => comprarObjeto(objetoId, cantidad),
+    onSuccess: refrescar,
+  });
+}
+
+export function useEquiparObjeto() {
+  const refrescar = useRefrescarEconomia();
+  return useMutation({
+    mutationFn: ({ objetoId, reemplazaObjetoId }: { objetoId: number; reemplazaObjetoId?: number }) =>
+      equiparObjeto(objetoId, reemplazaObjetoId),
+    onSuccess: refrescar,
+  });
+}
+
+export function useDesequiparObjeto() {
+  const refrescar = useRefrescarEconomia();
+  return useMutation({ mutationFn: (objetoId: number) => desequiparObjeto(objetoId), onSuccess: refrescar });
+}
+
+/** CU-09: biblioteca de estudio. */
+export function useTemasEstudio() {
+  return useQuery({ queryKey: QUERY_KEYS.temasEstudio, queryFn: getTemasEstudio });
+}
+
+/** CU-09: material del tema; 403 si la fase está bloqueada (FE1). */
+export function useMaterialTema(faseId: number | undefined) {
+  return useQuery({
+    queryKey: QUERY_KEYS.materialTema(faseId ?? 0),
+    queryFn: () => getMaterialTema(faseId!),
+    enabled: esIdValido(faseId),
+    retry: false,
+  });
+}
+
+export function useSesionRepaso(sesionId: number | undefined) {
+  return useQuery({
+    queryKey: QUERY_KEYS.sesionRepaso(sesionId ?? 0),
+    queryFn: () => getSesionRepaso(sesionId!),
+    enabled: esIdValido(sesionId),
+    staleTime: Infinity,
+    retry: false,
+  });
+}
+
+export function useRegistrarConsulta() {
+  return useMutation({ mutationFn: (faseId: number) => registrarConsultaTema(faseId) });
+}
+
+export function useIniciarRepaso() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (faseId: number) => iniciarRepaso(faseId),
+    onSuccess: (sesion) => {
+      queryClient.setQueryData(QUERY_KEYS.sesionRepaso(sesion.sesionId), sesion);
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.temasEstudio });
+    },
+  });
+}
+
+/** Autoevalúa una tarjeta; al terminar la sesión se refrescan el perfil (XP) y la biblioteca. */
+export function useAutoevaluarTarjeta(sesionId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ tarjetaId, autoevaluacion }: { tarjetaId: number; autoevaluacion: Autoevaluacion }) =>
+      autoevaluarTarjeta(sesionId, tarjetaId, autoevaluacion),
+    onSuccess: (sesion) => {
+      queryClient.setQueryData(QUERY_KEYS.sesionRepaso(sesion.sesionId), sesion);
+      if (sesion.terminada) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.perfil });
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.temasEstudio });
+      }
+    },
+  });
+}
+
+/** CU-10: plan activo con su avance (null si no tiene). */
+export function usePlanActivo() {
+  return useQuery({ queryKey: QUERY_KEYS.planActivo, queryFn: getPlanActivo });
+}
+
+export function usePlan(planId: number | undefined) {
+  return useQuery({
+    queryKey: QUERY_KEYS.plan(planId ?? 0),
+    queryFn: () => getPlan(planId!),
+    enabled: esIdValido(planId),
+    retry: false,
+  });
+}
+
+export function useDiagnostico(diagnosticoId: number | undefined) {
+  return useQuery({
+    queryKey: QUERY_KEYS.diagnostico(diagnosticoId ?? 0),
+    queryFn: () => getDiagnostico(diagnosticoId!),
+    enabled: esIdValido(diagnosticoId),
+    staleTime: Infinity,
+    retry: false,
+  });
+}
+
+export function useIniciarDiagnostico() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: iniciarDiagnostico,
+    onSuccess: (d) => queryClient.setQueryData(QUERY_KEYS.diagnostico(d.diagnosticoId), d),
+  });
+}
+
+export function useResponderDiagnostico(diagnosticoId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (respuestas: { preguntaId: number; opcionId: number }[]) =>
+      responderDiagnostico(diagnosticoId, respuestas),
+    onSuccess: (resultado) => {
+      queryClient.setQueryData(QUERY_KEYS.plan(resultado.plan.planId), resultado.plan);
+    },
+  });
+}
+
+export function useAceptarPlan(planId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (actividadIds: number[]) => aceptarPlan(planId, actividadIds),
+    onSuccess: (plan) => {
+      queryClient.setQueryData(QUERY_KEYS.plan(plan.planId), plan);
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.planActivo });
+    },
+  });
+}
+
+/** CU-11: racha, reglas y estado del reto de hoy; también alimenta el indicador del encabezado. */
+export function useRetoDiarioHoy() {
+  return useQuery({ queryKey: QUERY_KEYS.retoDiarioHoy, queryFn: getRetoDiarioHoy });
+}
+
+/** Tras iniciar, abandonar o terminar el reto se vuelven a pedir el estado del día y el perfil (XP, QP, racha). */
+export function useRefrescarRetoDiario() {
+  const queryClient = useQueryClient();
+  return () => {
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.retoDiarioHoy });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.perfil });
+  };
+}
+
+export function useIniciarRetoDiario() {
+  const refrescar = useRefrescarRetoDiario();
+  return useMutation({ mutationFn: iniciarRetoDiario, onSuccess: refrescar });
+}
+
+export function useAbandonarRetoDiario() {
+  const refrescar = useRefrescarRetoDiario();
+  return useMutation({ mutationFn: (retoId: number) => abandonarRetoDiario(retoId), onSuccess: refrescar });
+}
+
+// ---------- CU-13 Duelos ----------
+
+export function useRivales() {
+  return useQuery({ queryKey: QUERY_KEYS.rivales, queryFn: getRivales });
+}
+
+export function useDuelos() {
+  return useQuery({ queryKey: QUERY_KEYS.duelos, queryFn: getDuelos });
+}
+
+/** Avisos de duelos pendientes: se consultan al iniciar sesión y cada minuto (indicador del encabezado). */
+export function useAvisosDuelos() {
+  return useQuery({ queryKey: QUERY_KEYS.avisosDuelos, queryFn: getAvisosDuelos, refetchInterval: 60_000 });
+}
+
+export function useDuelo(dueloId: number | undefined) {
+  return useQuery({
+    queryKey: QUERY_KEYS.duelo(dueloId ?? 0),
+    queryFn: () => getDuelo(dueloId!),
+    enabled: esIdValido(dueloId),
+    retry: false,
+  });
+}
+
+/** Los cambios de un duelo refrescan sus listas, los avisos y el perfil (XP). */
+export function useRefrescarDuelos() {
+  const queryClient = useQueryClient();
+  return () => {
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.duelos });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.perfil });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.perfilCompleto });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.clasificacion });
+  };
+}
+
+export function useCrearDuelo() {
+  const refrescar = useRefrescarDuelos();
+  return useMutation({
+    mutationFn: ({ rival, tema }: { rival: string; tema: string }) => crearDuelo(rival, tema),
+    onSuccess: refrescar,
+  });
+}
+
+export function useAceptarDuelo() {
+  const refrescar = useRefrescarDuelos();
+  return useMutation({ mutationFn: (dueloId: number) => aceptarDuelo(dueloId), onSuccess: refrescar });
+}
+
+export function useRechazarDuelo() {
+  const refrescar = useRefrescarDuelos();
+  return useMutation({ mutationFn: (dueloId: number) => rechazarDuelo(dueloId), onSuccess: refrescar });
+}
+
+/** D-001: al cerrar el aviso de un duelo rechazado o expirado se marca como visto y deja de mostrarse. */
+export function useMarcarAvisoDueloVisto() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dueloId: number) => marcarAvisoDueloVisto(dueloId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.avisosDuelos }),
+  });
+}
+
+// ---------- RF-20 Clasificación y RF-19 Perfil ----------
+
+export function useClasificacion() {
+  return useQuery({ queryKey: QUERY_KEYS.clasificacion, queryFn: getClasificacion });
+}
+
+export function usePerfilCompleto() {
+  return useQuery({ queryKey: QUERY_KEYS.perfilCompleto, queryFn: getPerfilCompleto });
+}
+
+export function useActualizarPerfil() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: actualizarPerfil,
+    onSuccess: (perfil) => {
+      queryClient.setQueryData(QUERY_KEYS.perfilCompleto, perfil);
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.perfil });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.clasificacion });
+    },
+  });
 }

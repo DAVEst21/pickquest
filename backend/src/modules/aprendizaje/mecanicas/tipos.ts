@@ -31,8 +31,12 @@ export interface ResultadoCalificacion {
  */
 export interface EvaluadorMecanica {
   readonly mecanica: Mecanica;
-  /** Contenido del reto SIN respuestas correctas ni datos de referencia. */
-  contenidoPublico(db: Db, retoId: number): Promise<ContenidoPublicoDto>;
+  /**
+   * Contenido del reto SIN respuestas correctas ni datos de referencia. Las listas de
+   * opciones se presentan mezcladas con el id del intento como semilla: cada intento
+   * ve su propio orden y al retomarlo el orden no cambia (FA3).
+   */
+  contenidoPublico(db: Db, retoId: number, intentoId: number): Promise<ContenidoPublicoDto>;
   /** Lo que el estudiante lleva hecho en este intento. */
   borrador(db: Db, intentoId: number): Promise<BorradorDto>;
   /** RF-01: guarda el avance en el servidor. Valida el cuerpo según la mecánica. */

@@ -1,0 +1,33 @@
+PASS src/modules/economia/tienda.reglas.spec.ts (43.803 s)
+PASS src/modules/aprendizaje/mecanicas/dialogo-stakeholder/dialogo-stakeholder.calificacion.spec.ts (44.366 s)
+PASS src/modules/aprendizaje/mecanicas/inspeccion-sistema/inspeccion-sistema.calificacion.spec.ts (44.508 s)
+PASS src/modules/aprendizaje/mecanicas/retroalimentacion.spec.ts (45.064 s)
+PASS src/modules/aprendizaje/mecanicas/tablero-moscow/tablero-moscow.calificacion.spec.ts (44.886 s)
+PASS src/modules/aprendizaje/mecanicas/expediente-proyecto/expediente-proyecto.calificacion.spec.ts (45.251 s)
+PASS src/modules/social/duelos/duelo.reglas.spec.ts (45.527 s)
+PASS src/modules/aprendizaje/mecanicas/simulador-escenarios/simulador-escenarios.calificacion.spec.ts (45.519 s)
+PASS src/modules/aprendizaje/calificacion-estrellas.spec.ts
+PASS src/modules/social/clasificacion/clasificacion.reglas.spec.ts
+PASS src/modules/aprendizaje/mecanicas/reparto-presupuesto/reparto-presupuesto.calificacion.spec.ts (45.898 s)
+PASS src/modules/aprendizaje/mecanicas/pista.spec.ts
+PASS src/modules/aprendizaje/estado-fases.spec.ts (45.822 s)
+PASS src/modules/aprendizaje/estado-reto.spec.ts
+PASS src/common/tiempo/tiempo-pregunta.spec.ts
+PASS src/modules/aprendizaje/mecanicas/referencia.spec.ts
+PASS src/modules/aprendizaje/estudio/repaso.reglas.spec.ts (48.129 s)
+PASS src/modules/progreso/multiplicador.spec.ts
+PASS src/modules/progreso/racha.spec.ts (48.035 s)
+PASS src/modules/aprendizaje/mecanicas/armado-piezas/armado-piezas.calificacion.spec.ts
+PASS src/modules/progreso/nivel.spec.ts
+PASS src/modules/aprendizaje/mecanicas/linea-tiempo/linea-tiempo.calificacion.spec.ts (48.531 s)
+PASS src/modules/aprendizaje/plan/plan.reglas.spec.ts (48.618 s)
+PASS src/modules/progreso/dominio.spec.ts
+PASS src/common/fechas/dia-calendario.spec.ts (48.326 s)
+PASS src/app.controller.spec.ts
+A worker process has failed to exit gracefully and has been force exited. This is likely caused by tests leaking due to improper teardown. Try running with --detectOpenHandles to find leaks. Active timers can also cause this, ensure that .unref() was called on them.
+
+Test Suites: 26 passed, 26 total
+Tests:       276 passed, 276 total
+Snapshots:   0 total
+Time:        52.469 s
+Ran all test suites.

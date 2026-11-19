@@ -169,6 +169,15 @@ test.beforeEach(async ({ browser }) => {
   for (const r of await sql(
     'SELECT r.* FROM reto r JOIN fase f ON f.id=r."faseId" WHERE f.orden<2 OR (f.orden=2 AND r.orden<2) ORDER BY f.orden,r.orden',
   )) {
+    // CU-07 (Sprint 3) abre la fase 1: se da por aprobado sin recompensa para medir CU-02 como antes.
+    if (r.mecanica === 'EXPEDIENTE_PROYECTO') {
+      await sql(
+        `INSERT INTO intento_reto ("estudianteId","retoId",estado,porcentaje,"calificacionEstrellas",aprobado,"usoAyuda","xpGanado","qpGanado","creadoEn","actualizadoEn","calificadoEn")
+         VALUES ($1,$2,'CALIFICADO',100,3,true,false,0,0,now(),now(),now())`,
+        [alumno, r.id],
+      );
+      continue;
+    }
     const i = await api(`/retos/${r.id}/intentos`, 'POST');
     await prepararAnterior(r, i.intentoId);
   }

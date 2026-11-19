@@ -59,7 +59,7 @@ test.describe('Flujos alternativos y de excepción', () => {
     // Retroalimentación de un intento NO aprobado: qué está mal, pero no la solución
     await expect(page.getByText('Tu reparto y las restricciones')).toBeVisible();
     await expect(page.getByText(/Cumpliste 2 de 3 restricciones obligatorias/)).toBeVisible();
-    await expect(page.getByText('La respuesta de referencia completa se muestra cuando apruebas el reto')).toBeVisible();
+    await expect(page.getByText('La solución se mostrará al aprobar o después de 3 intentos')).toBeVisible();
     await expect(page.getByText('Tu reparto frente al de referencia')).toHaveCount(0);
     await expect(page.getByText('La justificación correcta era')).toHaveCount(0);
     await expect(page.getByText('Medidor de referencia')).toHaveCount(0);
@@ -84,7 +84,8 @@ test.describe('Flujos alternativos y de excepción', () => {
   test('los reintentos de retos aprobados no vuelven a otorgar XP ni QP (RN-07)', async () => {
     await page.goto('/');
     await page.getByText('Overworld SDLC').waitFor();
-    const hud = (await page.locator('header').innerText()).replace(/\s+/g, ' ');
+    // textContent: con 1440 px de ancho la barra de XP del encabezado está oculta, pero sigue en la página
+    const hud = ((await page.locator('header').textContent()) ?? '').replace(/\s+/g, ' ');
     expect(hud).toContain('1320 / 1500 XP');
     expect(hud).toContain('890 QP');
   });

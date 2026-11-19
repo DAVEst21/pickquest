@@ -39,7 +39,9 @@ export interface OpcionDisponible {
 /**
  * Opciones que se ofrecen en un nodo: las que aún no se eligieron en el
  * intento. Si el nodo ya no tiene ninguna, se regresa al nodo inicial; si
- * tampoco ahí quedan, no hay opciones.
+ * tampoco ahí quedan, se ofrece el primer nodo que aún tenga preguntas sin
+ * hacer (así el estudiante no se queda con turnos y sin preguntas mientras
+ * exista alguna); solo si ya se hicieron todas no hay opciones.
  */
 export function opcionesDisponibles<T extends OpcionDisponible>(
   nodoActualId: number,
@@ -51,5 +53,11 @@ export function opcionesDisponibles<T extends OpcionDisponible>(
     todas.filter((o) => o.nodoId === nodoId && !elegidas.has(o.id)).sort((a, b) => a.orden - b.orden);
   const actuales = delNodo(nodoActualId);
   if (actuales.length > 0) return { nodoId: nodoActualId, opciones: actuales };
-  return { nodoId: nodoInicialId, opciones: delNodo(nodoInicialId) };
+  const iniciales = delNodo(nodoInicialId);
+  if (iniciales.length > 0) return { nodoId: nodoInicialId, opciones: iniciales };
+  for (const nodoId of [...new Set(todas.map((o) => o.nodoId))].sort((x, y) => x - y)) {
+    const restantes = delNodo(nodoId);
+    if (restantes.length > 0) return { nodoId, opciones: restantes };
+  }
+  return { nodoId: nodoInicialId, opciones: [] };
 }

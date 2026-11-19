@@ -8,7 +8,8 @@ import { RetroalimentacionDto } from './tipos';
  *   referencia, columna correcta de cada tarjeta, fallas no encontradas, reparto
  *   de referencia, requerimientos no descubiertos...). Así un estudiante no puede
  *   reprobar a propósito para leer la solución.
- * - Intento aprobado: retroalimentación completa, con la referencia.
+ * - Intento aprobado, o 3 intentos no aprobados en el reto (RN-31): retroalimentación
+ *   completa, con la referencia.
  * Funciones puras; `referenciaCompleta` le indica al cliente cuál de las dos recibió.
  */
 type Obj = Record<string, unknown>;
@@ -18,7 +19,54 @@ function sinReferencia(retro: RetroalimentacionDto): RetroalimentacionDto {
   const r = retro as Obj;
   switch (retro.mecanica) {
     case 'ARMADO_PIEZAS':
-      return retro; // Solo contiene elecciones y aciertos, nunca la asociación de referencia.
+      // Las piezas mal colocadas siempre se señalan; la pieza correcta de cada casilla, no.
+      return {
+        mecanica: retro.mecanica,
+        historias: lista(r.historias).map((h) => ({
+          historiaId: h.historiaId,
+          orden: h.orden,
+          necesidad: h.necesidad,
+          casillas: lista(h.casillas).map((c) => ({
+            casillaId: c.casillaId,
+            tipo: c.tipo,
+            piezaElegida: c.piezaElegida,
+            acertada: c.acertada,
+          })),
+        })),
+      };
+    case 'EXPEDIENTE_PROYECTO':
+      return {
+        mecanica: retro.mecanica,
+        nombreProyecto: r.nombreProyecto,
+        modeloElegido: r.modeloElegido,
+        modeloAcertado: r.modeloAcertado,
+        // se señalan las evidencias irrelevantes; no la característica correcta de cada una
+        evidencias: lista(r.evidencias).map((e) => ({
+          fragmentoId: e.fragmentoId,
+          texto: e.texto,
+          documento: e.documento,
+          caracteristicaElegida: e.caracteristicaElegida,
+          relevante: e.relevante,
+        })),
+        vinculos: r.vinculos,
+      };
+    case 'SIMULADOR_ESCENARIOS':
+      return {
+        mecanica: retro.mecanica,
+        necesidadVaga: r.necesidadVaga,
+        nombreMetrica: r.nombreMetrica,
+        nombreCarga: r.nombreCarga,
+        // qué partes están mal, pero no cuál era la opción correcta
+        partes: lista(r.partes).map((p) => ({
+          parte: p.parte,
+          nombre: p.nombre,
+          elegida: p.elegida,
+          acertada: p.acertada,
+        })),
+        medida: r.medida,
+        simulacionesUsadas: r.simulacionesUsadas,
+        limiteSimulaciones: r.limiteSimulaciones,
+      };
     case 'LINEA_TIEMPO':
       return {
         mecanica: retro.mecanica,
@@ -95,10 +143,11 @@ function sinReferencia(retro: RetroalimentacionDto): RetroalimentacionDto {
   }
 }
 
+/** `puedeVer`: resultado de `puedeVerReferencia` (RN-31). */
 export function redactarRetroalimentacion(
   retro: RetroalimentacionDto,
-  aprobado: boolean,
+  puedeVer: boolean,
 ): RetroalimentacionDto {
-  if (aprobado) return { ...retro, referenciaCompleta: true };
+  if (puedeVer) return { ...retro, referenciaCompleta: true };
   return { ...sinReferencia(retro), referenciaCompleta: false };
 }

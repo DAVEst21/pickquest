@@ -21,6 +21,8 @@ export interface PropsMecanica<C, B, P extends Pista = Pista> {
   /** Pasa el avance actual; RetoPage lo guarda en el servidor con debounce (~800 ms). */
   onCambio: (cuerpo: unknown) => void;
   onEstado: (estado: EstadoEnvio) => void;
+  /** Espera a que todo el avance esté guardado (la simulación de CU-05 usa lo guardado). */
+  vaciar?: () => Promise<void>;
 }
 
 export function mismoEstado(a: EstadoEnvio, b: EstadoEnvio): boolean {
