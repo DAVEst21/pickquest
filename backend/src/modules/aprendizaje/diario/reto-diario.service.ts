@@ -186,9 +186,14 @@ export class RetoDiarioService {
   ): Promise<RespuestaRetoDiarioDto> {
     await this.cerrarPendientesAnteriores(estudianteId);
     const resultado = await transaccionDeEstudiante(this.prisma, estudianteId, async (tx) => {
-      const reto = await this.retoVigente(tx, estudianteId, retoDiarioId);
+      const reto = await this.buscarReto(tx, estudianteId, retoDiarioId);
       this.validarNumero(numero);
       const fila = reto.preguntas.find((p) => p.numero === numero)!;
+      // El cierre automático puede registrar el vencimiento antes de que llegue el temporizador.
+      if (opcionId === null && fila.entregadaEn && fila.correcta === false && fila.opcionId === null) {
+        return { numero, correcta: false, tiempoAgotado: true };
+      }
+      if (reto.terminadoEn) throw new ConflictException('Este reto diario ya terminó');
       if (!fila.entregadaEn) throw new ConflictException('Primero solicita la pregunta');
       if (fila.correcta !== null) throw new ConflictException('Esta pregunta ya se resolvió');
 
@@ -283,14 +288,19 @@ export class RetoDiarioService {
     return this.prisma.retoDiario.findUnique({ where: { estudianteId_dia: { estudianteId, dia: diaADate(dia) } } });
   }
 
-  /** El reto existe, es del estudiante y no terminó; resuelve las preguntas ya vencidas. */
+  /** Exige que el reto del estudiante siga abierto. */
   private async retoVigente(tx: Tx, estudianteId: number, retoDiarioId: number): Promise<RetoConPreguntas> {
+    const reto = await this.buscarReto(tx, estudianteId, retoDiarioId);
+    if (reto.terminadoEn) throw new ConflictException('Este reto diario ya terminó');
+    return reto;
+  }
+
+  private async buscarReto(tx: Tx, estudianteId: number, retoDiarioId: number): Promise<RetoConPreguntas> {
     const reto = await tx.retoDiario.findFirst({
       where: { id: retoDiarioId, estudianteId },
       include: { preguntas: { orderBy: { numero: 'asc' } } },
     });
     if (!reto) throw new NotFoundException('El reto diario no existe');
-    if (reto.terminadoEn) throw new ConflictException('Este reto diario ya terminó');
     return reto;
   }
 

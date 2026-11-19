@@ -444,6 +444,38 @@ describe('CU-11: reto diario (e2e)', () => {
     expect(res.reto.resultado).toMatchObject({ aciertos: 9, porcentaje: 90, xpOtorgada: 18 });
   });
 
+  it.each([false, true])('FA1: el último aviso de tiempo agotado devuelve el resumen aunque el reto se cierre (consulta previa: %s)', async (consultarAntes) => {
+    const e = await nuevo();
+    const id = await nuevoReto(e);
+    for (let n = 1; n <= 9; n++) {
+      await entregar(e, id, n).expect(200);
+      await responder(e, id, n, (await correctaDe(id, n)).correcta).expect(200);
+    }
+    await entregar(e, id, 10).expect(200);
+    await prisma.preguntaRetoDiario.update({
+      where: { retoDiarioId_numero: { retoDiarioId: id, numero: 10 } },
+      data: { entregadaEn: new Date(Date.now() - 60_000) },
+    });
+
+    if (consultarAntes) expect((await hoy(e).expect(200)).body.estado).toBe('TERMINADO');
+    const respuestas = await Promise.all([
+      responder(e, id, 10, null).expect(200),
+      responder(e, id, 10, null).expect(200),
+    ]);
+    for (const { body } of respuestas) {
+      expect(body).toMatchObject({
+        numero: 10,
+        correcta: false,
+        tiempoAgotado: true,
+        siguiente: null,
+        terminado: true,
+        estado: { resultado: { aciertos: 9, xpOtorgada: 18, qpOtorgado: 45 } },
+      });
+    }
+    await responder(e, id, 10, (await correctaDe(id, 10)).correcta).expect(409);
+    expect(await perfil(e)).toMatchObject({ xpTotal: 18, qpTotal: 45 });
+  });
+
   it('el reto diario es de cada estudiante: sus preguntas y resultados no se mezclan', async () => {
     const a = await nuevo();
     const b = await nuevo();
