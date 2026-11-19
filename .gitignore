@@ -18,3 +18,7 @@ backend/backups/
 # Editor / SO
 .vscode/
 .DS_Store
+
+# Registros que generan las pruebas de navegador en cada corrida (crecen con cada ejecución)
+docs/evidencias/*.jsonl
+docs/evidencias/**/*.jsonl

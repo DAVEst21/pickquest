@@ -9,6 +9,7 @@ import {
   ResultadoCalificacion,
   retoIdDeIntento,
 } from '../tipos';
+import { ordenarParaIntento } from '../../../../common/orden/mezcla-determinista';
 import { validarCuerpo } from '../validar-cuerpo';
 import { BorradorMoscowDto } from './tablero-moscow.dto';
 import {
@@ -47,7 +48,7 @@ export class TableroMoscowEvaluador implements EvaluadorMecanica {
     });
   }
 
-  async contenidoPublico(db: Db, retoId: number): Promise<ContenidoPublicoDto> {
+  async contenidoPublico(db: Db, retoId: number, intentoId: number): Promise<ContenidoPublicoDto> {
     const tablero = await db.tableroPriorizacion.findUniqueOrThrow({ where: { retoId } });
     const tarjetas = await db.tarjetaRequerimiento.findMany({
       where: { retoId },
@@ -56,9 +57,11 @@ export class TableroMoscowEvaluador implements EvaluadorMecanica {
     // Sin columnaCorrecta, tipoCorrecto ni ordenMustReferencia.
     return {
       capacidad: tablero.capacidad,
-      tarjetas: tarjetas.map((t) => ({
+      // En el seed las tarjetas están agrupadas por su columna y las MUST en su orden de referencia:
+      // presentarlas así regalaría la respuesta. Se mezclan por intento y `orden` es la posición mostrada.
+      tarjetas: ordenarParaIntento(tarjetas, intentoId, 'tarjetas').map((t, i) => ({
         id: t.id,
-        orden: t.orden,
+        orden: i + 1,
         texto: t.texto,
         puntos: t.puntos,
       })),

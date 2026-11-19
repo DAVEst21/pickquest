@@ -19,6 +19,7 @@ describe('Persistencia relacional de la pista de la ayuda', () => {
       tarjetaId: null,
       pantallaId: null,
       atributoEscenarioId: null,
+      documentoId: null,
       bloqueId: 4,
       requiereId: 2,
     });

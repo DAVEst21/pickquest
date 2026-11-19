@@ -1,0 +1,20 @@
+ Container pickquest_limpio-db-1 Running 
+ Container pickquest_limpio-backend-1 Running 
+ Container pickquest_limpio-frontend-1 Running 
+ Container pickquest_limpio-db-1 Waiting 
+ Container pickquest_limpio-db-1 Healthy 
+ Container pickquest_limpio-e2e-run-87ee90dbd03f Creating 
+ Container pickquest_limpio-e2e-run-87ee90dbd03f Created 
+
+Running 8 tests using 1 worker
+
+  ✓  1 e2e/06-sprint3.spec.ts:57:3 › Sprint 3: navegación y pantallas nuevas › el encabezado trae las 8 secciones y ninguna dice «próximamente» (3.8s)
+  ✓  2 e2e/06-sprint3.spec.ts:77:3 › Sprint 3: navegación y pantallas nuevas › CU-12 Tienda: saldo visible, comprar y equipar; FE1 muestra cuántos QP faltan (5.6s)
+  ✓  3 e2e/06-sprint3.spec.ts:104:3 › Sprint 3: navegación y pantallas nuevas › CU-09 Repaso: se voltea con clic o espacio, se evalúa con 1, 2 y 3; salir a medias conserva el avance (FA2) (14.1s)
+  ✓  4 e2e/06-sprint3.spec.ts:147:3 › Sprint 3: navegación y pantallas nuevas › CU-11 Reto diario: temporizador que cambia de color, retroalimentación, resumen y FE1 (34.9s)
+  ✓  5 e2e/06-sprint3.spec.ts:183:3 › Sprint 3: navegación y pantallas nuevas › CU-10 Plan: FE1 señala las pendientes, el plan se ajusta (FA1), se acepta y FA2 pide confirmar (14.3s)
+  ✓  6 e2e/06-sprint3.spec.ts:239:3 › Sprint 3: navegación y pantallas nuevas › CU-13 Duelos: el retado ve el aviso, acepta y el resultado aparece a los dos solo al terminar (36.9s)
+  ✓  7 e2e/06-sprint3.spec.ts:287:3 › Sprint 3: navegación y pantallas nuevas › RF-20 Clasificación: tabla con nombre, nivel, XP y estrellas; resalta la fila propia y no muestra correos (6.0s)
+  ✓  8 e2e/06-sprint3.spec.ts:302:3 › Sprint 3: navegación y pantallas nuevas › RF-19 Perfil: racha real, estrellas, plan activo, inventario y edición de nombre (6.0s)
+
+  8 passed (2.2m)

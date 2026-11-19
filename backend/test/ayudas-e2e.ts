@@ -188,6 +188,52 @@ export async function resolver(
       }
       return;
     }
+    case 'SIMULADOR_ESCENARIOS': {
+      const escenario = await prisma.escenarioCalidad.findUniqueOrThrow({ where: { retoId } });
+      const opciones = await prisma.opcionParteEscenario.findMany({ where: { retoId } });
+      const unidades = await prisma.unidadEscenario.findMany({ where: { retoId } });
+      const partes = ['FUENTE', 'ESTIMULO', 'ARTEFACTO', 'ENTORNO', 'RESPUESTA'] as const;
+      await guardar({
+        elecciones: partes.map((parte) => ({
+          parte,
+          opcionId: opciones.find((o) => o.parte === parte && o.correcta === (modo === 'perfecto'))!.id,
+        })),
+        valor:
+          modo === 'perfecto'
+            ? (Number(escenario.valorMinAceptable) + Number(escenario.valorMaxAceptable)) / 2
+            : Number(escenario.valorMaxSlider),
+        unidadId: (modo === 'perfecto'
+          ? unidades.find((u) => u.id === escenario.unidadCorrectaId)!
+          : unidades.find((u) => u.id !== escenario.unidadCorrectaId)!
+        ).id,
+        carga: modo === 'perfecto' ? (escenario.cargaMinAceptable + escenario.cargaMaxAceptable) / 2 : escenario.cargaMaxSlider,
+      });
+      return;
+    }
+    case 'EXPEDIENTE_PROYECTO': {
+      const expediente = await prisma.expediente.findUniqueOrThrow({ where: { retoId } });
+      const fragmentos = await prisma.fragmentoDocumento.findMany({
+        where: { documento: { retoId } },
+        orderBy: [{ documento: { orden: 'asc' } }, { orden: 'asc' }],
+      });
+      if (modo === 'perfecto') {
+        const relevantes = fragmentos.filter((f) => f.caracteristicaCorrectaId !== null);
+        await guardar({
+          evidencias: relevantes.map((f) => ({ fragmentoId: f.id, caracteristicaId: f.caracteristicaCorrectaId })),
+          modelo: expediente.modeloCorrecto,
+          vinculos: relevantes.filter((f) => f.respaldaModelo).slice(0, 3).map((f) => f.id),
+        });
+      } else {
+        const irrelevantes = fragmentos.filter((f) => f.caracteristicaCorrectaId === null).slice(0, 3);
+        const caracteristica = await prisma.caracteristicaProyecto.findFirstOrThrow({ where: { retoId } });
+        await guardar({
+          evidencias: irrelevantes.map((f) => ({ fragmentoId: f.id, caracteristicaId: caracteristica.id })),
+          modelo: expediente.modeloCorrecto === 'CASCADA' ? 'ESPIRAL' : 'CASCADA',
+          vinculos: irrelevantes.slice(0, 2).map((f) => f.id),
+        });
+      }
+      return;
+    }
     default:
       throw new Error(`Mecánica sin resolver en la prueba: ${intento.reto.mecanica}`);
   }

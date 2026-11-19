@@ -140,7 +140,7 @@ export const TarjetaFase: React.FC<TarjetaFaseProps> = ({ fase, esActiva, onAbri
             Requiere fase anterior
           </span>
         ) : sinRetoTodavia ? (
-          <span className="font-label-sm text-label-sm text-on-surface-variant">Reto próximamente</span>
+          <span className="font-label-sm text-label-sm text-on-surface-variant">Esta fase aún no tiene retos</span>
         ) : fase.estado === 'completada' ? (
           // Fase 5: una fase completada muestra estrellas Y recompensa en QP juntas.
           <>

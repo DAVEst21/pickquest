@@ -22,26 +22,23 @@ export const Footer: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-space-lg">
-          <Link
-            to="/"
-            className="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors"
-          >
-            Overworld
+        <nav aria-label="Enlaces del pie de página" className="flex flex-wrap items-center justify-center gap-space-lg">
+          <Link to="/" className="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors">
+            Mapa
           </Link>
           <Link
             to={faseActiva ? `/mision/${faseActiva.id}` : '/'}
             className="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors"
           >
-            Misiones
+            Misión actual
           </Link>
-          <span className="font-label-md text-label-md text-on-surface-variant/60 cursor-not-allowed">
-            Gremio
-          </span>
-          <span className="font-label-md text-label-md text-on-surface-variant/60 cursor-not-allowed">
-            Bóveda QP
-          </span>
-        </div>
+          <Link to="/clasificacion" className="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors">
+            Clasificación
+          </Link>
+          <Link to="/tienda" className="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors">
+            Tienda
+          </Link>
+        </nav>
 
         <div className="font-label-sm text-label-sm text-on-surface-variant text-center md:text-right">
           © 2025 PickQuest Academy. Código limpio y gloria eterna.

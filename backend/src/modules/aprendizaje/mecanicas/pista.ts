@@ -14,6 +14,7 @@ export interface ColumnasPista {
   atributoEscenarioId: number | null;
   bloqueId: number | null;
   requiereId: number | null;
+  documentoId: number | null;
 }
 
 const VACIAS: ColumnasPista = {
@@ -24,6 +25,7 @@ const VACIAS: ColumnasPista = {
   atributoEscenarioId: null,
   bloqueId: null,
   requiereId: null,
+  documentoId: null,
 };
 
 const id = (v: unknown): number | null => (typeof v === 'number' ? v : null);
@@ -33,6 +35,10 @@ export function pistaAColumnas(pista: PistaDto): ColumnasPista {
   switch (pista.tipo) {
     case 'DISTRACTORES_RETIRADOS':
       return { ...VACIAS, tipoPista: 'DISTRACTORES_RETIRADOS' };
+    case 'RANGO_ESCENARIO':
+      return { ...VACIAS, tipoPista: 'RANGO_ESCENARIO' };
+    case 'DOCUMENTO':
+      return { ...VACIAS, tipoPista: 'DOCUMENTO', documentoId: id(pista.documentoId) };
     case 'OPCION_DIALOGO':
       return { ...VACIAS, tipoPista: 'OPCION_DIALOGO', opcionId: id(pista.opcionId) };
     case 'COLUMNA_TARJETA':
@@ -67,6 +73,11 @@ export interface UsoAyudaConReferencias extends ColumnasPista {
 export function columnasAPista(uso: UsoAyudaConReferencias | null): PistaDto | null {
   if (!uso?.tipoPista) return null;
   switch (uso.tipoPista) {
+    case 'DOCUMENTO':
+      return { tipo: 'DOCUMENTO', documentoId: uso.documentoId };
+    case 'RANGO_ESCENARIO':
+      // El servicio completa el rango leyéndolo del escenario del reto.
+      return { tipo: 'RANGO_ESCENARIO' };
     case 'DISTRACTORES_RETIRADOS':
       return { tipo: 'DISTRACTORES_RETIRADOS', piezaIds: (uso.distractoresRetirados ?? []).map(p => p.piezaId) };
     case 'OPCION_DIALOGO':

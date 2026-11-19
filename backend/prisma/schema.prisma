@@ -113,20 +113,35 @@ enum TipoObjeto {
 // =====================================================================
 
 model Estudiante {
-  id               Int    @id @default(autoincrement())
-  email            String @unique
+  id               Int      @id @default(autoincrement())
+  email            String   @unique
   passwordHash     String
-  nombreAventurero String @unique
+  nombreAventurero String   @unique
   avatar           String
-  nivel            Int    @default(1)
-  xpTotal          Int    @default(0)
-  qpTotal          Int    @default(0)
+  nivel            Int      @default(1)
+  xpTotal          Int      @default(0)
+  qpTotal          Int      @default(0)
+  // Momento en que alcanzó su XP actual: desempate de la clasificación (RN-30).
+  xpAlcanzadaEn    DateTime @default(now())
 
-  racha       RachaEstudio?
-  intentos    IntentoReto[]
-  inventario  InventarioObjeto[]
-  logros      LogroEstudiante[]
-  habilidades HabilidadSDLC[]
+  racha             RachaEstudio?
+  intentos          IntentoReto[]
+  inventario        InventarioObjeto[]
+  compras           CompraObjeto[]
+  progresoTarjetas  ProgresoTarjeta[]
+  consultasTema     ConsultaTema[]
+  sesionesRepaso    SesionRepaso[]
+  dominios          DominioTema[]
+  diagnosticos      Diagnostico[]
+  planes            PlanEstudio[]
+  retosDiarios      RetoDiario[]
+  duelosComoRetador Duelo[]            @relation("DueloRetador")
+  duelosComoRetado  Duelo[]            @relation("DueloRetado")
+  duelosGanados     Duelo[]            @relation("DueloGanador")
+  respuestasDuelo   RespuestaDuelo[]
+  resultadosDuelo   ResultadoDuelo[]
+  logros            LogroEstudiante[]
+  habilidades       HabilidadSDLC[]
 
   @@map("estudiante")
 }
@@ -152,9 +167,12 @@ model Objeto {
   costoQP Int
   efecto  String
   rareza  String
+  // null: sirve en cualquier reto; con valor: solo en los retos de esa fase (RN-10, CU-12).
+  tema    TemaFase?
 
   inventarios  InventarioObjeto[]
   ayudasUsadas UsoAyuda[]
+  compras      CompraObjeto[]
 
   @@map("objeto")
 }
@@ -221,6 +239,14 @@ model Fase {
   retos          Reto[]
   contenidoApoyo ContenidoApoyo?
 
+  // CU-09: material de estudio y tarjetas del tema de la fase.
+  material  MaterialTema?
+  ejemplos  EjemploTema[]
+  glosario  TerminoGlosario[]
+  tarjetas  Tarjeta[]
+  consultas ConsultaTema[]
+  sesiones  SesionRepaso[]
+
   @@map("fase")
 }
 
@@ -247,30 +273,39 @@ model Reto {
   recompensaXp Int
   recompensaQp Int
 
-  fase     Fase          @relation(fields: [faseId], references: [id], onDelete: Cascade)
-  intentos IntentoReto[]
+  fase            Fase            @relation(fields: [faseId], references: [id], onDelete: Cascade)
+  intentos        IntentoReto[]
+  actividadesPlan ActividadPlan[]
 
   // CU-01
-  stakeholder           Stakeholder?
-  requerimientosOcultos RequerimientoOculto[]
-  nodosDialogo          NodoDialogo[]
+  stakeholder             Stakeholder?
+  requerimientosOcultos   RequerimientoOculto[]
+  nodosDialogo            NodoDialogo[]
   // CU-02
-  historias HistoriaUsuario[]
-  piezas PiezaHistoria[]
+  historias               HistoriaUsuario[]
+  piezas                  PiezaHistoria[]
   // CU-03
-  tablero               TableroPriorizacion?
-  tarjetas              TarjetaRequerimiento[]
+  tablero                 TableroPriorizacion?
+  tarjetas                TarjetaRequerimiento[]
   // CU-04
-  sistema               SistemaInspeccion?
-  pantallas             PantallaSimulada[]
+  sistema                 SistemaInspeccion?
+  pantallas               PantallaSimulada[]
   // CU-06
-  escenario             EscenarioPresupuesto?
-  atributosEscenario    AtributoEscenario[]
-  opcionesJustificacion OpcionJustificacion[]
+  escenario               EscenarioPresupuesto?
+  atributosEscenario      AtributoEscenario[]
+  opcionesJustificacion   OpcionJustificacion[]
   // CU-08
-  plan                  PlanProyecto?
-  bloques               BloquePlan[]
-  entregables           EntregablePlan[]
+  plan                    PlanProyecto?
+  bloques                 BloquePlan[]
+  entregables             EntregablePlan[]
+  // CU-05
+  escenarioCalidad        EscenarioCalidad?
+  unidadesEscenario       UnidadEscenario[]
+  opcionesParteEscenario  OpcionParteEscenario[]
+  // CU-07
+  expediente              Expediente?
+  documentosExpediente    DocumentoExpediente[]
+  caracteristicasProyecto CaracteristicaProyecto[]
 
   @@unique([faseId, orden])
   @@map("reto")
@@ -295,16 +330,21 @@ model IntentoReto {
   // Restrict: no se puede borrar un Reto que ya tiene intentos.
   reto       Reto       @relation(fields: [retoId], references: [id], onDelete: Restrict)
 
-  colocacionesHistoria RespuestaCasilla[]
-  ayuda                  UsoAyuda?
-  respuestaDialogo       RespuestaDialogo?
-  turnosDialogo          TurnoDialogo[]
-  respuestasTarjeta      RespuestaTarjeta[]
-  marcasInspeccion       MarcaInspeccion[]
-  asignacionesPuntos     AsignacionPuntos[]
-  respuestaPresupuesto   RespuestaPresupuesto?
-  posicionesBloque       PosicionBloque[]
-  asociacionesEntregable AsociacionEntregable[]
+  colocacionesHistoria     RespuestaCasilla[]
+  ayuda                    UsoAyuda?
+  respuestaDialogo         RespuestaDialogo?
+  turnosDialogo            TurnoDialogo[]
+  respuestasTarjeta        RespuestaTarjeta[]
+  marcasInspeccion         MarcaInspeccion[]
+  asignacionesPuntos       AsignacionPuntos[]
+  respuestaPresupuesto     RespuestaPresupuesto?
+  posicionesBloque         PosicionBloque[]
+  asociacionesEntregable   AsociacionEntregable[]
+  respuestaEscenario       RespuestaEscenario?
+  eleccionesParteEscenario EleccionParteEscenario[]
+  simulacionesEscenario    SimulacionEscenario[]
+  evidenciasSeleccionadas  EvidenciaSeleccionada[]
+  eleccionModelo           EleccionModelo?
 
   @@index([estudianteId, retoId, estado])
   @@map("intento_reto")
@@ -318,6 +358,8 @@ enum TipoPista {
   PANTALLA // pantallaId
   RESTRICCION // atributoEscenarioId (el mínimo se obtiene del atributo)
   DEPENDENCIA // bloqueId y requiereId
+  RANGO_ESCENARIO // CU-05: el rango aceptable se lee del escenario del reto
+  DOCUMENTO // CU-07: documentoId (documento del expediente que se resalta)
 }
 
 // Una ayuda pertenece a un intento concreto (RN-10: máximo 1 por intento).
@@ -337,6 +379,7 @@ model UsoAyuda {
   atributoEscenarioId Int?
   bloqueId            Int?
   requiereId          Int?
+  documentoId         Int?
 
   intento           IntentoReto           @relation(fields: [intentoId], references: [id], onDelete: Cascade)
   objeto            Objeto                @relation(fields: [objetoId], references: [id], onDelete: Restrict)
@@ -346,6 +389,7 @@ model UsoAyuda {
   atributoEscenario AtributoEscenario?    @relation(fields: [atributoEscenarioId], references: [id], onDelete: Restrict)
   bloque            BloquePlan?           @relation("PistaBloque", fields: [bloqueId], references: [id], onDelete: Restrict)
   requiere          BloquePlan?           @relation("PistaRequiere", fields: [requiereId], references: [id], onDelete: Restrict)
+  documento         DocumentoExpediente?  @relation(fields: [documentoId], references: [id], onDelete: Restrict)
 
   distractoresRetirados DistractorRetirado[]
 
@@ -709,7 +753,6 @@ model AsociacionEntregable {
   @@map("asociacion_entregable")
 }
 
-
 // CU-02: el banco y la referencia privada están separados de las respuestas.
 enum TipoPiezaHistoria {
   ROL
@@ -721,38 +764,41 @@ enum TipoPiezaHistoria {
 }
 
 model HistoriaUsuario {
-  id Int @id @default(autoincrement())
-  retoId Int
-  orden Int
-  necesidad String @db.Text
-  reto Reto @relation(fields: [retoId], references: [id], onDelete: Cascade)
-  casillas CasillaHistoria[]
+  id        Int               @id @default(autoincrement())
+  retoId    Int
+  orden     Int
+  necesidad String            @db.Text
+  reto      Reto              @relation(fields: [retoId], references: [id], onDelete: Cascade)
+  casillas  CasillaHistoria[]
+
   @@unique([retoId, orden])
   @@map("historia_usuario")
 }
 
 model PiezaHistoria {
-  id Int @id @default(autoincrement())
-  retoId Int
-  tipo TipoPiezaHistoria
-  texto String
-  orden Int
-  reto Reto @relation(fields: [retoId], references: [id], onDelete: Cascade)
+  id          Int                  @id @default(autoincrement())
+  retoId      Int
+  tipo        TipoPiezaHistoria
+  texto       String
+  orden       Int
+  reto        Reto                 @relation(fields: [retoId], references: [id], onDelete: Cascade)
   referencias CasillaHistoria[]
-  respuestas RespuestaCasilla[]
-  retiradas DistractorRetirado[]
+  respuestas  RespuestaCasilla[]
+  retiradas   DistractorRetirado[]
+
   @@unique([retoId, orden])
   @@map("pieza_historia")
 }
 
 model CasillaHistoria {
-  id Int @id @default(autoincrement())
-  historiaId Int
-  tipo TipoPiezaHistoria
+  id              Int                @id @default(autoincrement())
+  historiaId      Int
+  tipo            TipoPiezaHistoria
   piezaCorrectaId Int
-  historia HistoriaUsuario @relation(fields: [historiaId], references: [id], onDelete: Cascade)
-  piezaCorrecta PiezaHistoria @relation(fields: [piezaCorrectaId], references: [id], onDelete: Restrict)
-  respuestas RespuestaCasilla[]
+  historia        HistoriaUsuario    @relation(fields: [historiaId], references: [id], onDelete: Cascade)
+  piezaCorrecta   PiezaHistoria      @relation(fields: [piezaCorrectaId], references: [id], onDelete: Restrict)
+  respuestas      RespuestaCasilla[]
+
   @@unique([historiaId, tipo])
   @@map("casilla_historia")
 }
@@ -760,10 +806,11 @@ model CasillaHistoria {
 model RespuestaCasilla {
   intentoId Int
   casillaId Int
-  piezaId Int
-  intento IntentoReto @relation(fields: [intentoId], references: [id], onDelete: Cascade)
-  casilla CasillaHistoria @relation(fields: [casillaId], references: [id], onDelete: Restrict)
-  pieza PiezaHistoria @relation(fields: [piezaId], references: [id], onDelete: Restrict)
+  piezaId   Int
+  intento   IntentoReto     @relation(fields: [intentoId], references: [id], onDelete: Cascade)
+  casilla   CasillaHistoria @relation(fields: [casillaId], references: [id], onDelete: Restrict)
+  pieza     PiezaHistoria   @relation(fields: [piezaId], references: [id], onDelete: Restrict)
+
   @@id([intentoId, casillaId])
   @@unique([intentoId, piezaId])
   @@map("respuesta_casilla")
@@ -771,9 +818,653 @@ model RespuestaCasilla {
 
 model DistractorRetirado {
   usoAyudaId Int
-  piezaId Int
-  usoAyuda UsoAyuda @relation(fields: [usoAyudaId], references: [id], onDelete: Cascade)
-  pieza PiezaHistoria @relation(fields: [piezaId], references: [id], onDelete: Restrict)
+  piezaId    Int
+  usoAyuda   UsoAyuda      @relation(fields: [usoAyudaId], references: [id], onDelete: Cascade)
+  pieza      PiezaHistoria @relation(fields: [piezaId], references: [id], onDelete: Restrict)
+
   @@id([usoAyudaId, piezaId])
   @@map("distractor_retirado")
+}
+
+// =====================================================================
+// CU-05 Simulador de escenarios de calidad (RF-08, RN-20)
+// =====================================================================
+
+enum ParteEscenario {
+  FUENTE
+  ESTIMULO
+  ARTEFACTO
+  ENTORNO
+  RESPUESTA
+}
+
+// 1:1 con Reto. El rango aceptable (RN-20) y el modelo de la simulación nunca
+// viajan al navegador antes de lo que permiten RN-31 y la ayuda.
+model EscenarioCalidad {
+  retoId            Int     @id
+  necesidadVaga     String  @db.Text
+  contextoApp       String  @db.Text
+  nombreMetrica     String
+  nombreCarga       String // p. ej. "usuarios concurrentes"
+  unidadCorrectaId  Int?    @unique // se asigna después de crear las unidades
+  valorMinSlider    Decimal @db.Decimal(10, 2)
+  valorMaxSlider    Decimal @db.Decimal(10, 2)
+  pasoSlider        Decimal @db.Decimal(10, 2)
+  cargaMinSlider    Int
+  cargaMaxSlider    Int
+  pasoCarga         Int
+  valorMinAceptable Decimal @db.Decimal(10, 2)
+  valorMaxAceptable Decimal @db.Decimal(10, 2)
+  cargaMinAceptable Int
+  cargaMaxAceptable Int
+  // Modelo de la aplicación ficticia: valorApp(carga) = simBase + simPendiente × carga
+  simBase           Decimal @db.Decimal(10, 4)
+  simPendiente      Decimal @db.Decimal(10, 6)
+
+  reto           Reto             @relation(fields: [retoId], references: [id], onDelete: Cascade)
+  unidadCorrecta UnidadEscenario? @relation("UnidadCorrecta", fields: [unidadCorrectaId], references: [id], onDelete: Restrict)
+
+  @@map("escenario_calidad")
+}
+
+model UnidadEscenario {
+  id     Int    @id @default(autoincrement())
+  retoId Int
+  nombre String
+
+  reto                  Reto                 @relation(fields: [retoId], references: [id], onDelete: Cascade)
+  escenarioComoCorrecta EscenarioCalidad?    @relation("UnidadCorrecta")
+  respuestas            RespuestaEscenario[]
+
+  @@map("unidad_escenario")
+}
+
+model OpcionParteEscenario {
+  id       Int            @id @default(autoincrement())
+  retoId   Int
+  parte    ParteEscenario
+  orden    Int
+  texto    String
+  correcta Boolean // exactamente una correcta por parte
+
+  reto       Reto                     @relation(fields: [retoId], references: [id], onDelete: Cascade)
+  elecciones EleccionParteEscenario[]
+
+  @@unique([retoId, parte, orden])
+  @@map("opcion_parte_escenario")
+}
+
+// 1:1 con IntentoReto: la medida de respuesta que va calibrando el estudiante.
+model RespuestaEscenario {
+  intentoId Int      @id
+  valor     Decimal? @db.Decimal(10, 2)
+  unidadId  Int?
+  carga     Int?
+
+  intento IntentoReto      @relation(fields: [intentoId], references: [id], onDelete: Cascade)
+  unidad  UnidadEscenario? @relation(fields: [unidadId], references: [id], onDelete: Restrict)
+
+  @@map("respuesta_escenario")
+}
+
+model EleccionParteEscenario {
+  intentoId Int
+  parte     ParteEscenario
+  opcionId  Int
+
+  intento IntentoReto          @relation(fields: [intentoId], references: [id], onDelete: Cascade)
+  opcion  OpcionParteEscenario @relation(fields: [opcionId], references: [id], onDelete: Restrict)
+
+  @@id([intentoId, parte])
+  @@map("eleccion_parte_escenario")
+}
+
+model SimulacionEscenario {
+  id        Int      @id @default(autoincrement())
+  intentoId Int
+  numero    Int
+  valor     Decimal  @db.Decimal(10, 2)
+  carga     Int
+  valorApp  Decimal  @db.Decimal(10, 2)
+  cumple    Boolean
+  creadoEn  DateTime @default(now())
+
+  intento IntentoReto @relation(fields: [intentoId], references: [id], onDelete: Cascade)
+
+  @@unique([intentoId, numero])
+  @@map("simulacion_escenario")
+}
+
+// =====================================================================
+// CU-07 Expediente del proyecto (RF-10, RN-22)
+// =====================================================================
+
+enum TipoDocumentoExpediente {
+  MINUTA
+  CORREO
+  FICHA_TECNICA
+  PRESUPUESTO
+}
+
+// 1:1 con Reto. El modelo correcto y su explicación son la referencia (RN-31).
+model Expediente {
+  retoId         Int             @id
+  nombreProyecto String
+  modeloCorrecto ModeloCicloVida
+  explicacion    String          @db.Text
+
+  reto Reto @relation(fields: [retoId], references: [id], onDelete: Cascade)
+
+  @@map("expediente")
+}
+
+model DocumentoExpediente {
+  id     Int                     @id @default(autoincrement())
+  retoId Int
+  orden  Int
+  tipo   TipoDocumentoExpediente
+  titulo String
+
+  reto       Reto                 @relation(fields: [retoId], references: [id], onDelete: Cascade)
+  fragmentos FragmentoDocumento[]
+  ayudas     UsoAyuda[]
+
+  @@unique([retoId, orden])
+  @@map("documento_expediente")
+}
+
+// p. ej. "Requisitos cambiantes", "Riesgo técnico bajo", "Plazo fijo"
+model CaracteristicaProyecto {
+  id     Int    @id @default(autoincrement())
+  retoId Int
+  nombre String
+
+  reto                Reto                    @relation(fields: [retoId], references: [id], onDelete: Cascade)
+  fragmentosCorrectos FragmentoDocumento[]
+  evidencias          EvidenciaSeleccionada[]
+
+  @@map("caracteristica_proyecto")
+}
+
+model FragmentoDocumento {
+  id                       Int     @id @default(autoincrement())
+  documentoId              Int
+  orden                    Int
+  texto                    String  @db.Text
+  caracteristicaCorrectaId Int? // null = fragmento irrelevante
+  respaldaModelo           Boolean @default(false) // relevante para justificar el modelo correcto
+
+  documento              DocumentoExpediente     @relation(fields: [documentoId], references: [id], onDelete: Cascade)
+  caracteristicaCorrecta CaracteristicaProyecto? @relation(fields: [caracteristicaCorrectaId], references: [id], onDelete: Restrict)
+  evidencias             EvidenciaSeleccionada[]
+
+  @@unique([documentoId, orden])
+  @@map("fragmento_documento")
+}
+
+model EvidenciaSeleccionada {
+  intentoId        Int
+  fragmentoId      Int
+  caracteristicaId Int?
+
+  intento        IntentoReto             @relation(fields: [intentoId], references: [id], onDelete: Cascade)
+  fragmento      FragmentoDocumento      @relation(fields: [fragmentoId], references: [id], onDelete: Restrict)
+  caracteristica CaracteristicaProyecto? @relation(fields: [caracteristicaId], references: [id], onDelete: Restrict)
+  // Respaldo del modelo: la evidencia vinculada debe estar seleccionada (clave compuesta).
+  vinculo        VinculoEvidencia?
+
+  @@id([intentoId, fragmentoId])
+  @@map("evidencia_seleccionada")
+}
+
+model EleccionModelo {
+  intentoId Int             @id
+  modelo    ModeloCicloVida
+
+  intento IntentoReto @relation(fields: [intentoId], references: [id], onDelete: Cascade)
+
+  @@map("eleccion_modelo")
+}
+
+model VinculoEvidencia {
+  intentoId   Int
+  fragmentoId Int
+
+  evidencia EvidenciaSeleccionada @relation(fields: [intentoId, fragmentoId], references: [intentoId, fragmentoId], onDelete: Cascade)
+
+  @@id([intentoId, fragmentoId])
+  @@map("vinculo_evidencia")
+}
+
+// =====================================================================
+// CU-12 Tienda (RF-15, RN-10, RN-11, RN-28)
+// =====================================================================
+
+// Cada compra descuenta los QP y suma las unidades en la misma transacción (RN-11).
+model CompraObjeto {
+  id           Int      @id @default(autoincrement())
+  estudianteId Int
+  objetoId     Int
+  cantidad     Int
+  qpPagados    Int
+  creadoEn     DateTime @default(now())
+
+  estudiante Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+  objeto     Objeto     @relation(fields: [objetoId], references: [id], onDelete: Restrict)
+
+  @@index([estudianteId, creadoEn])
+  @@map("compra_objeto")
+}
+
+// ===================================================================
+// CU-09 Repaso con tarjetas (RF-12, RN-24, RN-25, RN-26)
+// ===================================================================
+
+enum Autoevaluacion {
+  LO_SABIA
+  DUDE
+  NO_LO_SABIA
+}
+
+// 1:1 con Fase: cada fase trata un tema.
+model MaterialTema {
+  faseId      Int    @id
+  explicacion String @db.Text
+
+  fase Fase @relation(fields: [faseId], references: [id], onDelete: Cascade)
+
+  @@map("material_tema")
+}
+
+model EjemploTema {
+  id     Int    @id @default(autoincrement())
+  faseId Int
+  orden  Int
+  titulo String
+  texto  String @db.Text
+
+  fase Fase @relation(fields: [faseId], references: [id], onDelete: Cascade)
+
+  @@unique([faseId, orden])
+  @@map("ejemplo_tema")
+}
+
+model TerminoGlosario {
+  id         Int    @id @default(autoincrement())
+  faseId     Int
+  termino    String
+  definicion String @db.Text
+
+  fase Fase @relation(fields: [faseId], references: [id], onDelete: Cascade)
+
+  @@unique([faseId, termino])
+  @@map("termino_glosario")
+}
+
+model Tarjeta {
+  id      Int    @id @default(autoincrement())
+  faseId  Int
+  orden   Int
+  frente  String @db.Text
+  reverso String @db.Text
+
+  fase     Fase              @relation(fields: [faseId], references: [id], onDelete: Cascade)
+  progreso ProgresoTarjeta[]
+  sesiones TarjetaSesion[]
+
+  @@unique([faseId, orden])
+  @@map("tarjeta")
+}
+
+// Programación de la próxima aparición de cada tarjeta por estudiante (RN-24).
+model ProgresoTarjeta {
+  estudianteId   Int
+  tarjetaId      Int
+  // Día calendario de México en que toca repasarla otra vez.
+  proximoRepaso  DateTime       @db.Date
+  ultimaAutoeval Autoevaluacion
+
+  estudiante Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+  // Restrict: las respuestas del estudiante no se pierden si se intenta borrar contenido.
+  tarjeta    Tarjeta    @relation(fields: [tarjetaId], references: [id], onDelete: Restrict)
+
+  @@id([estudianteId, tarjetaId])
+  @@map("progreso_tarjeta")
+}
+
+// FA1: el estudiante abrió el material y salió sin repasar.
+model ConsultaTema {
+  id           Int      @id @default(autoincrement())
+  estudianteId Int
+  faseId       Int
+  creadoEn     DateTime @default(now())
+
+  estudiante Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+  fase       Fase       @relation(fields: [faseId], references: [id], onDelete: Cascade)
+
+  @@index([estudianteId, faseId])
+  @@map("consulta_tema")
+}
+
+model SesionRepaso {
+  id           Int       @id @default(autoincrement())
+  estudianteId Int
+  faseId       Int
+  iniciadaEn   DateTime  @default(now())
+  terminadaEn  DateTime?
+  // Día calendario MX en que terminó: apoya RN-25 (una vez al día por tema).
+  diaTerminada DateTime? @db.Date
+  xpOtorgada   Int       @default(0)
+
+  estudiante Estudiante      @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+  fase       Fase            @relation(fields: [faseId], references: [id], onDelete: Cascade)
+  tarjetas   TarjetaSesion[]
+
+  @@index([estudianteId, faseId, terminadaEn])
+  @@map("sesion_repaso")
+}
+
+model TarjetaSesion {
+  sesionId              Int
+  tarjetaId             Int
+  // Orden en la cola de la sesión; «no lo sabía» la manda al final (RN-24).
+  posicion              Int
+  // Primera autoevaluación de esta sesión (alimenta el resumen: sabidas, dudadas, no sabidas).
+  primeraAutoevaluacion Autoevaluacion?
+  // Última autoevaluación de esta sesión.
+  autoevaluacion        Autoevaluacion?
+  // true al marcar «lo sabía» o «dudé».
+  completada            Boolean         @default(false)
+
+  sesion  SesionRepaso @relation(fields: [sesionId], references: [id], onDelete: Cascade)
+  tarjeta Tarjeta      @relation(fields: [tarjetaId], references: [id], onDelete: Restrict)
+
+  @@id([sesionId, tarjetaId])
+  @@map("tarjeta_sesion")
+}
+
+// Dominio del estudiante en un tema, 0-100 (RN-26). Lo recalcula `calcularDominio`.
+model DominioTema {
+  estudianteId  Int
+  tema          TemaFase
+  porcentaje    Int
+  actualizadoEn DateTime @updatedAt
+
+  estudiante Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+
+  @@id([estudianteId, tema])
+  @@map("dominio_tema")
+}
+
+// ===================================================================
+// Banco de preguntas (CU-10 diagnóstico, CU-11 reto diario y CU-13 duelos)
+// ===================================================================
+
+model PreguntaBanco {
+  id          Int      @id @default(autoincrement())
+  tema        TemaFase
+  enunciado   String   @db.Text
+  explicacion String?  @db.Text
+  activa      Boolean  @default(true)
+
+  opciones    OpcionPregunta[]
+  diagnostico PreguntaDiagnostico[]
+  retoDiario  PreguntaRetoDiario[]
+  duelos      PreguntaDuelo[]
+
+  @@unique([tema, enunciado])
+  @@index([tema, activa])
+  @@map("pregunta_banco")
+}
+
+// Exactamente una opción correcta por pregunta.
+model OpcionPregunta {
+  id         Int     @id @default(autoincrement())
+  preguntaId Int
+  orden      Int
+  texto      String  @db.Text
+  correcta   Boolean
+
+  pregunta              PreguntaBanco          @relation(fields: [preguntaId], references: [id], onDelete: Cascade)
+  respuestasDiagnostico RespuestaDiagnostico[]
+  respuestasRetoDiario  PreguntaRetoDiario[]
+  respuestasDuelo       RespuestaDuelo[]
+
+  @@unique([preguntaId, orden])
+  @@map("opcion_pregunta")
+}
+
+// ===================================================================
+// CU-10 Diagnóstico y plan de estudio (RF-13, RN-26, RN-27)
+// ===================================================================
+
+enum EstadoPlan {
+  PROPUESTO
+  ACTIVO
+  REEMPLAZADO
+}
+
+enum TipoActividad {
+  RETO
+  REPASO
+  DUELO
+}
+
+model Diagnostico {
+  id           Int       @id @default(autoincrement())
+  estudianteId Int
+  creadoEn     DateTime  @default(now())
+  terminadoEn  DateTime?
+
+  estudiante Estudiante                 @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+  preguntas  PreguntaDiagnostico[]
+  respuestas RespuestaDiagnostico[]
+  resultados ResultadoDiagnosticoTema[]
+  planes     PlanEstudio[]
+
+  @@index([estudianteId, terminadoEn])
+  @@map("diagnostico")
+}
+
+model PreguntaDiagnostico {
+  diagnosticoId Int
+  preguntaId    Int
+  orden         Int
+
+  diagnostico Diagnostico   @relation(fields: [diagnosticoId], references: [id], onDelete: Cascade)
+  pregunta    PreguntaBanco @relation(fields: [preguntaId], references: [id], onDelete: Restrict)
+
+  @@id([diagnosticoId, preguntaId])
+  @@map("pregunta_diagnostico")
+}
+
+model RespuestaDiagnostico {
+  diagnosticoId Int
+  preguntaId    Int
+  opcionId      Int
+  correcta      Boolean
+
+  diagnostico Diagnostico    @relation(fields: [diagnosticoId], references: [id], onDelete: Cascade)
+  opcion      OpcionPregunta @relation(fields: [opcionId], references: [id], onDelete: Restrict)
+
+  @@id([diagnosticoId, preguntaId])
+  @@map("respuesta_diagnostico")
+}
+
+model ResultadoDiagnosticoTema {
+  diagnosticoId Int
+  tema          TemaFase
+  porcentaje    Int
+
+  diagnostico Diagnostico @relation(fields: [diagnosticoId], references: [id], onDelete: Cascade)
+
+  @@id([diagnosticoId, tema])
+  @@map("resultado_diagnostico_tema")
+}
+
+model PlanEstudio {
+  id            Int        @id @default(autoincrement())
+  estudianteId  Int
+  diagnosticoId Int
+  estado        EstadoPlan
+  // FE2: plan de mejora cuando no hay temas débiles.
+  esPlanMejora  Boolean    @default(false)
+  creadoEn      DateTime   @default(now())
+  aceptadoEn    DateTime?
+
+  estudiante  Estudiante      @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+  diagnostico Diagnostico     @relation(fields: [diagnosticoId], references: [id], onDelete: Cascade)
+  actividades ActividadPlan[]
+
+  @@index([estudianteId, estado])
+  @@map("plan_estudio")
+}
+
+model ActividadPlan {
+  id     Int           @id @default(autoincrement())
+  planId Int
+  orden  Int
+  tipo   TipoActividad
+  tema   TemaFase
+  // Solo si tipo = RETO.
+  retoId Int?
+  // Motivo en lenguaje claro, p. ej. «Tu dominio de Atributos de calidad es 55 %».
+  motivo String
+
+  plan PlanEstudio @relation(fields: [planId], references: [id], onDelete: Cascade)
+  reto Reto?       @relation(fields: [retoId], references: [id], onDelete: Restrict)
+
+  @@index([planId, orden])
+  @@map("actividad_plan")
+}
+
+// ===================================================================
+// CU-11 Reto diario contrarreloj (RF-14, RN-12, RN-13, RN-29, RNF-SE-05)
+// ===================================================================
+
+model RetoDiario {
+  id            Int       @id @default(autoincrement())
+  estudianteId  Int
+  // Día calendario MX (RN-12): el @@unique impide un segundo reto el mismo día.
+  dia           DateTime  @db.Date
+  // Multiplicador de QP vigente al iniciar.
+  multiplicador Decimal   @db.Decimal(3, 2)
+  aciertos      Int?
+  xpOtorgada    Int       @default(0)
+  qpOtorgado    Int       @default(0)
+  creadoEn      DateTime  @default(now())
+  terminadoEn   DateTime?
+
+  estudiante Estudiante           @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+  preguntas  PreguntaRetoDiario[]
+
+  @@unique([estudianteId, dia])
+  @@map("reto_diario")
+}
+
+model PreguntaRetoDiario {
+  retoDiarioId Int
+  // 1..10
+  numero       Int
+  preguntaId   Int
+  // Momento en que el servidor habilitó la pregunta (RNF-SE-05).
+  entregadaEn  DateTime?
+  opcionId     Int?
+  correcta     Boolean?
+
+  retoDiario RetoDiario      @relation(fields: [retoDiarioId], references: [id], onDelete: Cascade)
+  pregunta   PreguntaBanco   @relation(fields: [preguntaId], references: [id], onDelete: Restrict)
+  opcion     OpcionPregunta? @relation(fields: [opcionId], references: [id], onDelete: Restrict)
+
+  @@id([retoDiarioId, numero])
+  @@map("pregunta_reto_diario")
+}
+
+// ===================================================================
+// CU-13 Duelos (RF-16, RN-14, RN-15, RNF-SE-04, RNF-SE-05)
+// ===================================================================
+
+enum EstadoDuelo {
+  PENDIENTE
+  ACEPTADO
+  TERMINADO
+  RECHAZADO
+  EXPIRADO
+}
+
+model Duelo {
+  id          Int         @id @default(autoincrement())
+  retadorId   Int
+  retadoId    Int
+  tema        TemaFase
+  estado      EstadoDuelo @default(PENDIENTE)
+  creadoEn    DateTime    @default(now())
+  // creadoEn + 48 h (RN-15).
+  expiraEn    DateTime
+  // null con empate exacto o sin terminar.
+  ganadorId   Int?
+  empate      Boolean     @default(false)
+  terminadoEn DateTime?
+  // D-001: el retador ya vio el aviso de cierre (rechazo o expiración) de su duelo.
+  avisoCierreVisto Boolean @default(false)
+
+  retador    Estudiante       @relation("DueloRetador", fields: [retadorId], references: [id], onDelete: Cascade)
+  retado     Estudiante       @relation("DueloRetado", fields: [retadoId], references: [id], onDelete: Cascade)
+  ganador    Estudiante?      @relation("DueloGanador", fields: [ganadorId], references: [id], onDelete: SetNull)
+  preguntas  PreguntaDuelo[]
+  respuestas RespuestaDuelo[]
+  resultados ResultadoDuelo[]
+
+  @@index([retadorId, estado])
+  @@index([retadoId, estado])
+  @@index([estado, expiraEn])
+  @@map("duelo")
+}
+
+// 5 preguntas del tema, la misma ronda para ambos estudiantes.
+model PreguntaDuelo {
+  dueloId    Int
+  numero     Int
+  preguntaId Int
+
+  duelo    Duelo         @relation(fields: [dueloId], references: [id], onDelete: Cascade)
+  pregunta PreguntaBanco @relation(fields: [preguntaId], references: [id], onDelete: Restrict)
+
+  @@id([dueloId, numero])
+  @@map("pregunta_duelo")
+}
+
+model RespuestaDuelo {
+  dueloId      Int
+  estudianteId Int
+  numero       Int
+  // Momento en que el servidor habilitó la pregunta (RNF-SE-05).
+  entregadaEn  DateTime
+  respondidaEn DateTime?
+  opcionId     Int?
+  correcta     Boolean   @default(false)
+  // Tiempo usado: los segundos hasta responder, o 20 si se agotó.
+  segundos     Decimal   @default(20) @db.Decimal(5, 2)
+
+  duelo      Duelo           @relation(fields: [dueloId], references: [id], onDelete: Cascade)
+  estudiante Estudiante      @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+  opcion     OpcionPregunta? @relation(fields: [opcionId], references: [id], onDelete: Restrict)
+
+  @@id([dueloId, estudianteId, numero])
+  @@map("respuesta_duelo")
+}
+
+// Se crea cuando el estudiante termina su ronda; el rival no lo ve hasta que el duelo termina.
+model ResultadoDuelo {
+  dueloId         Int
+  estudianteId    Int
+  porcentaje      Int
+  segundosTotales Decimal @db.Decimal(6, 2)
+  xpOtorgada      Int     @default(0)
+
+  duelo      Duelo      @relation(fields: [dueloId], references: [id], onDelete: Cascade)
+  estudiante Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+
+  @@id([dueloId, estudianteId])
+  @@map("resultado_duelo")
 }

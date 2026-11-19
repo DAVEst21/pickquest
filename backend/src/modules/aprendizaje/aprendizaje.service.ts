@@ -23,37 +23,19 @@ import {
 } from './dto/intento.dto';
 import {
   calcularEstadoReto,
-  calcularEstadosFases,
   calcularProgresoFase,
   EstadoFase,
   ResumenReto,
-  resumirIntentos,
   retoActual,
   retoDesbloqueado,
 } from './estado-fases';
 import { calificarPorPorcentaje } from './calificacion-estrellas';
+import { cargarProgresoFases, FaseSeleccionada, ProgresoEstudiante } from './progreso-fases';
 import { MecanicasRegistro } from './mecanicas/mecanicas.registro';
 import { columnasAPista, pistaAColumnas } from './mecanicas/pista';
+import { puedeVerReferencia } from './mecanicas/referencia';
 import { redactarRetroalimentacion } from './mecanicas/retroalimentacion';
 import { Db, EvaluadorMecanica, PistaDto } from './mecanicas/tipos';
-
-const SELECCION_FASE = {
-  id: true,
-  nombre: true,
-  tema: true,
-  dificultad: true,
-  orden: true,
-  descripcion: true,
-  retos: { select: { id: true, orden: true, mecanica: true }, orderBy: { orden: 'asc' } },
-} satisfies Prisma.FaseSelect;
-
-type FaseSeleccionada = Prisma.FaseGetPayload<{ select: typeof SELECCION_FASE }>;
-
-interface ProgresoEstudiante {
-  fases: FaseSeleccionada[];
-  estados: Map<number, EstadoFase>;
-  resumen: Map<number, ResumenReto>;
-}
 
 type IntentoConReto = IntentoReto & { reto: Reto };
 
@@ -208,7 +190,11 @@ export class AprendizajeService {
       if (intento.usoAyuda) {
         throw new ConflictException('Ya usaste una ayuda en este intento (máximo 1)');
       }
-      await this.economia.consumirObjetoEquipado(tx, estudianteId, objetoId);
+      const fase = await tx.fase.findUniqueOrThrow({
+        where: { id: intento.reto.faseId },
+        select: { tema: true },
+      });
+      await this.economia.consumirObjetoEquipado(tx, estudianteId, objetoId, fase.tema);
       const pista = await this.mecanicas.obtener(intento.reto.mecanica).aplicarAyuda(tx, intentoId);
       // La pista se guarda de forma relacional para volver a dibujarla al retomar el intento.
       await tx.usoAyuda.create({ data: { intentoId, objetoId, ...pistaAColumnas(pista),
@@ -219,6 +205,17 @@ export class AprendizajeService {
         ? await this.mecanicas.obtener(intento.reto.mecanica).borrador(tx, intentoId)
         : undefined;
       return { intentoId, objetoId, pista, borradorActualizado };
+    });
+  }
+
+  /** CU-05: ejecuta una simulación del escenario con lo guardado (FE1 partes vacías, FE2 límite, RN-20). */
+  simularEscenario(estudianteId: number, intentoId: number) {
+    return this.enTransaccion(estudianteId, async (tx) => {
+      const intento = await this.intentoEnCurso(tx, estudianteId, intentoId);
+      if (intento.reto.mecanica !== Mecanica.SIMULADOR_ESCENARIOS) {
+        throw new BadRequestException('Este reto no es un simulador de escenarios de calidad');
+      }
+      return this.mecanicas.escenarios.simular(tx, intentoId);
     });
   }
 
@@ -364,38 +361,8 @@ export class AprendizajeService {
   }
 
   /** Solo cuentan los intentos CALIFICADO (progreso, mejor calificación, aprobación). */
-  private async cargarProgreso(estudianteId: number, db: Db): Promise<ProgresoEstudiante> {
-    const fases = await db.fase.findMany({
-      select: SELECCION_FASE,
-      orderBy: { orden: 'asc' },
-    });
-    const grupos = await db.intentoReto.groupBy({
-      by: ['retoId', 'aprobado'],
-      where: { estudianteId, estado: 'CALIFICADO' },
-      _count: { _all: true },
-      _max: { porcentaje: true, calificacionEstrellas: true },
-      _sum: { qpGanado: true },
-    });
-
-    const resumen = resumirIntentos(
-      grupos.map((g) => ({
-        retoId: g.retoId,
-        aprobado: g.aprobado,
-        intentos: g._count._all,
-        maxPorcentaje: g._max.porcentaje,
-        maxEstrellas: g._max.calificacionEstrellas,
-        sumaQpGanado: g._sum.qpGanado ?? 0,
-      })),
-    );
-    const estados = calcularEstadosFases(
-      fases.map((f) => ({
-        id: f.id,
-        orden: f.orden,
-        retoIds: f.retos.map((r) => r.id),
-      })),
-      resumen,
-    );
-    return { fases, estados, resumen };
+  private cargarProgreso(estudianteId: number, db: Db): Promise<ProgresoEstudiante> {
+    return cargarProgresoFases(db, estudianteId);
   }
 
   // ===================================================================
@@ -437,7 +404,13 @@ export class AprendizajeService {
         atributoEscenario: { select: { minimoObligatorio: true } },
       },
     });
-    return columnasAPista(uso);
+    const pista = columnasAPista(uso);
+    if (pista?.tipo === 'RANGO_ESCENARIO') {
+      // CU-05: el rango aceptable no se guarda en UsoAyuda; se lee del escenario del reto.
+      const intento = await db.intentoReto.findUniqueOrThrow({ where: { id: intentoId }, select: { retoId: true } });
+      return this.mecanicas.escenarios.pistaDeRango(db, intento.retoId);
+    }
+    return pista;
   }
 
   private async construirEnCurso(db: Db, intento: IntentoConReto): Promise<IntentoEnCursoDto> {
@@ -446,7 +419,7 @@ export class AprendizajeService {
       estado: 'EN_CURSO',
       intentoId: intento.id,
       ...(await this.cabecera(db, intento)),
-      contenido: await evaluador.contenidoPublico(db, intento.retoId),
+      contenido: await evaluador.contenidoPublico(db, intento.retoId, intento.id),
       borrador: await evaluador.borrador(db, intento.id),
       ayudaUsada: intento.usoAyuda,
       pista: await this.pistaGuardada(db, intento.id),
@@ -458,8 +431,9 @@ export class AprendizajeService {
   private async construirCalificado(db: Db, intento: IntentoConReto): Promise<IntentoCalificadoDto> {
     const evaluador = this.mecanicas.obtener(intento.reto.mecanica);
     const { retroalimentacion: completa } = await evaluador.calificar(db, intento.id);
-    // Solo un intento aprobado recibe la respuesta de referencia completa.
-    const retroalimentacion = redactarRetroalimentacion(completa, intento.aprobado);
+    // RN-31: la referencia solo viaja si el intento aprobó o ya van 3 intentos no aprobados.
+    const verReferencia = await puedeVerReferencia(db, intento.estudianteId, intento.retoId, intento);
+    const retroalimentacion = redactarRetroalimentacion(completa, verReferencia);
     return {
       estado: 'CALIFICADO',
       intentoId: intento.id,

@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { Client } from 'pg';
 import fs from 'node:fs';
 import path from 'node:path';
-import { nuevaPagina, esperarGuardado } from './fixtures';
+import { aprobarSinRecompensa, MECANICAS_SPRINT3_PREVIAS, nuevaPagina, esperarGuardado } from './fixtures';
 
 // Ejecución trazable de las 24 filas del libro de pruebas; no modifica ni documenta CU-01.
 const BACK = process.env.E2E_BACK_URL ?? 'http://localhost:3000';
@@ -91,6 +91,11 @@ for (const cu of ['CU-03', 'CU-04']) {
       reto = retos.find(r => r.mecanica === (cu === 'CU-03' ? 'TABLERO_MOSCOW' : 'INSPECCION_SISTEMA'));
       for (const r of retos) {
         if (r.id === reto.id) break;
+        // Retos del Sprint 3 que anteceden a los medidos aquí: se dan por aprobados sin recompensa.
+        if (MECANICAS_SPRINT3_PREVIAS.includes(r.mecanica)) {
+          await aprobarSinRecompensa(db, alumno, r.id);
+          continue;
+        }
         const i = await api(`/retos/${r.id}/intentos`, 'POST');
         await prepararPerfecto(r, i.intentoId); await api(`/intentos/${i.intentoId}/enviar`, 'POST');
       }

@@ -1,11 +1,14 @@
 /** Error de una llamada al backend, con el código HTTP (0 si no hubo respuesta). */
 export class ApiError extends Error {
   readonly status: number;
+  /** Cuerpo completo de la respuesta de error (qpFaltantes, equipados...). */
+  readonly datos: Record<string, unknown>;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, datos: Record<string, unknown> = {}) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    this.datos = datos;
   }
 }
 

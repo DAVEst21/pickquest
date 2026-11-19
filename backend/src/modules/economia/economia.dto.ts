@@ -7,4 +7,6 @@ export class ObjetoEquipadoDto {
   rareza: string;
   /** Unidades disponibles; con 0 el objeto no se puede usar (RN-10). */
   cantidad: number;
+  /** null: sirve en cualquier reto; con valor, solo en los retos de esa fase. */
+  tema: string | null;
 }
